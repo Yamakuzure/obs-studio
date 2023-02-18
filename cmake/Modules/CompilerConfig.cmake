@@ -135,6 +135,18 @@ else()
         CACHE INTERNAL "wine IDL header file generation program")
     add_compile_definitions("_WIN32_WINNT=0x0600;WINVER=0x0600")
   endif()
+
+  # Add sanitizer options if set
+  if (CMAKE_SANITIZE MATCHES "[Tt]hread")
+    add_compile_options(-fsanitize=thread -ggdb)
+    add_link_options(-fsanitize=thread -ggdb)
+  elseif(CMAKE_SANITIZE MATCHES "[Aa]ddress")
+    add_compile_options(-fsanitize=address -ggdb)
+    add_link_options(-fsanitize=address -ggdb)
+  elseif(CMAKE_SANITIZE MATCHES "[Ll]eak")
+    add_compile_options(-fsanitize=leak -ggdb)
+    add_link_options(-fsanitize=leak -ggdb)
+  endif()
 endif()
 
 if(MSVC_CXX_ARCHITECTURE_ID)
