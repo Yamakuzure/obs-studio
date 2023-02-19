@@ -22,15 +22,18 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "pulse-wrapper.h"
 
+#include <stdatomic.h>
+#include <threads.h>
+
 #define NSEC_PER_SEC 1000000000LL
 #define NSEC_PER_MSEC 1000000L
 
-#define PULSE_DATA(voidptr) struct pulse_data *data = voidptr;
+#define PULSE_DATA(voidptr) struct pulse_data *data = voidptr
 #define blog(level, msg, ...) blog(level, "pulse-input: " msg, ##__VA_ARGS__)
 
 struct pulse_data {
 	obs_source_t *source;
-	pa_stream *stream;
+	atomic_uintptr_t stream;
 
 	/* user settings */
 	char *device;
@@ -40,17 +43,61 @@ struct pulse_data {
 	/* server info */
 	enum speaker_layout speakers;
 	pa_sample_format_t format;
-	uint_fast32_t samples_per_sec;
-	uint_fast32_t bytes_per_frame;
-	uint_fast8_t channels;
-	uint64_t first_ts;
+	atomic_uint_fast32_t samples_per_sec;
+	atomic_uint_fast32_t bytes_per_frame;
+	atomic_uint_fast8_t channels;
+	atomic_uint_least64_t first_ts;
 
 	/* statistics */
-	uint_fast32_t packets;
-	uint_fast64_t frames;
+	atomic_uint_fast32_t packets;
+	atomic_uint_fast64_t frames;
+
+	/* Is the stream active? */
+	volatile atomic_bool have_stream;
+	volatile atomic_bool is_destroyed;
 };
 
+#define get_stream( DATA_p_)       \
+	((pa_stream*)atomic_load( &((DATA_p_)->stream)                  ))
+#define set_stream( DATA_p_, VAL_) \
+	             atomic_store(&((DATA_p_)->stream), (uintptr_t)(VAL_))
+#define have_stream(DATA_p_) ( \
+	( false == atomic_load_explicit( &((DATA_p_)->is_destroyed), memory_order_relaxed) ) && \
+	( true  == atomic_load_explicit( &((DATA_p_)->have_stream),  memory_order_relaxed) ) && \
+	( NULL  != get_stream(DATA_p_) ) \
+)
+
+static          mtx_t       pulse_data_lock;
+static volatile atomic_bool pulse_data_lock_initialized = ATOMIC_VAR_INIT( false );
+
 static void pulse_stop_recording(struct pulse_data *data);
+
+void create_internal_pulse_lock(void) {
+	if (!pulse_data_lock_initialized) {
+		pulse_data_lock_initialized = true;
+		mtx_init(&pulse_data_lock, mtx_plain | mtx_recursive);
+	}
+}
+
+void destroy_internal_pulse_lock(void) {
+	if (pulse_data_lock_initialized) {
+		mtx_destroy(&pulse_data_lock);
+		pulse_data_lock_initialized = false;
+	}
+}
+
+static inline void lock_pulse_data(void) {
+	if (pulse_data_lock_initialized) {
+		mtx_lock(&pulse_data_lock);
+	}
+}
+
+static inline void unlock_pulse_data(void) {
+	if (pulse_data_lock_initialized) {
+		mtx_unlock(&pulse_data_lock);
+	}
+}
+
 
 /**
  * get obs from pulse audio format
@@ -67,7 +114,7 @@ static enum audio_format pulse_to_obs_audio_format(pa_sample_format_t format)
 	case PA_SAMPLE_FLOAT32LE:
 		return AUDIO_FORMAT_FLOAT;
 	default:
-		return AUDIO_FORMAT_UNKNOWN;
+		break;
 	}
 
 	return AUDIO_FORMAT_UNKNOWN;
@@ -101,6 +148,8 @@ pulse_channels_to_obs_speakers(uint_fast32_t channels)
 		return SPEAKERS_5POINT1;
 	case 8:
 		return SPEAKERS_7POINT1;
+	default:
+		break;
 	}
 
 	return SPEAKERS_UNKNOWN;
@@ -187,10 +236,10 @@ static void pulse_stream_read(pa_stream *p, size_t nbytes, void *userdata)
 	const void *frames;
 	size_t bytes;
 
-	if (!data->stream)
+	if (!have_stream(data))
 		goto exit;
 
-	pa_stream_peek(data->stream, &frames, &bytes);
+	pa_stream_peek(get_stream(data), &frames, &bytes);
 
 	// check if we got data
 	if (!bytes)
@@ -199,7 +248,7 @@ static void pulse_stream_read(pa_stream *p, size_t nbytes, void *userdata)
 	if (!frames) {
 		blog(LOG_ERROR, "Got audio hole of %u bytes",
 		     (unsigned int)bytes);
-		pa_stream_drop(data->stream);
+		pa_stream_drop(get_stream(data));
 		goto exit;
 	}
 
@@ -211,16 +260,17 @@ static void pulse_stream_read(pa_stream *p, size_t nbytes, void *userdata)
 	out.frames = bytes / data->bytes_per_frame;
 	out.timestamp = get_sample_time(out.frames, out.samples_per_sec);
 
-	if (!data->first_ts)
+	if (0 == data->first_ts)
 		data->first_ts = out.timestamp + STARTUP_TIMEOUT_NS;
 
 	if (out.timestamp > data->first_ts)
 		obs_source_output_audio(data->source, &out);
 
-	data->packets++;
+	++data->packets;
 	data->frames += out.frames;
 
-	pa_stream_drop(data->stream);
+	if (have_stream(data))
+		pa_stream_drop(get_stream(data));
 exit:
 	pulse_signal(0);
 }
@@ -308,9 +358,11 @@ static void pulse_source_info(pa_context *c, const pa_source_info *i, int eol,
 		     i->sample_spec.channels, channels);
 	}
 
+	lock_pulse_data();
 	data->format = format;
 	data->samples_per_sec = i->sample_spec.rate;
 	data->channels = channels;
+	unlock_pulse_data();
 
 skip:
 	pulse_signal(0);
@@ -338,7 +390,9 @@ static int_fast32_t pulse_start_recording(struct pulse_data *data)
 		blog(LOG_ERROR, "Unable to get source info !");
 		return -1;
 	}
+	lock_pulse_data();
 	if (data->format == PA_SAMPLE_INVALID) {
+		unlock_pulse_data();
 		blog(LOG_ERROR,
 		     "An error occurred while getting the source info!");
 		return -1;
@@ -348,6 +402,7 @@ static int_fast32_t pulse_start_recording(struct pulse_data *data)
 	spec.format = data->format;
 	spec.rate = data->samples_per_sec;
 	spec.channels = data->channels;
+	unlock_pulse_data();
 
 	if (!pa_sample_spec_valid(&spec)) {
 		blog(LOG_ERROR, "Sample spec is not valid");
@@ -359,15 +414,15 @@ static int_fast32_t pulse_start_recording(struct pulse_data *data)
 
 	pa_channel_map channel_map = pulse_channel_map(data->speakers);
 
-	data->stream = pulse_stream_new(obs_source_get_name(data->source),
-					&spec, &channel_map);
-	if (!data->stream) {
+	set_stream(data, pulse_stream_new(obs_source_get_name(data->source),
+					  &spec, &channel_map));
+	if (!get_stream(data)) {
 		blog(LOG_ERROR, "Unable to create stream");
 		return -1;
 	}
 
 	pulse_lock();
-	pa_stream_set_read_callback(data->stream, pulse_stream_read,
+	pa_stream_set_read_callback(get_stream(data), pulse_stream_read,
 				    (void *)data);
 	pulse_unlock();
 
@@ -383,8 +438,10 @@ static int_fast32_t pulse_start_recording(struct pulse_data *data)
 		flags |= PA_STREAM_DONT_MOVE;
 
 	pulse_lock();
-	int_fast32_t ret = pa_stream_connect_record(data->stream, data->device,
+	int_fast32_t ret = pa_stream_connect_record(get_stream(data),
+						    data->device,
 						    &attr, flags);
+	data->have_stream = true;
 	pulse_unlock();
 	if (ret < 0) {
 		pulse_stop_recording(data);
@@ -406,22 +463,27 @@ static int_fast32_t pulse_start_recording(struct pulse_data *data)
  */
 static void pulse_stop_recording(struct pulse_data *data)
 {
-	if (data->stream) {
+	if (!data)
+		return;
+
+	if (have_stream(data)) {
+		data->have_stream = false;
 		pulse_lock();
-		pa_stream_disconnect(data->stream);
-		pa_stream_unref(data->stream);
-		data->stream = NULL;
+		pa_stream_disconnect(get_stream(data));
+		pa_stream_unref(get_stream(data));
+		set_stream(data, NULL);
 		pulse_unlock();
 	}
 
 	blog(LOG_INFO, "Stopped recording from '%s'", data->device);
 	blog(LOG_INFO,
 	     "Got %" PRIuFAST32 " packets with %" PRIuFAST64 " frames",
-	     data->packets, data->frames);
+	     atomic_load_explicit(&data->packets, memory_order_relaxed),
+	     atomic_load_explicit(&data->frames, memory_order_relaxed));
 
 	data->first_ts = 0;
-	data->packets = 0;
-	data->frames = 0;
+	data->packets  = 0;
+	data->frames   = 0;
 }
 
 /**
@@ -531,13 +593,18 @@ static void pulse_destroy(void *vptr)
 	if (!data)
 		return;
 
-	if (data->stream)
-		pulse_stop_recording(data);
+	data->is_destroyed = true;
+
+	pulse_stop_recording(data);
 	pulse_unref();
 
+	lock_pulse_data();
 	if (data->device)
 		bfree(data->device);
+
 	bfree(data);
+	unlock_pulse_data();
+	destroy_internal_pulse_lock();
 }
 
 /**
@@ -550,6 +617,7 @@ static void pulse_update(void *vptr, obs_data_t *settings)
 	const char *new_device;
 
 	new_device = obs_data_get_string(settings, "device_id");
+	lock_pulse_data();
 	if (!data->device || strcmp(data->device, new_device) != 0) {
 		if (data->device)
 			bfree(data->device);
@@ -557,12 +625,12 @@ static void pulse_update(void *vptr, obs_data_t *settings)
 		data->is_default = strcmp("default", data->device) == 0;
 		restart = true;
 	}
+	unlock_pulse_data();
 
 	if (!restart)
 		return;
 
-	if (data->stream)
-		pulse_stop_recording(data);
+	pulse_stop_recording(data);
 	pulse_start_recording(data);
 }
 
@@ -572,13 +640,18 @@ static void pulse_update(void *vptr, obs_data_t *settings)
 static void *pulse_create(obs_data_t *settings, obs_source_t *source,
 			  bool input)
 {
-	struct pulse_data *data = bzalloc(sizeof(struct pulse_data));
+	struct pulse_data *data;
 
-	data->input = input;
-	data->source = source;
+	create_internal_pulse_lock();
+	data = bzalloc(sizeof(struct pulse_data));
 
-	pulse_init();
-	pulse_update(data, settings);
+	if ( data ) {
+		data->input = input;
+		data->source = source;
+
+		pulse_init();
+		pulse_update(data, settings);
+	}
 
 	return data;
 }
