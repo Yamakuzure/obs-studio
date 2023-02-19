@@ -1188,6 +1188,7 @@ static inline void obs_free_hotkeys(void)
 {
 	struct obs_core_hotkeys *hotkeys = &obs->hotkeys;
 
+	pthread_mutex_lock(&hotkeys->mutex);
 	bfree(hotkeys->mute);
 	bfree(hotkeys->unmute);
 	bfree(hotkeys->push_to_mute);
@@ -1198,6 +1199,7 @@ static inline void obs_free_hotkeys(void)
 	obs_hotkey_name_map_free();
 
 	obs_hotkeys_platform_free(hotkeys);
+	pthread_mutex_unlock(&hotkeys->mutex);
 	pthread_mutex_destroy(&hotkeys->mutex);
 }
 
