@@ -705,7 +705,7 @@ struct obs_source {
 	volatile long activate_refs;
 
 	/* source is in the process of being destroyed */
-	volatile long destroying;
+	volatile atomic_bool destroying;
 
 	/* used to indicate that the source has been removed and all
 	 * references to it should be released (not exactly how I would prefer

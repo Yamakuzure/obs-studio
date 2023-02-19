@@ -47,7 +47,7 @@ static inline bool deinterlacing_enabled(const struct obs_source *source)
 
 static inline bool destroying(const struct obs_source *source)
 {
-	return os_atomic_load_long(&source->destroying);
+	return atomic_load(&source->destroying);
 }
 
 struct obs_source_info *get_source_info(const char *id)
@@ -631,7 +631,7 @@ void obs_source_destroy(struct obs_source *source)
 	if (!obs_source_valid(source, "obs_source_destroy"))
 		return;
 
-	if (os_atomic_set_long(&source->destroying, true) == true) {
+	if (atomic_exchange(&source->destroying, true)) {
 		blog(LOG_ERROR, "Double destroy just occurred. "
 				"Something called addref on a source "
 				"after it was already fully released, "
