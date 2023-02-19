@@ -487,11 +487,23 @@ static void gl_x11_egl_device_leave_context(gs_device_t *device)
 {
 	const EGLDisplay display = device->plat->edisplay;
 
+	/* eglMakeCurrent always implicitly locks the X display, so lets
+	 * unlock it here twice: First for the entering of the context ...
+	 */
+	Display *xdisp = device->plat->xdisplay;
+	if (xdisp)
+		XUnlockDisplay(xdisp);
+
 	if (!eglMakeCurrent(display, EGL_NO_SURFACE, EGL_NO_SURFACE,
 			    EGL_NO_CONTEXT)) {
 		blog(LOG_ERROR, "Failed to reset current context: %s",
 		     get_egl_error_string());
 	}
+
+	/* ... and two for the leaving of the context.
+	 */
+	if (xdisp)
+		XUnlockDisplay(xdisp);
 }
 
 static void *gl_x11_egl_device_get_device_obj(gs_device_t *device)
