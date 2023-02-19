@@ -3101,12 +3101,12 @@ void obs_remove_main_rendered_callback(void (*rendered)(void *param),
 
 uint32_t obs_get_total_frames(void)
 {
-	return obs->video.total_frames;
+	return atomic_load(&obs->video.total_frames);
 }
 
 uint32_t obs_get_lagged_frames(void)
 {
-	return obs->video.lagged_frames;
+	return atomic_load(&obs->video.lagged_frames);
 }
 
 struct obs_core_video_mix *get_mix_for_video(video_t *v)

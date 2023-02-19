@@ -40,6 +40,8 @@
 
 #include <caption/caption.h>
 
+#include <stdatomic.h>
+
 /* Custom helpers for the UUID hash table */
 #define HASH_FIND_UUID(head, uuid, out) \
 	HASH_FIND(hh_uuid, head, uuid, UUID_STR_LENGTH, out)
@@ -336,8 +338,8 @@ struct obs_core_video {
 	uint64_t video_avg_frame_time_ns;
 	double video_fps;
 	pthread_t video_thread;
-	uint32_t total_frames;
-	uint32_t lagged_frames;
+	atomic_uint_fast32_t total_frames;
+	atomic_uint_fast32_t lagged_frames;
 	bool thread_initialized;
 
 	gs_texture_t *transparent_texture;

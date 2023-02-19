@@ -851,8 +851,8 @@ static inline void video_sleep(struct obs_core_video *video, uint64_t *p_time,
 		*p_time = cur_time + interval_ns * count;
 	}
 
-	video->total_frames += count;
-	video->lagged_frames += count - 1;
+	atomic_fetch_add(&video->total_frames, count);
+	atomic_fetch_add(&video->lagged_frames, count - 1);
 
 	vframe_info.timestamp = cur_time;
 	vframe_info.count = count;
