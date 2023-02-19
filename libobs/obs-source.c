@@ -677,6 +677,11 @@ void obs_source_destroy(struct obs_source *source)
 				 (os_task_t)obs_source_destroy_defer, source);
 }
 
+#define PTHREAD_MUTEX_DESTROY_SAFE(m) { \
+	pthread_mutex_lock(&(m));       \
+	pthread_mutex_unlock(&(m));     \
+	pthread_mutex_destroy(&(m));  } do {} while(0)
+
 static void obs_source_destroy_defer(struct obs_source *source)
 {
 	size_t i;
@@ -738,13 +743,13 @@ static void obs_source_destroy_defer(struct obs_source *source)
 	da_free(source->async_cache);
 	da_free(source->async_frames);
 	da_free(source->filters);
-	pthread_mutex_destroy(&source->filter_mutex);
-	pthread_mutex_destroy(&source->audio_actions_mutex);
-	pthread_mutex_destroy(&source->audio_buf_mutex);
-	pthread_mutex_destroy(&source->audio_cb_mutex);
-	pthread_mutex_destroy(&source->audio_mutex);
-	pthread_mutex_destroy(&source->caption_cb_mutex);
-	pthread_mutex_destroy(&source->async_mutex);
+	PTHREAD_MUTEX_DESTROY_SAFE(source->filter_mutex);
+	PTHREAD_MUTEX_DESTROY_SAFE(source->audio_actions_mutex);
+	PTHREAD_MUTEX_DESTROY_SAFE(source->audio_buf_mutex);
+	PTHREAD_MUTEX_DESTROY_SAFE(source->audio_cb_mutex);
+	PTHREAD_MUTEX_DESTROY_SAFE(source->audio_mutex);
+	PTHREAD_MUTEX_DESTROY_SAFE(source->caption_cb_mutex);
+	PTHREAD_MUTEX_DESTROY_SAFE(source->async_mutex);
 	obs_data_release(source->private_settings);
 	obs_context_data_free(&source->context);
 
