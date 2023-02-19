@@ -374,6 +374,7 @@ fail_display_open:
 	bfree(plat);
 	plat = NULL;
 success:
+	XUnlockDisplay(display);
 	UNUSED_PARAMETER(adapter);
 	return plat;
 }
