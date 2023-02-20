@@ -70,7 +70,7 @@ static inline void free_packets(struct rtmp_stream *stream)
 	if (num_packets)
 		info("Freeing %d remaining packets", (int)num_packets);
 
-	while (stream->packets.size) {
+	while (cb_get_size(stream->packets)) {
 		struct encoder_packet packet;
 		circlebuf_pop_front(&stream->packets, &packet, sizeof(packet));
 		obs_encoder_packet_release(&packet);
@@ -252,7 +252,7 @@ static inline bool get_next_packet(struct rtmp_stream *stream,
 	bool new_packet = false;
 
 	pthread_mutex_lock(&stream->packets_mutex);
-	if (stream->packets.size) {
+	if (cb_get_size(stream->packets)) {
 		circlebuf_pop_front(&stream->packets, packet,
 				    sizeof(struct encoder_packet));
 		new_packet = true;
@@ -1477,7 +1477,7 @@ static inline bool add_packet(struct rtmp_stream *stream,
 
 static inline size_t num_buffered_packets(struct rtmp_stream *stream)
 {
-	return stream->packets.size / sizeof(struct encoder_packet);
+	return cb_get_size(stream->packets) / sizeof(struct encoder_packet);
 }
 
 static void drop_frames(struct rtmp_stream *stream, const char *name,
@@ -1496,7 +1496,7 @@ static void drop_frames(struct rtmp_stream *stream, const char *name,
 
 	circlebuf_reserve(&new_buf, sizeof(struct encoder_packet) * 8);
 
-	while (stream->packets.size) {
+	while (cb_get_size(stream->packets)) {
 		struct encoder_packet packet;
 		circlebuf_pop_front(&stream->packets, &packet, sizeof(packet));
 
@@ -1529,7 +1529,7 @@ static void drop_frames(struct rtmp_stream *stream, const char *name,
 static bool find_first_video_packet(struct rtmp_stream *stream,
 				    struct encoder_packet *first)
 {
-	size_t count = stream->packets.size / sizeof(*first);
+	size_t count = cb_get_size(stream->packets) / sizeof(*first);
 
 	for (size_t i = 0; i < count; i++) {
 		struct encoder_packet *cur =
@@ -1553,7 +1553,7 @@ static bool dbr_bitrate_lowered(struct rtmp_stream *stream)
 	    stream->dbr_est_bitrate < stream->dbr_cur_bitrate) {
 		stream->dbr_data_size = 0;
 		circlebuf_pop_front(&stream->dbr_frames, NULL,
-				    stream->dbr_frames.size);
+				    cb_get_size(stream->dbr_frames));
 		est_bitrate = stream->dbr_est_bitrate / 100 * 100;
 		if (est_bitrate < 50) {
 			est_bitrate = 50;

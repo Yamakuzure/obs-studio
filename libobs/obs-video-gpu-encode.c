@@ -224,7 +224,7 @@ void free_gpu_encoding(struct obs_core_video_mix *video)
 
 #define free_circlebuf(x)                                               \
 	do {                                                            \
-		while (x.size) {                                        \
+		while (cb_get_size(x)) {                                \
 			struct obs_tex_frame frame;                     \
 			circlebuf_pop_front(&x, &frame, sizeof(frame)); \
 			gs_texture_destroy(frame.tex);                  \

@@ -107,7 +107,7 @@ static inline void get_sidechain_data(struct compressor_data *cd,
 	if (cd->max_sidechain_frames < num_samples)
 		cd->max_sidechain_frames = num_samples;
 
-	if (cd->sidechain_data[0].size < data_size) {
+	if (cb_get_size(cd->sidechain_data[0]) < data_size) {
 		pthread_mutex_unlock(&cd->sidechain_mutex);
 		goto clear;
 	}
@@ -162,7 +162,7 @@ static void sidechain_capture(void *param, obs_source_t *source,
 	if (!expected_size)
 		goto unlock;
 
-	if (cd->sidechain_data[0].size > expected_size * 2) {
+	if (cb_get_size(cd->sidechain_data[0]) > expected_size * 2) {
 		for (size_t i = 0; i < cd->num_channels; i++) {
 			circlebuf_pop_front(&cd->sidechain_data[i], NULL,
 					    expected_size);

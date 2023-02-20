@@ -250,7 +250,7 @@ void mp_decode_clear_packets(struct mp_decode *d)
 		d->packet_pending = false;
 	}
 
-	while (d->packets.size) {
+	while (cb_get_size(d->packets)) {
 		AVPacket *pkt;
 		circlebuf_pop_front(&d->packets, &pkt, sizeof(pkt));
 		mp_media_free_packet(d->m, pkt);
@@ -379,12 +379,12 @@ bool mp_decode_next(struct mp_decode *d)
 
 	d->frame_ready = false;
 
-	if (!eof && !d->packets.size)
+	if (!eof && !cb_get_size(d->packets))
 		return true;
 
 	while (!d->frame_ready) {
 		if (!d->packet_pending) {
-			if (!d->packets.size) {
+			if (!cb_get_size(d->packets)) {
 				if (eof) {
 					d->pkt->data = NULL;
 					d->pkt->size = 0;

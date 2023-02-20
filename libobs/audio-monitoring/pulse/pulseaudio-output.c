@@ -193,34 +193,34 @@ static void do_stream_write(void *param)
 	pthread_mutex_lock(&data->playback_mutex);
 
 	// If we have grown a large buffer internally, grow the pulse buffer to match so we can write our data out.
-	if (data->new_data.size > data->attr.tlength * 2) {
+	if (cb_get_size(data->new_data) > data->attr.tlength * 2) {
 		data->attr.fragsize = (uint32_t)-1;
 		data->attr.maxlength = (uint32_t)-1;
 		data->attr.prebuf = (uint32_t)-1;
 		data->attr.minreq = (uint32_t)-1;
-		data->attr.tlength = data->new_data.size;
+		data->attr.tlength = cb_get_size(data->new_data);
 		pa_stream_set_buffer_attr(data->stream, &data->attr, NULL,
 					  NULL);
 	}
 
 	// Buffer up enough data before we start playing.
 	if (pa_stream_is_corked(data->stream)) {
-		if (data->new_data.size >= data->attr.tlength) {
+		if (cb_get_size(data->new_data) >= data->attr.tlength) {
 			pa_stream_cork(data->stream, 0, NULL, NULL);
 		} else {
 			goto finish;
 		}
 	}
 
-	while (data->new_data.size > 0) {
-		size_t bytesToFill = data->new_data.size;
+	while (cb_get_size(data->new_data) > 0) {
+		size_t bytesToFill = cb_get_size(data->new_data);
 		if (pa_stream_begin_write(data->stream, (void **)&buffer,
 					  &bytesToFill))
 			goto finish;
 
 		// PA may request we submit more or less data than we have.
 		// Wait for more data if we cannot perform a full write.
-		if (bytesToFill > data->new_data.size) {
+		if (bytesToFill > cb_get_size(data->new_data)) {
 			pa_stream_cancel_write(data->stream);
 			goto finish;
 		}

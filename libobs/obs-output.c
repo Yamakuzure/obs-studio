@@ -1215,13 +1215,13 @@ static bool add_caption(struct obs_output *output, struct encoder_packet *out)
 	da_push_back_array(out_data, (uint8_t *)&ref, sizeof(ref));
 	da_push_back_array(out_data, out->data, out->size);
 
-	if (output->caption_data.size > 0) {
+	if (cb_get_size(output->caption_data) > 0) {
 
 		cea708_t cea708;
 		cea708_init(&cea708, 0); // set up a new popon frame
 		void *caption_buf = bzalloc(3 * sizeof(uint8_t));
 
-		while (output->caption_data.size > 0) {
+		while (cb_get_size(output->caption_data) > 0) {
 			circlebuf_pop_front(&output->caption_data, caption_buf,
 					    3 * sizeof(uint8_t));
 
@@ -1326,7 +1326,7 @@ static inline void send_interleaved(struct obs_output *output)
 			}
 		}
 
-		if (output->caption_data.size > 0) {
+		if (cb_get_size(output->caption_data) > 0) {
 			if (last_caption_timestamp < frame_timestamp) {
 				last_caption_timestamp = frame_timestamp;
 				add_caption(output, &out);
@@ -1879,7 +1879,7 @@ static void default_raw_audio_callback(void *param, size_t mix_idx,
 
 	/* -------------- */
 
-	while (output->audio_buffer[mix_idx][0].size > frame_size_bytes) {
+	while (cb_get_size(output->audio_buffer[mix_idx][0]) > frame_size_bytes) {
 		for (size_t i = 0; i < output->planes; i++) {
 			circlebuf_pop_front(&output->audio_buffer[mix_idx][i],
 					    output->audio_data[i],

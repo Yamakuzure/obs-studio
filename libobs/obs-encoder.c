@@ -1142,7 +1142,7 @@ static inline size_t calc_offset_size(struct obs_encoder *encoder,
 
 static void start_from_buffer(struct obs_encoder *encoder, uint64_t v_start_ts)
 {
-	size_t size = encoder->audio_input_buffer[0].size;
+	size_t size = cb_get_size(encoder->audio_input_buffer[0]);
 	struct audio_data audio = {0};
 	size_t offset_size = 0;
 
@@ -1332,7 +1332,7 @@ static void receive_audio(void *param, size_t mix_idx, struct audio_data *in)
 	if (!buffer_audio(encoder, &audio))
 		goto end;
 
-	while (encoder->audio_input_buffer[0].size >=
+	while (cb_get_size(encoder->audio_input_buffer[0]) >=
 	       encoder->framesize_bytes) {
 		if (!send_audio_data(encoder)) {
 			break;

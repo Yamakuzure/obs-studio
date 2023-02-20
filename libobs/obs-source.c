@@ -1354,9 +1354,9 @@ static inline void reset_audio_timing(obs_source_t *source, uint64_t timestamp,
 static void reset_audio_data(obs_source_t *source, uint64_t os_time)
 {
 	for (size_t i = 0; i < MAX_AUDIO_CHANNELS; i++) {
-		if (source->audio_input_buf[i].size)
+		if (cb_get_size(source->audio_input_buf[i]))
 			circlebuf_pop_front(&source->audio_input_buf[i], NULL,
-					    source->audio_input_buf[i].size);
+					    cb_get_size(source->audio_input_buf[i]));
 	}
 
 	source->last_audio_input_buf_size = 0;
@@ -1433,7 +1433,7 @@ static void source_output_audio_place(obs_source_t *source,
 		circlebuf_place(&source->audio_input_buf[i], buf_placement,
 				in->data[i], size);
 		circlebuf_pop_back(&source->audio_input_buf[i], NULL,
-				   source->audio_input_buf[i].size -
+				   cb_get_size(source->audio_input_buf[i]) -
 					   (buf_placement + size));
 	}
 
@@ -1448,7 +1448,7 @@ static inline void source_output_audio_push_back(obs_source_t *source,
 	size_t size = in->frames * sizeof(float);
 
 	/* do not allow the circular buffers to become too big */
-	if ((source->audio_input_buf[0].size + size) > MAX_BUF_SIZE)
+	if ((cb_get_size(source->audio_input_buf[0]) + size) > MAX_BUF_SIZE)
 		return;
 
 	for (size_t i = 0; i < channels; i++)
@@ -5576,7 +5576,7 @@ static inline void process_audio_source_tick(obs_source_t *source,
 
 	pthread_mutex_lock(&source->audio_buf_mutex);
 
-	if (source->audio_input_buf[0].size < size) {
+	if (cb_get_size(source->audio_input_buf[0]) < size) {
 		source->audio_pending = true;
 		pthread_mutex_unlock(&source->audio_buf_mutex);
 		return;

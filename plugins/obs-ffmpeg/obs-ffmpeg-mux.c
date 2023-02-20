@@ -47,7 +47,7 @@ static const char *ffmpeg_mpegts_mux_getname(void *type)
 
 static inline void replay_buffer_clear(struct ffmpeg_muxer *stream)
 {
-	while (stream->packets.size > 0) {
+	while (cb_get_size(stream->packets) > 0) {
 		struct encoder_packet pkt;
 		circlebuf_pop_front(&stream->packets, &pkt, sizeof(pkt));
 		obs_encoder_packet_release(&pkt);
@@ -520,7 +520,7 @@ int deactivate(struct ffmpeg_muxer *stream, int code)
 	if (stream->is_hls) {
 		pthread_mutex_lock(&stream->write_mutex);
 
-		while (stream->packets.size) {
+		while (cb_get_size(stream->packets)) {
 			struct encoder_packet packet;
 			circlebuf_pop_front(&stream->packets, &packet,
 					    sizeof(packet));
@@ -1062,7 +1062,7 @@ static bool purge_front(struct ffmpeg_muxer *stream)
 	struct encoder_packet pkt;
 	bool keyframe;
 
-	if (!stream->packets.size)
+	if (!cb_get_size(stream->packets))
 		return false;
 
 	circlebuf_pop_front(&stream->packets, &pkt, sizeof(pkt));
@@ -1072,7 +1072,7 @@ static bool purge_front(struct ffmpeg_muxer *stream)
 	if (keyframe)
 		stream->keyframes--;
 
-	if (!stream->packets.size) {
+	if (!cb_get_size(stream->packets)) {
 		stream->cur_size = 0;
 		stream->cur_time = 0;
 	} else {
@@ -1092,7 +1092,7 @@ static inline void purge(struct ffmpeg_muxer *stream)
 		struct encoder_packet pkt;
 
 		for (;;) {
-			if (!stream->packets.size)
+			if (!cb_get_size(stream->packets))
 				return;
 			circlebuf_peek_front(&stream->packets, &pkt,
 					     sizeof(pkt));
@@ -1108,7 +1108,7 @@ static inline void replay_buffer_purge(struct ffmpeg_muxer *stream,
 				       struct encoder_packet *pkt)
 {
 	if (stream->max_size) {
-		if (!stream->packets.size || stream->keyframes <= 2)
+		if (!cb_get_size(stream->packets) || stream->keyframes <= 2)
 			return;
 
 		while ((stream->cur_size + (int64_t)pkt->size) >
@@ -1116,7 +1116,7 @@ static inline void replay_buffer_purge(struct ffmpeg_muxer *stream,
 			purge(stream);
 	}
 
-	if (!stream->packets.size || stream->keyframes <= 2)
+	if (!cb_get_size(stream->packets) || stream->keyframes <= 2)
 		return;
 
 	while ((pkt->dts_usec - stream->cur_time) > stream->max_time)
@@ -1211,7 +1211,7 @@ error:
 static void replay_buffer_save(struct ffmpeg_muxer *stream)
 {
 	const size_t size = sizeof(struct encoder_packet);
-	size_t num_packets = stream->packets.size / size;
+	size_t num_packets = cb_get_size(stream->packets) / size;
 
 	da_reserve(stream->mux_packets, num_packets);
 
@@ -1299,7 +1299,7 @@ static void replay_buffer_data(void *data, struct encoder_packet *packet)
 	obs_encoder_packet_ref(&pkt, packet);
 	replay_buffer_purge(stream, &pkt);
 
-	if (!stream->packets.size)
+	if (!cb_get_size(stream->packets))
 		stream->cur_time = pkt.dts_usec;
 	stream->cur_size += pkt.size;
 
