@@ -744,7 +744,7 @@ struct obs_source {
 	bool muted;
 	struct obs_source *next_audio_source;
 	struct obs_source **prev_next_audio_source;
-	uint64_t audio_ts;
+	atomic_uint_fast64_t audio_ts;
 	struct circlebuf audio_input_buf[MAX_AUDIO_CHANNELS];
 	size_t last_audio_input_buf_size;
 	DARRAY(struct audio_action) audio_actions;
