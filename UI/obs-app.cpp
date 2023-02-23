@@ -74,6 +74,7 @@
 #endif
 
 #include <iostream>
+#include <mutex>
 
 #include "ui-config.h"
 
@@ -110,6 +111,7 @@ string opt_starting_scene;
 bool restart = false;
 
 QPointer<OBSLogViewer> obsLogViewer;
+std::recursive_mutex obsLogMutex;
 
 #ifndef _WIN32
 int OBSApp::sigintFd[2];
@@ -254,12 +256,11 @@ string CurrentTimeString()
 {
 	using namespace std::chrono;
 
-	struct tm tstruct;
-	char buf[80];
+	static thread_local char buf[80];
 
 	auto tp = system_clock::now();
 	auto now = system_clock::to_time_t(tp);
-	tstruct = *localtime(&now);
+	struct tm tstruct = *localtime(&now);
 
 	size_t written = strftime(buf, sizeof(buf), "%T", &tstruct);
 	if (ratio_less<system_clock::period, seconds::period>::value &&
@@ -325,7 +326,9 @@ static inline void LogStringChunk(fstream &logFile, char *str, int log_level)
 		str = nextLine;
 	}
 
+	obsLogMutex.lock();
 	LogString(logFile, timeString.c_str(), str, log_level);
+	obsLogMutex.unlock();
 }
 
 #define MAX_REPEATED_LINES 30
