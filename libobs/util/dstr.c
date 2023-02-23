@@ -378,7 +378,7 @@ void dstr_ncopy(struct dstr *dst, const char *array, const size_t len)
 	if (!len)
 		return;
 
-	dst->array = bmemdup(array, len + 1);
+	dst->array = bmemdup_ext(array, len, len + 1);
 	dst->len = len;
 	dst->capacity = len + 1;
 
@@ -396,7 +396,7 @@ void dstr_ncopy_dstr(struct dstr *dst, const struct dstr *str, const size_t len)
 		return;
 
 	newlen = size_min(len, str->len);
-	dst->array = bmemdup(str->array, newlen + 1);
+	dst->array = bmemdup_ext(str->array, newlen, newlen + 1);
 	dst->len = newlen;
 	dst->capacity = newlen + 1;
 

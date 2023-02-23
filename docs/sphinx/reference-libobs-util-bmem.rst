@@ -42,6 +42,16 @@ Memory Functions
 
 ---------------------
 
+.. function:: void *bmemdup_ext(const void *ptr,
+                                size_t src_size,
+                                size_t tgt_size)
+
+   Duplicates src_size memory into a tgt_size target, NULL byte initialized.
+   This can be used to duplicate strings that have no guaranteed NULL-byte
+   termination into a target with guaranteed NULL-byte termination.
+
+---------------------
+
 .. function:: void *bzalloc(size_t size)
 
    Inline function that allocates zeroed memory.

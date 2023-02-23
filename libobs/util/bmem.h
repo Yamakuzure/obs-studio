@@ -42,6 +42,7 @@ EXPORT int base_get_alignment(void);
 EXPORT long bnum_allocs(void);
 
 EXPORT void *bmemdup(const void *ptr, size_t size);
+EXPORT void *bmemdup_ext(const void *ptr, size_t src_size, size_t tgt_size);
 
 static inline void *bzalloc(size_t size)
 {
@@ -57,8 +58,7 @@ static inline char *bstrdup_n(const char *str, size_t n)
 	if (!str)
 		return NULL;
 
-	dup = (char *)bmemdup(str, n + 1);
-	dup[n] = 0;
+	dup = (char *)bmemdup_ext(str, n, n + 1);
 
 	return dup;
 }
@@ -69,8 +69,7 @@ static inline wchar_t *bwstrdup_n(const wchar_t *str, size_t n)
 	if (!str)
 		return NULL;
 
-	dup = (wchar_t *)bmemdup(str, (n + 1) * sizeof(wchar_t));
-	dup[n] = 0;
+	dup = (wchar_t *)bmemdup_ext(str, n * sizeof(wchar_t), (n + 1) * sizeof(wchar_t));
 
 	return dup;
 }

@@ -171,6 +171,15 @@ void *bmemdup(const void *ptr, size_t size)
 	return out;
 }
 
+void *bmemdup_ext(const void *ptr, size_t src_size, size_t tgt_size)
+{
+	void *out = bzalloc(tgt_size > src_size ? tgt_size : src_size);
+	if (src_size && tgt_size)
+		memcpy(out, ptr, tgt_size < src_size ? tgt_size : src_size);
+
+	return out;
+}
+
 OBS_DEPRECATED void base_set_allocator(struct base_allocator *defs)
 {
 	UNUSED_PARAMETER(defs);
