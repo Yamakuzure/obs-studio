@@ -2935,12 +2935,14 @@ uint64_t obs_get_video_frame_time(void)
 
 double obs_get_active_fps(void)
 {
-	return obs->video.video_fps;
+	return atomic_load_explicit(&obs->video.video_fps,
+				    memory_order_relaxed);
 }
 
 uint64_t obs_get_average_frame_time_ns(void)
 {
-	return obs->video.video_avg_frame_time_ns;
+	return atomic_load_explicit(&obs->video.video_avg_frame_time_ns,
+				    memory_order_relaxed);
 }
 
 uint64_t obs_get_frame_interval_ns(void)
@@ -3103,12 +3105,14 @@ void obs_remove_main_rendered_callback(void (*rendered)(void *param),
 
 uint32_t obs_get_total_frames(void)
 {
-	return atomic_load(&obs->video.total_frames);
+	return atomic_load_explicit(&obs->video.total_frames,
+				    memory_order_relaxed);
 }
 
 uint32_t obs_get_lagged_frames(void)
 {
-	return atomic_load(&obs->video.lagged_frames);
+	return atomic_load_explicit(&obs->video.lagged_frames,
+				    memory_order_relaxed);
 }
 
 struct obs_core_video_mix *get_mix_for_video(video_t *v)
