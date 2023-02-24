@@ -258,13 +258,15 @@ string CurrentTimeString()
 
 	static thread_local char buf[80];
 
+	struct tm tstruct{};
 	auto tp = system_clock::now();
 	auto now = system_clock::to_time_t(tp);
-	struct tm tstruct = *localtime(&now);
+
+	localtime_r(&now, &tstruct);
 
 	size_t written = strftime(buf, sizeof(buf), "%T", &tstruct);
 	if (ratio_less<system_clock::period, seconds::period>::value &&
-	    written && (sizeof(buf) - written) > 5) {
+	    (written > 0) && (sizeof(buf) - written) > 5) {
 		auto tp_secs = time_point_cast<seconds>(tp);
 		auto millis = duration_cast<milliseconds>(tp - tp_secs).count();
 
@@ -277,11 +279,13 @@ string CurrentTimeString()
 
 string CurrentDateTimeString()
 {
-	time_t now = time(0);
-	struct tm tstruct;
-	char buf[80];
-	tstruct = *localtime(&now);
+	time_t now = time(nullptr);
+	struct tm tstruct{};
+	static thread_local char buf[80];
+
+	localtime_r(&now, &tstruct);
 	strftime(buf, sizeof(buf), "%Y-%m-%d, %X", &tstruct);
+
 	return buf;
 }
 
@@ -297,7 +301,7 @@ static void LogString(fstream &logFile, const char *timeString, char *str,
 	logFile << msg << endl;
 	logfile_mutex.unlock();
 
-	if (!!obsLogViewer)
+	if (obsLogViewer != nullptr)
 		QMetaObject::invokeMethod(obsLogViewer.data(), "AddLine",
 					  Qt::QueuedConnection,
 					  Q_ARG(int, log_level),
