@@ -20,12 +20,15 @@
 #include <string.h>
 #include <stdlib.h>
 #include <assert.h>
-#include <stdatomic.h>
 
 #include "bmem.h"
 
 #ifdef __cplusplus
+#include <atomic>
+using std::atomic_size_t;
 extern "C" {
+#else
+#include <stdatomic.h>
 #endif
 
 /* Dynamic circular buffer */
