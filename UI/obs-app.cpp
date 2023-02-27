@@ -262,7 +262,11 @@ string CurrentTimeString()
 	auto tp = system_clock::now();
 	auto now = system_clock::to_time_t(tp);
 
+#ifdef _WIN32
+	(void)localtime_s(&tstruct, &now);
+#else
 	localtime_r(&now, &tstruct);
+#endif
 
 	size_t written = strftime(buf, sizeof(buf), "%T", &tstruct);
 	if (ratio_less<system_clock::period, seconds::period>::value &&
@@ -283,7 +287,11 @@ string CurrentDateTimeString()
 	struct tm tstruct{};
 	static thread_local char buf[80];
 
+#ifdef _WIN32
+	(void)localtime_s(&tstruct, &now);
+#else
 	localtime_r(&now, &tstruct);
+#endif
 	strftime(buf, sizeof(buf), "%Y-%m-%d, %X", &tstruct);
 
 	return buf;
