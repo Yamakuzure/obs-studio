@@ -154,7 +154,12 @@ bool obs_output_delay_start(obs_output_t *output)
 
 	os_atomic_inc_long(&output->delay_restart_refs);
 
+	blog(LOG_DEBUG, "[debug] obs_output_delay_start(): %ld refs",
+	     os_atomic_load_long(&output->delay_restart_refs));
+
 	if (delay_active(output)) {
+		blog(LOG_DEBUG,
+		     "[debug] obs_output_delay_start(): send signal...");
 		do_output_signal(output, "starting");
 		return true;
 	}
@@ -163,6 +168,9 @@ bool obs_output_delay_start(obs_output_t *output)
 		obs_output_cleanup_delay(output);
 		return false;
 	}
+
+	blog(LOG_DEBUG, "[debug] obs_output_delay_start() %s returned true",
+	     "obs_output_begin_data_capture()");
 
 	return true;
 }

@@ -289,6 +289,7 @@ bool obs_output_start(obs_output_t *output)
 	if (!output->context.data)
 		return false;
 
+	blog(LOG_DEBUG, "[debug] obs_output_start(): Checking service...");
 	has_service = (output->info.flags & OBS_OUTPUT_SERVICE) != 0;
 	if (has_service && !(obs_service_can_try_to_connect(output->service) &&
 			     obs_service_initialize(output->service, output)))
@@ -296,8 +297,10 @@ bool obs_output_start(obs_output_t *output)
 
 	encoded = (output->info.flags & OBS_OUTPUT_ENCODED) != 0;
 	if (encoded && output->delay_sec) {
+		blog(LOG_DEBUG, "[debug] obs_output_start(): delay start!");
 		return obs_output_delay_start(output);
 	} else {
+		blog(LOG_DEBUG, "[debug] obs_output_start(): start now!");
 		if (obs_output_actual_start(output)) {
 			do_output_signal(output, "starting");
 			return true;
