@@ -1,6 +1,8 @@
 include(CheckCCompilerFlag)
 include(CheckCXXCompilerFlag)
 
+set(CMAKE_C_STANDARD 17)
+set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
@@ -73,7 +75,9 @@ if(OS_WINDOWS AND MSVC)
     /utf-8
     /permissive-
     /Zc:__cplusplus
-    /Zc:preprocessor)
+    /Zc:preprocessor
+    /std:c17
+    /experimental:c11atomics)
 
   add_link_options(
     "LINKER:/Brepro" "LINKER:/OPT:REF" "LINKER:/WX" "$<$<NOT:$<EQUAL:${CMAKE_SIZEOF_VOID_P},8>>:LINKER\:/SAFESEH\:NO>"
