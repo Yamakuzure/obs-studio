@@ -1027,7 +1027,7 @@ static bool init_encoder(struct nvenc_data *enc, enum codec_type codec,
 	const int bf_max = nv_get_cap(enc, NV_ENC_CAPS_NUM_MAX_BFRAMES);
 
 	if (obs_p010_tex_active() && !support_10bit) {
-		NV_FAIL(obs_module_text("NVENC.10bitUnsupported"));
+		NV_FAIL(obs_module_text("NVENC.10bitUnsupported"), NULL);
 		return false;
 	}
 
@@ -1041,7 +1041,7 @@ static bool init_encoder(struct nvenc_data *enc, enum codec_type codec,
 		switch (voi->colorspace) {
 		case VIDEO_CS_2100_PQ:
 		case VIDEO_CS_2100_HLG:
-			NV_FAIL(obs_module_text("NVENC.8bitUnsupportedHdr"));
+			NV_FAIL(obs_module_text("NVENC.8bitUnsupportedHdr"), NULL);
 			return false;
 		}
 	}
