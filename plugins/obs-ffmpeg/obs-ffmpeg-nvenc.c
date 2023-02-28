@@ -281,14 +281,16 @@ static void on_first_packet(void *data, AVPacket *pkt, struct darray *da)
 #ifdef ENABLE_HEVC
 	if (enc->hevc) {
 		obs_extract_hevc_headers(pkt->data, pkt->size,
-					 (uint8_t **)&da->array, &da->num,
+					 (uint8_t **)&da->array,
+					 (size_t *)&da->num,
 					 &enc->header.array, &enc->header.num,
 					 &enc->sei.array, &enc->sei.num);
 	} else
 #endif
 	{
 		obs_extract_avc_headers(pkt->data, pkt->size,
-					(uint8_t **)&da->array, &da->num,
+					(uint8_t **)&da->array,
+					(size_t *)&da->num,
 					&enc->header.array, &enc->header.num,
 					&enc->sei.array, &enc->sei.num);
 	}

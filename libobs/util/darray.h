@@ -17,14 +17,22 @@
 #pragma once
 
 #include "c99defs.h"
-#include <string.h>
-#include <stdlib.h>
-#include <assert.h>
 
 #include "bmem.h"
 
 #ifdef __cplusplus
+#include <atomic>
+#include <cassert>
+#include <cstdlib>
+#include <cstring>
+using std::atomic_size_t;
 extern "C" {
+#else
+#include <assert.h>
+#include <stdatomic.h>
+#include <stdlib.h>
+#include <string.h>
+#define nullptr NULL
 #endif
 
 /*
@@ -40,13 +48,13 @@ extern "C" {
 
 struct darray {
 	void *array;
-	size_t num;
-	size_t capacity;
+	atomic_size_t num;
+	volatile size_t capacity;
 };
 
 static inline void darray_init(struct darray *dst)
 {
-	dst->array = NULL;
+	dst->array = nullptr;
 	dst->num = 0;
 	dst->capacity = 0;
 }
@@ -54,7 +62,7 @@ static inline void darray_init(struct darray *dst)
 static inline void darray_free(struct darray *dst)
 {
 	bfree(dst->array);
-	dst->array = NULL;
+	dst->array = nullptr;
 	dst->num = 0;
 	dst->capacity = 0;
 }
@@ -75,7 +83,7 @@ static inline void *darray_end(const size_t element_size,
 			       const struct darray *da)
 {
 	if (!da->num)
-		return NULL;
+		return nullptr;
 
 	return darray_item(element_size, da, da->num - 1);
 }
@@ -168,7 +176,7 @@ static inline void darray_move(struct darray *dst, struct darray *src)
 {
 	darray_free(dst);
 	memcpy(dst, src, sizeof(struct darray));
-	src->array = NULL;
+	src->array = nullptr;
 	src->capacity = 0;
 	src->num = 0;
 }
@@ -290,7 +298,7 @@ static inline void darray_insert_array(const size_t element_size,
 {
 	size_t old_num;
 
-	assert(array != NULL);
+	assert(array != nullptr);
 	assert(num != 0);
 	assert(idx <= dst->num);
 
