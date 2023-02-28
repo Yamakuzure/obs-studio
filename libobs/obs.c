@@ -2935,8 +2935,8 @@ uint64_t obs_get_video_frame_time(void)
 
 double obs_get_active_fps(void)
 {
-	return atomic_load_explicit(&obs->video.video_fps,
-				    memory_order_relaxed);
+	atomic_thread_fence(memory_order_relaxed);
+	return obs->video.video_fps;
 }
 
 uint64_t obs_get_average_frame_time_ns(void)

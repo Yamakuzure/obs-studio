@@ -336,7 +336,7 @@ struct obs_core_video {
 	uint64_t video_frame_interval_ns;
 	uint64_t video_half_frame_interval_ns;
 	atomic_uint_fast64_t video_avg_frame_time_ns;
-	_Atomic (double) video_fps;
+	double video_fps;
 	pthread_t video_thread;
 	atomic_uint_fast32_t total_frames;
 	atomic_uint_fast32_t lagged_frames;

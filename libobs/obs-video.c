@@ -1174,6 +1174,7 @@ bool obs_graphics_thread_loop(struct obs_graphics_context *context)
 	context->fps_total_frames++;
 
 	if (context->fps_total_ns >= 1000000000ULL) {
+		atomic_thread_fence(memory_order_release);
 		obs->video.video_fps =
 			(double)context->fps_total_frames /
 			((double)context->fps_total_ns / 1000000000.0);
