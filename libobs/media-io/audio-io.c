@@ -71,7 +71,7 @@ struct audio_output {
 	pthread_t thread;
 	os_event_t *stop_event;
 
-	bool initialized;
+	atomic_bool initialized;
 
 	audio_input_callback_t input_cb;
 	void *input_param;
@@ -380,6 +380,7 @@ int audio_output_open(audio_t **audio, struct audio_output_info *info)
 		goto fail0;
 
 	memcpy(&out->info, info, sizeof(struct audio_output_info));
+	out->initialized = false;
 	out->channels = get_audio_channels(info->speakers);
 	out->planes = planar ? out->channels : 1;
 	out->input_cb = info->input_callback;

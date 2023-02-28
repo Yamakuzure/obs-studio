@@ -62,12 +62,14 @@ struct video_output {
 
 	pthread_t thread;
 	pthread_mutex_t data_mutex;
-	bool stop;
+	atomic_bool stop;
 
 	os_sem_t *update_semaphore;
 	uint64_t frame_time;
 	volatile long skipped_frames;
 	volatile long total_frames;
+
+	atomic_bool initialized;
 
 	pthread_mutex_t input_mutex;
 	DARRAY(struct video_input) inputs;
@@ -538,8 +540,11 @@ void video_output_stop(video_t *video)
 	if (!video)
 		return;
 
-	if (!video->stop) {
+	if (!video->stop)
 		video->stop = true;
+
+	if (video->initialized) {
+		video->initialized = false;
 		os_sem_post(video->update_semaphore);
 		pthread_join(video->thread, &thread_ret);
 	}
