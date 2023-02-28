@@ -467,7 +467,11 @@ static inline bool ffmpeg_mux_start_internal(struct ffmpeg_muxer *stream,
 	/* write headers and start capture */
 	os_atomic_set_bool(&stream->active, true);
 	os_atomic_set_bool(&stream->capturing, true);
+	stream->is_hls = false;
 	stream->total_bytes = 0;
+	stream->dropped_frames = 0;
+	stream->min_priority = 0;
+
 	obs_output_begin_data_capture(stream->output, 0);
 
 	info("Writing file '%s'...", stream->path.array);
@@ -830,6 +834,9 @@ static void ffmpeg_mux_data(void *data, struct encoder_packet *packet)
 
 	/* encoder failure */
 	if (!packet) {
+		/* Always send headers, or muxer may get stuck in safe_read() */
+		if (!stream->sent_headers)
+			send_headers(stream);
 		deactivate(stream, OBS_OUTPUT_ENCODE_ERROR);
 		return;
 	}
@@ -865,7 +872,7 @@ static void ffmpeg_mux_data(void *data, struct encoder_packet *packet)
 		if (!send_headers(stream))
 			return;
 
-		stream->sent_headers = true;
+		os_atomic_set_bool(&stream->sent_headers, true);
 
 		if (stream->split_file)
 			stream->cur_time = packet->dts_usec;
