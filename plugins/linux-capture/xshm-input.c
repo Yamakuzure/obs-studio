@@ -30,7 +30,11 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #define XSHM_DATA(voidptr) struct xshm_data *data = voidptr;
 
-#define blog(level, msg, ...) blog(level, "xshm-input: " msg, ##__VA_ARGS__)
+#ifndef _DEBUG
+#undef blog
+#define blog(level, msg, ...) \
+	blog_internal(level, "xshm-input: " msg, ##__VA_ARGS__)
+#endif // _DEBUG
 
 struct xshm_data {
 	obs_source_t *source;

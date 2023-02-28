@@ -35,10 +35,12 @@ os_process_pipe_t *os_process_pipe_create(const char *cmd_line,
 		return NULL;
 	}
 
+	debug_log("opening input/output pipe for: \"%s\" (%s)", cmd_line, type);
 	pipe.file = popen(cmd_line, type);
 	pipe.read_pipe = *type == 'r';
 
 	if (pipe.file == (FILE *)-1 || pipe.file == NULL) {
+		debug_log("Pipe creation FAILED!");
 		return NULL;
 	}
 

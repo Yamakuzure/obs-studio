@@ -303,25 +303,35 @@ void signal_handler_signal(signal_handler_t *handler, const char *signal,
 {
 	struct signal_info *sig = getsignal_locked(handler, signal);
 	long remove_refs = 0;
-
+	debug_log("getsignal_locked() returned: %p (signalling is: %s)", sig,
+		  sig ? (sig->signalling ? "true" : "false") : "N/A");
 	if (!sig)
 		return;
 
+	debug_log("locking sig->mutex ...");
 	pthread_mutex_lock(&sig->mutex);
 	sig->signalling = true;
 
+	debug_log("Calling callbacks in first %zu entries (capacity %zu)",
+		  sig->callbacks.num, sig->callbacks.capacity);
 	for (size_t i = 0; i < sig->callbacks.num; i++) {
 		struct signal_callback *cb = sig->callbacks.array + i;
 		if (!cb->remove) {
+			debug_log("Calling callback fo idx %zu...", i);
 			current_signal_cb = cb;
 			cb->callback(cb->data, params);
 			current_signal_cb = NULL;
 		}
 	}
 
+	debug_log(
+		"Searching first %zu entries for callbacks to remove (capacity %zu)",
+		sig->callbacks.num, sig->callbacks.capacity);
 	for (size_t i = sig->callbacks.num; i > 0; i--) {
 		struct signal_callback *cb = sig->callbacks.array + i - 1;
 		if (cb->remove) {
+			debug_log("Removing idx %zu ... (keep_ref: %s)", i,
+				  cb->keep_ref ? "true" : "false");
 			if (cb->keep_ref)
 				remove_refs++;
 
@@ -330,16 +340,24 @@ void signal_handler_signal(signal_handler_t *handler, const char *signal,
 	}
 
 	sig->signalling = false;
+	debug_log("unlocking sig->mutex ...");
 	pthread_mutex_unlock(&sig->mutex);
 
+	debug_log("locking handler->global_callbacks_mutex ...");
 	pthread_mutex_lock(&handler->global_callbacks_mutex);
 
 	if (handler->global_callbacks.num) {
+		debug_log(
+			"updating %zu global callbacks with signal '%s' (capacity: %zu) ...",
+			handler->global_callbacks.num, signal,
+			handler->global_callbacks.capacity);
 		for (size_t i = 0; i < handler->global_callbacks.num; i++) {
 			struct global_callback_info *cb =
 				handler->global_callbacks.array + i;
 
 			if (!cb->remove) {
+				debug_log("Updating idx %zu (signalling: %ld)",
+					  i, cb->signaling);
 				cb->signaling++;
 				current_global_cb = cb;
 				cb->callback(cb->data, signal, params);
@@ -348,18 +366,31 @@ void signal_handler_signal(signal_handler_t *handler, const char *signal,
 			}
 		}
 
+		debug_log(
+			"Searching first %zu entries for global callbacks to remove (capacity %zu)",
+			handler->global_callbacks.num,
+			handler->global_callbacks.capacity);
 		for (size_t i = handler->global_callbacks.num; i > 0; i--) {
 			struct global_callback_info *cb =
 				handler->global_callbacks.array + (i - 1);
 
+			debug_log(
+				"idx %zu: remove '%s', signaling '%s', result '%s'",
+				i, cb->remove ? "true" : "false",
+				cb->signaling ? "true" : "false",
+				(cb->remove && !cb->signaling) ? "REMOVE"
+							       : "keep");
 			if (cb->remove && !cb->signaling)
 				da_erase(handler->global_callbacks, i - 1);
 		}
 	}
 
+	debug_log("unlocking handler->global_callbacks_mutex ...");
 	pthread_mutex_unlock(&handler->global_callbacks_mutex);
 
 	if (remove_refs) {
+		debug_log("removing %ld / %ld refs", remove_refs,
+			  handler->refs);
 		os_atomic_set_long(&handler->refs,
 				   os_atomic_load_long(&handler->refs) -
 					   remove_refs);

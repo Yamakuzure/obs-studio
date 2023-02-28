@@ -111,7 +111,7 @@ void blogva(int log_level, const char *format, va_list args)
 	log_handler(log_level, format, args, log_param);
 }
 
-void blog(int log_level, const char *format, ...)
+void blog_internal(int log_level, const char *format, ...)
 {
 	va_list args;
 
@@ -119,3 +119,40 @@ void blog(int log_level, const char *format, ...)
 	blogva(log_level, format, args);
 	va_end(args);
 }
+
+#if defined(_DEBUG)
+#if defined(_WIN32)
+#include <stdio.h>
+#include <stdlib.h>
+#else
+#include <libgen.h>
+#include <linux/limits.h>
+#include <string.h>
+#include <threads.h>
+#endif
+#ifndef PATH_MAX
+#define PATH_MAX (_MAX_FNAME + _MAX_EXT)
+#endif // PATH_MAX
+
+char const *obs_internal_location_info(char const *path, size_t line,
+				       char const *func)
+{
+#if defined(_WIN32)
+	static __declspec(thread) char base_buffer[_MAX_FNAME + _MAX_EXT] = {0};
+	static __declspec(thread) char base_filename[_MAX_FNAME] = {0};
+	static __declspec(thread) char base_fileext[_MAX_EXT] = {0};
+	_splitpath_s(path, NULL, 0, NULL, 0, base_filename, _MAX_FNAME,
+		     base_fileext, _MAX_EXT);
+	_snprintf_s(base_buffer, _MAX_FNAME + _MAX_EXT - 1,
+		    _MAX_FNAME + _MAX_EXT, "%s%s:%lu:%s", base_filename,
+		    base_fileext, (unsigned long)line, func);
+#else
+	static thread_local char base_buffer[PATH_MAX] = {0};
+	static thread_local char base_filename[PATH_MAX] = {0};
+	strncpy(base_filename, path, PATH_MAX - 1);
+	snprintf(base_buffer, PATH_MAX - 1, "%s:%lu:%s",
+		 basename(base_filename), line, func);
+#endif // MSVC or not
+	return base_buffer;
+}
+#endif // _DEBUG

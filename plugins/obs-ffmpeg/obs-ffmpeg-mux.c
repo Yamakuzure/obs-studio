@@ -24,6 +24,15 @@
 
 #include <libavformat/avformat.h>
 
+#if defined(_DEBUG)
+#ifdef _WIN32
+static __declspec(thread) volatile stream_is_active = false;
+#else
+#include <threads.h>
+static thread_local volatile bool stream_is_active = false;
+#endif // _WIN32
+#endif // _DEBUG
+
 #define do_log(level, format, ...)                  \
 	blog(level, "[ffmpeg muxer: '%s'] " format, \
 	     obs_output_get_name(stream->output), ##__VA_ARGS__)
@@ -472,10 +481,20 @@ static inline bool ffmpeg_mux_start_internal(struct ffmpeg_muxer *stream,
 	stream->dropped_frames = 0;
 	stream->min_priority = 0;
 
-	obs_output_begin_data_capture(stream->output, 0);
+	debug_log("going to start capture, headers sent: %s",
+		  stream->sent_headers ? "true" : "false");
+	if (obs_output_begin_data_capture(stream->output, 0)) {
+		info("Writing file '%s'...", stream->path.array);
+		debug_log("capture started, headers sent: %s",
+			  stream->sent_headers ? "true" : "false");
+		return true;
+	}
+	debug_log("capture start failed, headers sent: %s",
+		  stream->sent_headers ? "true" : "false");
 
-	info("Writing file '%s'...", stream->path.array);
-	return true;
+	blog(LOG_ERROR, "Unable to begin data capture");
+
+	return false;
 }
 
 static bool ffmpeg_mux_start(void *data)
@@ -507,13 +526,14 @@ int deactivate(struct ffmpeg_muxer *stream, int code)
 		stream->pipe = NULL;
 
 		os_atomic_set_bool(&stream->active, false);
-		os_atomic_set_bool(&stream->sent_headers, false);
 
 		info("Output of file '%s' stopped",
 		     dstr_is_empty(&stream->printable_path)
 			     ? stream->path.array
 			     : stream->printable_path.array);
 	}
+
+	os_atomic_set_bool(&stream->sent_headers, false);
 
 	if (code) {
 		obs_output_signal_stop(stream->output, code);
@@ -664,7 +684,6 @@ bool write_packet(struct ffmpeg_muxer *stream, struct encoder_packet *packet)
 			info.pts -= stream->audio_dts_offsets[info.index];
 		}
 	}
-
 	ret = os_process_pipe_write(stream->pipe, (const uint8_t *)&info,
 				    sizeof(info));
 	if (ret != sizeof(info)) {
@@ -716,18 +735,22 @@ bool send_headers(struct ffmpeg_muxer *stream)
 	obs_encoder_t *aencoder;
 	size_t idx = 0;
 
+	debug_log("call send_video_headers()");
 	if (!send_video_headers(stream))
 		return false;
 
 	do {
 		aencoder = obs_output_get_audio_encoder(stream->output, idx);
 		if (aencoder) {
+			debug_log("send_audio_headers(%zu)", idx);
 			if (!send_audio_headers(stream, aencoder, idx)) {
 				return false;
 			}
 			idx++;
 		}
 	} while (aencoder);
+
+	debug_log("All headers sent");
 
 	return true;
 }
@@ -802,6 +825,7 @@ static bool prepare_split_file(struct ffmpeg_muxer *stream,
 	signal_handler_signal(sh, "file_changed", &cd);
 	calldata_free(&cd);
 
+	debug_log("must call send_headers()");
 	if (!send_headers(stream))
 		return false;
 
@@ -829,14 +853,26 @@ static void ffmpeg_mux_data(void *data, struct encoder_packet *packet)
 {
 	struct ffmpeg_muxer *stream = data;
 
+#if defined(_DEBUG)
+	// Only report switches, or we'll flood the log!
+	if (active(stream) != stream_is_active) {
+		stream_is_active = active(stream);
+		debug_log("stream active: %s",
+			  stream_is_active ? "true" : "false");
+	}
+#endif // _DEBUG
+
 	if (!active(stream))
 		return;
 
 	/* encoder failure */
 	if (!packet) {
 		/* Always send headers, or muxer may get stuck in safe_read() */
-		if (!stream->sent_headers)
+		if (!stream->sent_headers) {
+			debug_log(
+				"no packet, but at least call send_headers()");
 			send_headers(stream);
+		}
 		deactivate(stream, OBS_OUTPUT_ENCODE_ERROR);
 		return;
 	}
@@ -869,6 +905,7 @@ static void ffmpeg_mux_data(void *data, struct encoder_packet *packet)
 	}
 
 	if (!stream->sent_headers) {
+		debug_log("call send_headers()");
 		if (!send_headers(stream))
 			return;
 
@@ -1174,6 +1211,7 @@ static void *replay_buffer_mux_thread(void *data)
 		goto error;
 	}
 
+	debug_log("call send_headers()");
 	if (!send_headers(stream)) {
 		warn("Could not write headers for file '%s'",
 		     stream->path.array);

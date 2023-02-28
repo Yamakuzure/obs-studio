@@ -47,6 +47,17 @@
 
 #define AVIO_BUFFER_SIZE 65536
 
+#if defined(_DEBUG)
+#define mux_debug(FMT_, ...)                                              \
+	fprintf(stderr, "[obs-ffmpeg-muxer] %s " FMT_,                    \
+		obs_internal_location_info(__FILE__, __LINE__, __func__), \
+		##__VA_ARGS__)
+#else
+#define mux_debug(...) \
+	do {           \
+	} while (0);
+#endif // _DEBUG
+
 /* ------------------------------------------------------------------------- */
 
 static char *global_stream_key = "";
@@ -444,7 +455,7 @@ static bool new_stream(struct ffmpeg_mux *ffm, AVStream **stream,
 		return false;
 	}
 
-	(*stream)->id = ffm->output->nb_streams - 1;
+	(*stream)->id = (int)ffm->output->nb_streams - 1;
 	return true;
 }
 
@@ -644,19 +655,30 @@ static void ffmpeg_mux_header(struct ffmpeg_mux *ffm, uint8_t *data,
 	}
 }
 
+static volatile bool want_header = false;
 static size_t safe_read(void *vdata, size_t size)
 {
 	uint8_t *data = vdata;
-	size_t total = size;
+	size_t total = 0;
+
+	clearerr(stdin);
+
+	if (want_header)
+		mux_debug("Starting to read size %zu\n", size);
 
 	while (size > 0) {
 		size_t in_size = fread(data, 1, size, stdin);
+		if (want_header)
+			mux_debug("Got %zu bytes\n", in_size);
 		if (in_size == 0)
 			return 0;
 
+		total += in_size;
 		size -= in_size;
 		data += in_size;
 	}
+	if (want_header)
+		mux_debug("Total %zu bytes, %zu bytes left\n", total, size);
 
 	return total;
 }
@@ -664,7 +686,7 @@ static size_t safe_read(void *vdata, size_t size)
 static bool ffmpeg_mux_get_header(struct ffmpeg_mux *ffm)
 {
 	struct ffm_packet_info info = {0};
-
+	want_header = true;
 	bool success = safe_read(&info, sizeof(info)) == sizeof(info);
 	if (success) {
 		uint8_t *data = malloc(info.size);
@@ -677,6 +699,7 @@ static bool ffmpeg_mux_get_header(struct ffmpeg_mux *ffm)
 
 		free(data);
 	}
+	want_header = false;
 
 	return success;
 }

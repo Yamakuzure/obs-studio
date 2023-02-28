@@ -280,13 +280,16 @@ void ffmpeg_hls_mux_data(void *data, struct encoder_packet *packet)
 	/* encoder failure */
 	if (!packet) {
 		/* Always send headers, or muxer may get stuck in safe_read() */
-		if (!stream->sent_headers)
+		if (!stream->sent_headers) {
+			debug_log("failed, but at least call send_headers()");
 			send_headers(stream);
+		}
 		deactivate(stream, OBS_OUTPUT_ENCODE_ERROR);
 		return;
 	}
 
 	if (!stream->sent_headers) {
+		debug_log("call send_headers()");
 		if (!send_headers(stream))
 			return;
 		os_atomic_set_bool(&stream->sent_headers, true);

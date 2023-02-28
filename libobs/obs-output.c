@@ -196,9 +196,10 @@ void obs_output_destroy(obs_output_t *output)
 
 		blog(LOG_DEBUG, "output '%s' destroyed", output->context.name);
 
-		if (output->valid && active(output))
+		if (output->valid && active(output)) {
+			debug_log("call obs_output_actual_stop()");
 			obs_output_actual_stop(output, true, 0);
-
+		}
 		os_event_wait(output->stopping_event);
 		if (data_capture_ending(output))
 			pthread_join(output->end_data_capture_thread, NULL);
@@ -259,9 +260,10 @@ bool obs_output_actual_start(obs_output_t *output)
 		output->last_error_message = NULL;
 	}
 
+	debug_log("call output start()");
 	if (output->context.data)
 		success = output->info.start(output->context.data);
-
+	debug_log("output start()'ed: %s", success ? "true" : "false");
 	if (success && output->video) {
 		output->starting_frame_count =
 			video_output_get_total_frames(output->video);
@@ -274,8 +276,11 @@ bool obs_output_actual_start(obs_output_t *output)
 
 	output->caption_timestamp = 0;
 
+	debug_log("Freeing  circlebuf ...");
 	circlebuf_free(&output->caption_data);
+	debug_log("Init new circlebuf ...");
 	circlebuf_init(&output->caption_data);
+	debug_log("Have new circlebuf ...");
 
 	return success;
 }
@@ -302,7 +307,10 @@ bool obs_output_start(obs_output_t *output)
 	} else {
 		blog(LOG_DEBUG, "[debug] obs_output_start(): start now!");
 		if (obs_output_actual_start(output)) {
+			debug_log(
+				"Output started, calling do_output_signal(\"starting\")");
 			do_output_signal(output, "starting");
+			debug_log("output signal sent");
 			return true;
 		}
 
@@ -372,22 +380,32 @@ void obs_output_actual_stop(obs_output_t *output, bool force, uint64_t ts)
 	bool call_stop = true;
 	bool was_reconnecting = false;
 
+	debug_log("Stopping: %s ; force: %s",
+		  stopping(output) ? "true" : "false",
+		  force ? "true" : "false");
 	if (stopping(output) && !force)
 		return;
 
+	debug_log("call obs_output_pause(false)");
 	obs_output_pause(output, false);
 
+	debug_log("call os_event_reset()");
 	os_event_reset(output->stopping_event);
 
 	was_reconnecting = reconnecting(output) && !delay_active(output);
 	if (reconnecting(output)) {
+		debug_log("call os_event_signal(reconnect_stop_event)");
 		os_event_signal(output->reconnect_stop_event);
-		if (output->reconnect_thread_active)
+		if (output->reconnect_thread_active) {
+			debug_log("joins the reconnect_thread...");
 			pthread_join(output->reconnect_thread, NULL);
+			debug_log("join done");
+		}
 	}
 
 	if (force) {
 		if (delay_active(output)) {
+			debug_log("force: Delay is active");
 			call_stop = delay_capturing(output);
 			os_atomic_set_bool(&output->delay_active, false);
 			os_atomic_set_bool(&output->delay_capturing, false);
@@ -395,18 +413,23 @@ void obs_output_actual_stop(obs_output_t *output, bool force, uint64_t ts)
 			obs_output_end_data_capture(output);
 			os_event_signal(output->stopping_event);
 		} else {
+			debug_log("force: Delay is NOT active");
 			call_stop = true;
 		}
 	} else {
+		debug_log("not forced");
 		call_stop = true;
 	}
 
 	if (output->context.data && call_stop) {
+		debug_log("call output->info.stop()");
 		output->info.stop(output->context.data, ts);
-
 	} else if (was_reconnecting) {
 		output->stop_code = OBS_OUTPUT_SUCCESS;
+		debug_log("call signal_stop() Stop code: %d",
+			  output->stop_code);
 		signal_stop(output);
+		debug_log("call os_event_signal()");
 		os_event_signal(output->stopping_event);
 	}
 
@@ -437,7 +460,10 @@ void obs_output_stop(obs_output_t *output)
 		obs_output_delay_stop(output);
 
 	} else if (!stopping(output)) {
+		debug_log("call do_output_signal() (stop_code: %d)",
+			  output->stop_code);
 		do_output_signal(output, "stopping");
+		debug_log("call obs_output_actual_stop()");
 		obs_output_actual_stop(output, false, os_gettime_ns());
 	}
 }
@@ -449,8 +475,10 @@ void obs_output_force_stop(obs_output_t *output)
 
 	if (!stopping(output)) {
 		output->stop_code = 0;
+		debug_log("call do_output_signal() (stop_code: %d)", 0);
 		do_output_signal(output, "stopping");
 	}
+	debug_log("call obs_output_actual_stop()");
 	obs_output_actual_stop(output, true, 0);
 }
 
@@ -1882,7 +1910,8 @@ static void default_raw_audio_callback(void *param, size_t mix_idx,
 
 	/* -------------- */
 
-	while (cb_get_size(output->audio_buffer[mix_idx][0]) > frame_size_bytes) {
+	while (cb_get_size(output->audio_buffer[mix_idx][0]) >
+	       frame_size_bytes) {
 		for (size_t i = 0; i < output->planes; i++) {
 			circlebuf_pop_front(&output->audio_buffer[mix_idx][i],
 					    output->audio_data[i],
@@ -2394,9 +2423,10 @@ static void *reconnect_thread(void *param)
 	output->reconnect_thread_active = true;
 
 	if (os_event_timedwait(output->reconnect_stop_event,
-			       output->reconnect_retry_cur_msec) == ETIMEDOUT)
+			       output->reconnect_retry_cur_msec) == ETIMEDOUT) {
+		debug_log("call obs_output_actual_start()");
 		obs_output_actual_start(output);
-
+	}
 	if (os_event_try(output->reconnect_stop_event) == EAGAIN)
 		pthread_detach(output->reconnect_thread);
 	else

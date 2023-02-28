@@ -95,27 +95,37 @@ os_process_pipe_t *os_process_pipe_create(const char *cmd_line,
 	if (*type != 'r' && *type != 'w') {
 		return NULL;
 	}
+
+	debug_log("opening input/output pipe for: \"%s\" (%s)", cmd_line, type);
 	if (!create_pipe(&input, &output)) {
+		debug_log("Pipe creation FAILED!");
 		return NULL;
 	}
 
+	debug_log("opening error pipe for: \"%s\" (%s)", cmd_line, type);
 	if (!create_pipe(&err_input, &err_output)) {
+		debug_log("Pipe creation FAILED!");
 		return NULL;
 	}
 
 	read_pipe = *type == 'r';
 
+	debug_log("call SetHandleInformation() on %s",
+		  read_pipe ? "input" : "output");
 	success = !!SetHandleInformation(read_pipe ? input : output,
 					 HANDLE_FLAG_INHERIT, false);
 	if (!success) {
 		goto error;
 	}
 
+	debug_log("call SetHandleInformation() on error input");
 	success = !!SetHandleInformation(err_input, HANDLE_FLAG_INHERIT, false);
 	if (!success) {
 		goto error;
 	}
 
+	debug_log("call create_process() on '%s' %s <=> %s",
+		  read_pipe ? "NULL" : "input", read_pipe ? "output" : "NULL");
 	success = create_process(cmd_line, read_pipe ? NULL : input,
 				 read_pipe ? output : NULL, err_output,
 				 &process);
@@ -135,6 +145,7 @@ os_process_pipe_t *os_process_pipe_create(const char *cmd_line,
 	return pp;
 
 error:
+	debug_log("Creation failed");
 	CloseHandle(output);
 	CloseHandle(input);
 	return NULL;

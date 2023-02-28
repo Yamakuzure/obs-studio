@@ -63,7 +63,11 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 			(code >> 24) & 0xFF, 0                        \
 	}
 
-#define blog(level, msg, ...) blog(level, "v4l2-input: " msg, ##__VA_ARGS__)
+#ifndef _DEBUG
+#undef blog
+#define blog(level, msg, ...) \
+	blog_internal(level, "v4l2-input: " msg, ##__VA_ARGS__)
+#endif // _DEBUG
 
 /**
  * Data structure for the v4l2 source

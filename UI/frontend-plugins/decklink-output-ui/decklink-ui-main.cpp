@@ -139,7 +139,10 @@ void output_start()
 			obs_output_set_media(context.output,
 					     context.video_queue,
 					     obs_get_audio());
+			debug_log("calling obs_output_start() ...");
 			bool started = obs_output_start(context.output);
+			debug_log("obs_output_start() returned %s",
+				  started ? "true" : "false");
 
 			main_output_running = started;
 
@@ -284,7 +287,10 @@ void preview_output_start()
 			obs_output_set_media(context.output,
 					     context.video_queue,
 					     obs_get_audio());
+			debug_log("calling obs_output_start()");
 			bool started = obs_output_start(context.output);
+			debug_log("obs_output_start() returned %s",
+				  started ? "true" : "false");
 
 			preview_output_running = started;
 			if (!shutting_down)

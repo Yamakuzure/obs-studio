@@ -21,8 +21,11 @@
 #include "../util/dstr.h"
 #include "vec4.h"
 
+#ifndef _DEBUG
+#undef blog
 #define blog(level, format, ...) \
-	blog(level, "%s: " format, __FUNCTION__, __VA_ARGS__)
+	blog_internal(level, "%s: " format, __FUNCTION__, ##__VA_ARGS__)
+#endif // _DEBUG
 
 static void *bi_def_bitmap_create(int width, int height)
 {

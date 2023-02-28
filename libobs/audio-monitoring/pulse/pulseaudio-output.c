@@ -2,7 +2,11 @@
 #include "pulseaudio-wrapper.h"
 
 #define PULSE_DATA(voidptr) struct audio_monitor *data = voidptr;
-#define blog(level, msg, ...) blog(level, "pulse-am: " msg, ##__VA_ARGS__)
+#ifndef _DEBUG
+#undef blog
+#define blog(level, msg, ...) \
+	blog_internal(level, "pulse-am: " msg, ##__VA_ARGS__)
+#endif // _DEBUG
 
 struct audio_monitor {
 	obs_source_t *source;

@@ -33,8 +33,11 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "sndio-input.h"
 
+#ifndef _DEBUG
+#undef blog
 #define blog(level, msg, ...) \
-	blog(level, "sndio-input: %s: " msg, __func__, ##__VA_ARGS__);
+	blog_internal(level, "sndio-input: %s: " msg, __func__, ##__VA_ARGS__);
+#endif // _DEBUG
 
 #define berr(level, msg, ...)                                   \
 	do {                                                    \

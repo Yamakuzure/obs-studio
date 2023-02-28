@@ -85,7 +85,24 @@ EXPORT void blogva(int log_level, const char *format, va_list args);
 #endif
 
 PRINTFATTR(2, 3)
-EXPORT void blog(int log_level, const char *format, ...);
+EXPORT void blog_internal(int log_level, const char *format, ...);
+
+#if defined(_DEBUG)
+EXPORT char const *obs_internal_location_info(char const *path, size_t line,
+					      char const *func);
+#define blog(L_LEVEL_, FMT_, ...)                                    \
+	blog_internal(L_LEVEL_, "%s: " FMT_,                         \
+		      obs_internal_location_info(__FILE__, __LINE__, \
+						 __func__),          \
+		      ##__VA_ARGS__)
+#define debug_log(FMT_, ...) blog(LOG_DEBUG, "[debug] " FMT_, ##__VA_ARGS__)
+#else
+#define blog(L_LEVEL_, FMT_, ...) blog_internal(L_LEVEL_, FMT_, ##__VA_ARGS__)
+#define debug_log(FMT_, ...) \
+	do {                 \
+	} while (0)
+#endif
+
 PRINTFATTR(1, 2)
 #ifndef SWIG
 OBS_NORETURN

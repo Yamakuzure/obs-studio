@@ -1153,7 +1153,11 @@ static inline void do_output_signal(struct obs_output *output,
 {
 	struct calldata params = {0};
 	calldata_set_ptr(&params, "output", output);
+	debug_log("Sending '%s': size: %zu, capacity: %zu, fixed: %s", signal,
+		  params.size, params.capacity,
+		  params.fixed ? "true" : "false");
 	signal_handler_signal(output->context.signals, signal, &params);
+	debug_log("Signal %s sent", signal);
 	calldata_free(&params);
 }
 

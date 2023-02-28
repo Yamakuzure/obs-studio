@@ -402,8 +402,12 @@ void AutoConfigTestPage::TestBandwidthThread()
 				    server.address.c_str());
 		obs_service_update(service, service_settings);
 
-		if (!obs_output_start(output))
+		debug_log("calling obs_output_start() ...");
+		if (!obs_output_start(output)) {
+			debug_log("obs_output_start() returned false . continuing");
 			continue;
+		} else
+			debug_log("obs_output_start() returned true");
 
 		unique_lock<mutex> ul(m);
 		if (cancel) {
@@ -716,7 +720,9 @@ bool AutoConfigTestPage::TestSoftwareEncoding()
 		if (cancel)
 			return false;
 
+		debug_log("calling obs_output_start() ...");
 		if (!obs_output_start(output)) {
+			debug_log("obs_output_start() returned false - returning");
 			QMetaObject::invokeMethod(this, "Failure",
 						  Q_ARG(QString,
 							QTStr(TEST_RES_FAIL)));

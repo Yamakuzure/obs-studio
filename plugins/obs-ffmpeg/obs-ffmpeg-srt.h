@@ -487,21 +487,23 @@ static int libsrt_setup(URLContext *h, const char *uri)
 		hints.ai_flags |= AI_PASSIVE;
 	ret = getaddrinfo(hostname[0] ? hostname : NULL, portstr, &hints, &ai);
 	if (ret) {
+#ifdef _WIN32
+		char const *gai_err_str = gai_strerrorA(ret);
+#else
+		char const *gai_err_str = gai_strerror(ret);
+#endif
 		blog(LOG_ERROR,
 		     "[obs-ffmpeg mpegts muxer / libsrt]: Failed to resolve hostname %s: %s",
-		     hostname,
-#ifdef _WIN32
-		     gai_strerrorA(ret)
-#else
-		     gai_strerror(ret)
-#endif
-		);
+		     hostname, gai_err_str);
 		return OBS_OUTPUT_CONNECT_FAILED;
 	}
 
 	cur_ai = ai;
 
 restart:
+
+	int packet_size;
+	int optlen;
 
 	fd = srt_create_socket();
 	if (fd < 0) {
@@ -567,8 +569,8 @@ restart:
 		goto fail;
 	}
 
-	int packet_size = 0;
-	int optlen = sizeof(packet_size);
+	packet_size = 0;
+	optlen = sizeof(packet_size);
 	ret = libsrt_getsockopt(h, fd, SRTO_PAYLOADSIZE, "SRTO_PAYLOADSIZE",
 				&packet_size, &optlen);
 	if (ret < 0)

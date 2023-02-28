@@ -317,7 +317,10 @@ bool BasicOutputHandler::StartVirtualCam()
 	if (!Active())
 		SetupOutputs();
 
+	debug_log("calling obs_output_start() ...");
 	bool success = obs_output_start(virtualCam);
+	debug_log("obs_output_start() returned %s",
+		  success ? "true" : "false");
 	if (!success)
 		DestroyVirtualCamView();
 
@@ -1196,9 +1199,12 @@ bool SimpleOutput::StartStreaming(obs_service_t *service)
 
 	SetupVodTrack(service);
 
+	debug_log("calling obs_output_start() ...");
 	if (obs_output_start(streamOutput)) {
+		debug_log("obs_output_start() returned true");
 		return true;
 	}
+	debug_log("obs_output_start() returned false");
 
 	const char *error = obs_output_get_last_error(streamOutput);
 	bool hasLastError = error && *error;
@@ -1354,7 +1360,9 @@ bool SimpleOutput::StartRecording()
 	UpdateRecording();
 	if (!ConfigureRecording(false))
 		return false;
+	debug_log("calling obs_output_start() ...");
 	if (!obs_output_start(fileOutput)) {
+		debug_log("obs_output_start() returned false");
 		QString error_reason;
 		const char *error = obs_output_get_last_error(fileOutput);
 		if (error)
@@ -1366,6 +1374,7 @@ bool SimpleOutput::StartRecording()
 				      error_reason);
 		return false;
 	}
+	debug_log("obs_output_start() returned true");
 
 	return true;
 }
@@ -1375,11 +1384,14 @@ bool SimpleOutput::StartReplayBuffer()
 	UpdateRecording();
 	if (!ConfigureRecording(true))
 		return false;
+	debug_log("calling obs_output_start() ...");
 	if (!obs_output_start(replayBuffer)) {
+		debug_log("obs_output_start() returned false");
 		QMessageBox::critical(main, QTStr("Output.StartReplayFailed"),
 				      QTStr("Output.StartFailedGeneric"));
 		return false;
 	}
+	debug_log("obs_output_start() returned true");
 
 	return true;
 }
@@ -2142,9 +2154,12 @@ bool AdvancedOutput::StartStreaming(obs_service_t *service)
 
 	SetupVodTrack(service);
 
+	debug_log("calling obs_output_start() ...");
 	if (obs_output_start(streamOutput)) {
+		debug_log("obs_output_start() returned true");
 		return true;
 	}
+	debug_log("obs_output_start() returned false");
 
 	const char *error = obs_output_get_last_error(streamOutput);
 	bool hasLastError = error && *error;
@@ -2243,7 +2258,9 @@ bool AdvancedOutput::StartRecording()
 		obs_output_update(fileOutput, settings);
 	}
 
+	debug_log("calling obs_output_start() ...");
 	if (!obs_output_start(fileOutput)) {
+		debug_log("obs_output_start() returned false");
 		QString error_reason;
 		const char *error = obs_output_get_last_error(fileOutput);
 		if (error)
@@ -2255,6 +2272,7 @@ bool AdvancedOutput::StartRecording()
 				      error_reason);
 		return false;
 	}
+	debug_log("obs_output_start() returned true");
 
 	return true;
 }
@@ -2321,7 +2339,9 @@ bool AdvancedOutput::StartReplayBuffer()
 		obs_output_update(replayBuffer, settings);
 	}
 
+	debug_log("calling obs_output_start() ...");
 	if (!obs_output_start(replayBuffer)) {
+		debug_log("obs_output_start() returned false");
 		QString error_reason;
 		const char *error = obs_output_get_last_error(replayBuffer);
 		if (error)
@@ -2332,6 +2352,7 @@ bool AdvancedOutput::StartReplayBuffer()
 				      error_reason);
 		return false;
 	}
+	debug_log("obs_output_start() returned true");
 
 	return true;
 }

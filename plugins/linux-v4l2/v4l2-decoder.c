@@ -20,8 +20,12 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "v4l2-decoder.h"
 
+#ifndef _DEBUG
+#undef blog
+#undef blog
 #define blog(level, msg, ...) \
-	blog(level, "v4l2-input: decoder: " msg, ##__VA_ARGS__)
+	blog_internal(level, "v4l2-input: decoder: " msg, ##__VA_ARGS__)
+#endif // _DEBUG
 
 int v4l2_init_decoder(struct v4l2_decoder *decoder, int pixfmt)
 {

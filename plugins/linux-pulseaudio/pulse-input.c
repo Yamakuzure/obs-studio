@@ -29,7 +29,11 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #define NSEC_PER_MSEC 1000000L
 
 #define PULSE_DATA(voidptr) struct pulse_data *data = voidptr
-#define blog(level, msg, ...) blog(level, "pulse-input: " msg, ##__VA_ARGS__)
+#ifndef _DEBUG
+#undef blog
+#define blog(level, msg, ...) \
+	blog_internal(level, "pulse-input: " msg, ##__VA_ARGS__)
+#endif // _DEBUG
 
 struct pulse_data {
 	obs_source_t *source;
@@ -57,47 +61,51 @@ struct pulse_data {
 	volatile atomic_bool is_destroyed;
 };
 
-#define get_stream( DATA_p_)       \
-	((pa_stream*)atomic_load( &((DATA_p_)->stream)                  ))
-#define set_stream( DATA_p_, VAL_) \
-	             atomic_store(&((DATA_p_)->stream), (uintptr_t)(VAL_))
-#define have_stream(DATA_p_) ( \
-	( false == atomic_load_explicit( &((DATA_p_)->is_destroyed), memory_order_relaxed) ) && \
-	( true  == atomic_load_explicit( &((DATA_p_)->have_stream),  memory_order_relaxed) ) && \
-	( NULL  != get_stream(DATA_p_) ) \
-)
+#define get_stream(DATA_p_) ((pa_stream *)atomic_load(&((DATA_p_)->stream)))
+#define set_stream(DATA_p_, VAL_) \
+	atomic_store(&((DATA_p_)->stream), (uintptr_t)(VAL_))
+#define have_stream(DATA_p_)                                        \
+	((false == atomic_load_explicit(&((DATA_p_)->is_destroyed), \
+					memory_order_relaxed)) &&   \
+	 (true == atomic_load_explicit(&((DATA_p_)->have_stream),   \
+				       memory_order_relaxed)) &&    \
+	 (NULL != get_stream(DATA_p_)))
 
-static          mtx_t       pulse_data_lock;
-static volatile atomic_bool pulse_data_lock_initialized = ATOMIC_VAR_INIT( false );
+static mtx_t pulse_data_lock;
+static volatile atomic_bool pulse_data_lock_initialized =
+	ATOMIC_VAR_INIT(false);
 
 static void pulse_stop_recording(struct pulse_data *data);
 
-void create_internal_pulse_lock(void) {
+void create_internal_pulse_lock(void)
+{
 	if (!pulse_data_lock_initialized) {
 		pulse_data_lock_initialized = true;
 		mtx_init(&pulse_data_lock, mtx_plain | mtx_recursive);
 	}
 }
 
-void destroy_internal_pulse_lock(void) {
+void destroy_internal_pulse_lock(void)
+{
 	if (pulse_data_lock_initialized) {
 		mtx_destroy(&pulse_data_lock);
 		pulse_data_lock_initialized = false;
 	}
 }
 
-static inline void lock_pulse_data(void) {
+static inline void lock_pulse_data(void)
+{
 	if (pulse_data_lock_initialized) {
 		mtx_lock(&pulse_data_lock);
 	}
 }
 
-static inline void unlock_pulse_data(void) {
+static inline void unlock_pulse_data(void)
+{
 	if (pulse_data_lock_initialized) {
 		mtx_unlock(&pulse_data_lock);
 	}
 }
-
 
 /**
  * get obs from pulse audio format
@@ -439,8 +447,7 @@ static int_fast32_t pulse_start_recording(struct pulse_data *data)
 
 	pulse_lock();
 	int_fast32_t ret = pa_stream_connect_record(get_stream(data),
-						    data->device,
-						    &attr, flags);
+						    data->device, &attr, flags);
 	data->have_stream = true;
 	pulse_unlock();
 	if (ret < 0) {
@@ -482,8 +489,8 @@ static void pulse_stop_recording(struct pulse_data *data)
 	     atomic_load_explicit(&data->frames, memory_order_relaxed));
 
 	data->first_ts = 0;
-	data->packets  = 0;
-	data->frames   = 0;
+	data->packets = 0;
+	data->frames = 0;
 }
 
 /**
@@ -645,7 +652,7 @@ static void *pulse_create(obs_data_t *settings, obs_source_t *source,
 	create_internal_pulse_lock();
 	data = bzalloc(sizeof(struct pulse_data));
 
-	if ( data ) {
+	if (data) {
 		data->input = input;
 		data->source = source;
 

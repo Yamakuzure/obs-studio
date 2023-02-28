@@ -22,7 +22,11 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "v4l2-controls.h"
 
-#define blog(level, msg, ...) blog(level, "v4l2-controls: " msg, ##__VA_ARGS__)
+#ifndef _DEBUG
+#undef blog
+#define blog(level, msg, ...) \
+	blog_internal(level, "v4l2-controls: " msg, ##__VA_ARGS__)
+#endif // _DEBUG
 
 #if defined(__LP64__)
 #define UINT_TO_POINTER(val) ((void *)(unsigned long)(val))

@@ -4,9 +4,12 @@
 #include <util/dstr.h>
 #include <sys/stat.h>
 
-#define blog(log_level, format, ...)                    \
-	blog(log_level, "[image_source: '%s'] " format, \
-	     obs_source_get_name(context->source), ##__VA_ARGS__)
+#ifndef _DEBUG
+#undef blog
+#define blog(log_level, format, ...)                             \
+	blog_internal(log_level, "[image_source: '%s'] " format, \
+		      obs_source_get_name(context->source), ##__VA_ARGS__)
+#endif // _DEBUG
 
 #define debug(format, ...) blog(LOG_DEBUG, format, ##__VA_ARGS__)
 #define info(format, ...) blog(LOG_INFO, format, ##__VA_ARGS__)
