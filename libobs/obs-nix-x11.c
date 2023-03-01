@@ -78,7 +78,7 @@ void obs_nix_x11_log_info(void)
  */
 
 struct keycode_list {
-	DARRAY(xcb_keycode_t) list;
+	DARRAY(xcb_keycode_t, list);
 };
 
 struct obs_hotkeys_platform {

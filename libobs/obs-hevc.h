@@ -20,7 +20,12 @@
 #include "util/c99defs.h"
 
 #ifdef __cplusplus
+#include <atomic>
+typedef std::atomic_size_t a_size_t;
 extern "C" {
+#else
+#include <stdatomic.h>
+typedef atomic_size_t a_size_t;
 #endif
 
 struct encoder_packet;
@@ -76,8 +81,8 @@ EXPORT int obs_parse_hevc_packet_priority(const struct encoder_packet *packet);
 EXPORT void obs_extract_hevc_headers(const uint8_t *packet, size_t size,
 				     uint8_t **new_packet_data,
 				     size_t *new_packet_size,
-				     uint8_t **header_data, size_t *header_size,
-				     uint8_t **sei_data, size_t *sei_size);
+				     uint8_t **header_data, a_size_t *header_size,
+				     uint8_t **sei_data, a_size_t *sei_size);
 
 #ifdef __cplusplus
 }

@@ -34,7 +34,7 @@ struct ffmpeg_muxer {
 	int keyframes;
 	obs_hotkey_id hotkey;
 	volatile bool muxing;
-	DARRAY(struct encoder_packet) mux_packets;
+	DARRAY(struct encoder_packet, mux_packets);
 
 	/* split file */
 	bool found_video;

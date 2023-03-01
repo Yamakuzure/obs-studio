@@ -146,7 +146,7 @@ struct noise_suppress_data {
 
 	/* output data */
 	struct obs_audio_data output_audio;
-	DARRAY(float) output_data;
+	DARRAY(float, output_data);
 };
 
 #ifdef LIBNVAFX_ENABLED

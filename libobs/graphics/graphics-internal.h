@@ -385,9 +385,9 @@ struct graphics_subsystem {
 	gs_device_t *device;
 	struct gs_exports exports;
 
-	DARRAY(struct gs_rect) viewport_stack;
+	DARRAY(struct gs_rect, viewport_stack);
 
-	DARRAY(struct matrix4) matrix_stack;
+	DARRAY(struct matrix4, matrix_stack);
 	size_t cur_matrix;
 
 	struct matrix4 projection;
@@ -398,10 +398,10 @@ struct graphics_subsystem {
 	bool using_immediate;
 	struct gs_vb_data *vbd;
 	gs_vertbuffer_t *immediate_vertbuffer;
-	DARRAY(struct vec3) verts;
-	DARRAY(struct vec3) norms;
-	DARRAY(uint32_t) colors;
-	DARRAY(struct vec2) texverts[16];
+	DARRAY(struct vec3, verts);
+	DARRAY(struct vec3, norms);
+	DARRAY(uint32_t, colors);
+	DARRAY(struct vec2, texverts[16]);
 
 	pthread_mutex_t effect_mutex;
 	struct gs_effect *first_effect;
@@ -410,7 +410,7 @@ struct graphics_subsystem {
 	volatile long ref;
 
 	struct blend_state cur_blend_state;
-	DARRAY(struct blend_state) blend_state_stack;
+	DARRAY(struct blend_state, blend_state_stack);
 
 	bool linear_srgb;
 };

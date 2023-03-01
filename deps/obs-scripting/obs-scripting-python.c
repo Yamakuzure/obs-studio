@@ -51,7 +51,7 @@ static wchar_t home_path[1024] = {0};
 static python_version_t python_version = {0};
 #endif
 
-DARRAY(char *) python_paths;
+DARRAY(char *, python_paths);
 static bool python_loaded = false;
 static bool mutexes_loaded = false;
 

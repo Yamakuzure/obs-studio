@@ -33,8 +33,8 @@ struct vt_prores_encoder_data {
 	FourCharCode codec_type;
 	CFStringRef encoder_id;
 };
-static DARRAY(struct vt_prores_encoder_data) vt_prores_hardware_encoder_list;
-static DARRAY(struct vt_prores_encoder_data) vt_prores_software_encoder_list;
+static DARRAY(struct vt_prores_encoder_data, vt_prores_hardware_encoder_list);
+static DARRAY(struct vt_prores_encoder_data, vt_prores_software_encoder_list);
 
 #ifdef __aarch64__
 bool is_apple_silicon = true;
@@ -67,8 +67,8 @@ struct vt_encoder {
 	VTCompressionSessionRef session;
 	CMSimpleQueueRef queue;
 	bool hw_enc;
-	DARRAY(uint8_t) packet_data;
-	DARRAY(uint8_t) extra_data;
+	DARRAY(uint8_t, packet_data);
+	DARRAY(uint8_t, extra_data);
 };
 
 static const char *codec_type_to_print_fmt(CMVideoCodecType codec_type)

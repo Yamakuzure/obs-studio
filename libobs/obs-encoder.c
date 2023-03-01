@@ -904,7 +904,7 @@ static void send_first_video_packet(struct obs_encoder *encoder,
 				    struct encoder_packet *packet)
 {
 	struct encoder_packet first_packet;
-	DARRAY(uint8_t) data;
+	DARRAY(uint8_t, data);
 	uint8_t *sei;
 	size_t size;
 

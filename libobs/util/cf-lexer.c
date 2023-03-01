@@ -471,7 +471,7 @@ bool cf_lexer_lex(struct cf_lexer *lex, const char *str, const char *file)
 
 struct macro_param {
 	struct cf_token name;
-	DARRAY(struct cf_token) tokens;
+	DARRAY(struct cf_token, tokens);
 };
 
 static inline void macro_param_init(struct macro_param *param)
@@ -489,7 +489,7 @@ static inline void macro_param_free(struct macro_param *param)
 /* ------------------------------------------------------------------------- */
 
 struct macro_params {
-	DARRAY(struct macro_param) params;
+	DARRAY(struct macro_param, params);
 };
 
 static inline void macro_params_init(struct macro_params *params)

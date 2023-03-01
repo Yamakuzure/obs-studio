@@ -70,7 +70,7 @@ struct obs_pw_version {
 struct format_info {
 	uint32_t spa_format;
 	uint32_t drm_format;
-	DARRAY(uint64_t) modifiers;
+	DARRAY(uint64_t, modifiers);
 };
 
 struct _obs_pipewire {
@@ -113,7 +113,7 @@ struct _obs_pipewire {
 	struct obs_video_info video_info;
 	bool negotiated;
 
-	DARRAY(struct format_info) format_info;
+	DARRAY(struct format_info, format_info);
 };
 
 /* auxiliary methods */

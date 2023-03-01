@@ -16,7 +16,7 @@ struct showroom_ingest_info {
 	struct showroom_ingest ingest;
 };
 
-static DARRAY(struct showroom_ingest_info) cur_ingests = {0};
+static DARRAY(struct showroom_ingest_info, cur_ingests) = {0};
 
 struct showroom_ingest invalid_ingest = {"", ""};
 

@@ -31,7 +31,7 @@ struct obs_missing_file {
 };
 
 struct obs_missing_files {
-	DARRAY(struct obs_missing_file *) files;
+	DARRAY(struct obs_missing_file *, files);
 };
 
 obs_missing_files_t *obs_missing_files_create()

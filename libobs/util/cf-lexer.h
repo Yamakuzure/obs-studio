@@ -86,7 +86,7 @@ struct cf_lexer {
 	char *file;
 	struct lexer base_lexer;
 	char *reformatted, *write_offset;
-	DARRAY(struct cf_token) tokens;
+	DARRAY(struct cf_token, tokens);
 	bool unexpected_eof; /* unexpected multi-line comment eof */
 };
 
@@ -106,8 +106,8 @@ EXPORT bool cf_lexer_lex(struct cf_lexer *lex, const char *str,
 
 struct cf_def {
 	struct cf_token name;
-	DARRAY(struct cf_token) params;
-	DARRAY(struct cf_token) tokens;
+	DARRAY(struct cf_token, params);
+	DARRAY(struct cf_token, tokens);
 	bool macro;
 };
 
@@ -170,10 +170,10 @@ static inline void cf_def_free(struct cf_def *cfd)
 struct cf_preprocessor {
 	struct cf_lexer *lex;
 	struct error_data *ed;
-	DARRAY(struct cf_def) defines;
-	DARRAY(char *) sys_include_dirs;
-	DARRAY(struct cf_lexer) dependencies;
-	DARRAY(struct cf_token) tokens;
+	DARRAY(struct cf_def, defines);
+	DARRAY(char *, sys_include_dirs);
+	DARRAY(struct cf_lexer, dependencies);
+	DARRAY(struct cf_token, tokens);
 	bool ignore_state;
 };
 

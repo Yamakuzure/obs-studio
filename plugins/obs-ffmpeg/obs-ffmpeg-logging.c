@@ -7,8 +7,8 @@ static DARRAY(struct log_context {
 	void *context;
 	char str[4096];
 	int print_prefix;
-} *) active_log_contexts;
-static DARRAY(struct log_context *) cached_log_contexts;
+} *, active_log_contexts);
+static DARRAY(struct log_context *, cached_log_contexts);
 pthread_mutex_t log_contexts_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 static struct log_context *create_or_fetch_log_context(void *context)

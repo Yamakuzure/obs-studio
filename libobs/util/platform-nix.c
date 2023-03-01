@@ -587,7 +587,7 @@ int os_glob(const char *pattern, int flags, os_glob_t **pglob)
 	int ret = glob(pattern, 0, NULL, &pgi.gl);
 
 	if (ret == 0) {
-		DARRAY(struct os_globent) list;
+		DARRAY(struct os_globent, list);
 		da_init(list);
 
 		for (size_t i = 0; i < pgi.gl.gl_pathc; i++) {

@@ -183,7 +183,7 @@ static inline void error_item_array_free(struct error_item *array, size_t num)
 /* ------------------------------------------------------------------------- */
 
 struct error_data {
-	DARRAY(struct error_item) errors;
+	DARRAY(struct error_item, errors);
 };
 
 static inline void error_data_init(struct error_data *data)

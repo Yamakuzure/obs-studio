@@ -18,7 +18,7 @@ struct ingest {
 	char *url;
 };
 
-static DARRAY(struct ingest) cur_ingests;
+static DARRAY(struct ingest, cur_ingests);
 
 static void free_ingests(void)
 {

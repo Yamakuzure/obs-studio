@@ -19,7 +19,7 @@ struct window_capture {
 
 	CGColorSpaceRef color_space;
 
-	DARRAY(uint8_t) buffer;
+	DARRAY(uint8_t, buffer);
 
 	pthread_t capture_thread;
 	os_event_t *capture_event;

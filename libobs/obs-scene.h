@@ -79,7 +79,7 @@ struct obs_scene_item {
 	obs_data_t *private_settings;
 
 	pthread_mutex_t actions_mutex;
-	DARRAY(struct item_action) audio_actions;
+	DARRAY(struct item_action, audio_actions);
 
 	struct obs_source *show_transition;
 	struct obs_source *hide_transition;

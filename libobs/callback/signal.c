@@ -29,7 +29,7 @@ struct signal_callback {
 
 struct signal_info {
 	struct decl_info func;
-	DARRAY(struct signal_callback) callbacks;
+	DARRAY(struct signal_callback, callbacks);
 	pthread_mutex_t mutex;
 	bool signalling;
 
@@ -91,7 +91,7 @@ struct signal_handler {
 	pthread_mutex_t mutex;
 	volatile long refs;
 
-	DARRAY(struct global_callback_info) global_callbacks;
+	DARRAY(struct global_callback_info, global_callbacks);
 	pthread_mutex_t global_callbacks_mutex;
 };
 

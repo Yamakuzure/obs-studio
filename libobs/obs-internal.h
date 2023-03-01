@@ -230,7 +230,7 @@ struct obs_display {
 	gs_swapchain_t *swap;
 	pthread_mutex_t draw_callbacks_mutex;
 	pthread_mutex_t draw_info_mutex;
-	DARRAY(struct draw_callback) draw_callbacks;
+	DARRAY(struct draw_callback, draw_callbacks);
 	bool use_clear_workaround;
 
 	struct obs_display *next;
@@ -294,7 +294,7 @@ struct obs_core_video_mix {
 	pthread_mutex_t gpu_encoder_mutex;
 	struct circlebuf gpu_encoder_queue;
 	struct circlebuf gpu_encoder_avail_queue;
-	DARRAY(obs_encoder_t *) gpu_encoders;
+	DARRAY(obs_encoder_t *, gpu_encoders);
 	os_sem_t *gpu_encode_semaphore;
 	os_event_t *gpu_encode_inactive;
 	pthread_t gpu_encode_thread;
@@ -360,7 +360,7 @@ struct obs_core_video {
 	struct circlebuf tasks;
 
 	pthread_mutex_t mixes_mutex;
-	DARRAY(struct obs_core_video_mix *) mixes;
+	DARRAY(struct obs_core_video_mix *, mixes);
 	struct obs_core_video_mix *main_mix;
 };
 
@@ -369,8 +369,8 @@ struct audio_monitor;
 struct obs_core_audio {
 	audio_t *audio;
 
-	DARRAY(struct obs_source *) render_order;
-	DARRAY(struct obs_source *) root_nodes;
+	DARRAY(struct obs_source *, render_order);
+	DARRAY(struct obs_source *, root_nodes);
 
 	uint64_t buffered_ts;
 	struct circlebuf buffered_timestamps;
@@ -380,7 +380,7 @@ struct obs_core_audio {
 	bool fixed_buffer;
 
 	pthread_mutex_t monitoring_mutex;
-	DARRAY(struct audio_monitor *) monitors;
+	DARRAY(struct audio_monitor *, monitors);
 	char *monitoring_device_name;
 	char *monitoring_device_id;
 
@@ -408,9 +408,9 @@ struct obs_core_data {
 	pthread_mutex_t services_mutex;
 	pthread_mutex_t audio_sources_mutex;
 	pthread_mutex_t draw_callbacks_mutex;
-	DARRAY(struct draw_callback) draw_callbacks;
-	DARRAY(struct rendered_callback) rendered_callbacks;
-	DARRAY(struct tick_callback) tick_callbacks;
+	DARRAY(struct draw_callback, draw_callbacks);
+	DARRAY(struct rendered_callback, rendered_callbacks);
+	DARRAY(struct tick_callback, tick_callbacks);
 
 	struct obs_view main_view;
 
@@ -437,7 +437,7 @@ struct obs_core_hotkeys {
 	bool thread_disable_press;
 	bool strict_modifiers;
 	bool reroute_hotkeys;
-	DARRAY(obs_hotkey_binding_t) bindings;
+	DARRAY(obs_hotkey_binding_t, bindings);
 
 	obs_hotkey_callback_router_func router_func;
 	void *router_func_data;
@@ -460,17 +460,17 @@ struct obs_core_hotkeys {
 
 struct obs_core {
 	struct obs_module *first_module;
-	DARRAY(struct obs_module_path) module_paths;
+	DARRAY(struct obs_module_path, module_paths);
 
-	DARRAY(struct obs_source_info) source_types;
-	DARRAY(struct obs_source_info) input_types;
-	DARRAY(struct obs_source_info) filter_types;
-	DARRAY(struct obs_source_info) transition_types;
-	DARRAY(struct obs_output_info) output_types;
-	DARRAY(struct obs_encoder_info) encoder_types;
-	DARRAY(struct obs_service_info) service_types;
-	DARRAY(struct obs_modal_ui) modal_ui_callbacks;
-	DARRAY(struct obs_modeless_ui) modeless_ui_callbacks;
+	DARRAY(struct obs_source_info, source_types);
+	DARRAY(struct obs_source_info, input_types);
+	DARRAY(struct obs_source_info, filter_types);
+	DARRAY(struct obs_source_info, transition_types);
+	DARRAY(struct obs_output_info, output_types);
+	DARRAY(struct obs_encoder_info, encoder_types);
+	DARRAY(struct obs_service_info, service_types);
+	DARRAY(struct obs_modal_ui, modal_ui_callbacks);
+	DARRAY(struct obs_modeless_ui, modeless_ui_callbacks);
 
 	signal_handler_t *signals;
 	proc_handler_t *procs;
@@ -555,11 +555,11 @@ struct obs_context_data {
 	struct obs_weak_object *control;
 	obs_destroy_cb destroy;
 
-	DARRAY(obs_hotkey_id) hotkeys;
-	DARRAY(obs_hotkey_pair_id) hotkey_pairs;
+	DARRAY(obs_hotkey_id, hotkeys);
+	DARRAY(obs_hotkey_pair_id, hotkey_pairs);
 	obs_data_t *hotkey_data;
 
-	DARRAY(char *) rename_cache;
+	DARRAY(char *, rename_cache);
 	pthread_mutex_t rename_cache_mutex;
 
 	pthread_mutex_t *mutex;
@@ -747,7 +747,7 @@ struct obs_source {
 	atomic_uint_fast64_t audio_ts;
 	struct circlebuf audio_input_buf[MAX_AUDIO_CHANNELS];
 	size_t last_audio_input_buf_size;
-	DARRAY(struct audio_action) audio_actions;
+	DARRAY(struct audio_action, audio_actions);
 	float *audio_output_buf[MAX_AUDIO_MIXES][MAX_AUDIO_CHANNELS];
 	float *audio_mix_buf[MAX_AUDIO_CHANNELS];
 	struct resample_info sample_info;
@@ -756,7 +756,7 @@ struct obs_source {
 	pthread_mutex_t audio_buf_mutex;
 	pthread_mutex_t audio_mutex;
 	pthread_mutex_t audio_cb_mutex;
-	DARRAY(struct audio_cb_info) audio_cb_list;
+	DARRAY(struct audio_cb_info, audio_cb_list);
 	struct obs_audio_data audio_data;
 	size_t audio_storage_size;
 	uint32_t audio_mixers;
@@ -787,8 +787,8 @@ struct obs_source {
 	bool async_unbuffered;
 	bool async_decoupled;
 	struct obs_source_frame *async_preload_frame;
-	DARRAY(struct async_frame) async_cache;
-	DARRAY(struct obs_source_frame *) async_frames;
+	DARRAY(struct async_frame, async_cache);
+	DARRAY(struct obs_source_frame *, async_frames);
 	pthread_mutex_t async_mutex;
 	uint32_t async_width;
 	uint32_t async_height;
@@ -798,7 +798,7 @@ struct obs_source {
 	uint32_t async_convert_height[MAX_AV_PLANES];
 
 	pthread_mutex_t caption_cb_mutex;
-	DARRAY(struct caption_cb_info) caption_cb_list;
+	DARRAY(struct caption_cb_info, caption_cb_list);
 
 	/* async video deinterlacing */
 	uint64_t deinterlace_offset;
@@ -815,7 +815,7 @@ struct obs_source {
 	/* filters */
 	struct obs_source *filter_parent;
 	struct obs_source *filter_target;
-	DARRAY(struct obs_source *) filters;
+	DARRAY(struct obs_source *, filters);
 	pthread_mutex_t filter_mutex;
 	gs_texrender_t *filter_texrender;
 	enum obs_allow_direct_render allow_direct;
@@ -1077,7 +1077,7 @@ struct obs_output {
 	pthread_t end_data_capture_thread;
 	os_event_t *stopping_event;
 	pthread_mutex_t interleaved_mutex;
-	DARRAY(struct encoder_packet) interleaved_packets;
+	DARRAY(struct encoder_packet, interleaved_packets);
 	int stop_code;
 
 	int reconnect_retry_sec;
@@ -1241,7 +1241,7 @@ struct obs_encoder {
 	uint64_t start_ts;
 
 	pthread_mutex_t outputs_mutex;
-	DARRAY(obs_output_t *) outputs;
+	DARRAY(obs_output_t *, outputs);
 
 	bool destroy_on_stop;
 
@@ -1249,7 +1249,7 @@ struct obs_encoder {
 	void *media;
 
 	pthread_mutex_t callbacks_mutex;
-	DARRAY(struct encoder_callback) callbacks;
+	DARRAY(struct encoder_callback, callbacks);
 
 	struct pause_data pause;
 

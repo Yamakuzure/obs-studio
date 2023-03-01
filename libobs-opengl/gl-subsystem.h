@@ -456,8 +456,8 @@ struct gs_shader_param {
 	struct gs_texture *texture;
 	bool srgb;
 
-	DARRAY(uint8_t) cur_value;
-	DARRAY(uint8_t) def_value;
+	DARRAY(uint8_t, cur_value);
+	DARRAY(uint8_t, def_value);
 	bool changed;
 };
 
@@ -484,9 +484,9 @@ struct gs_shader {
 	struct gs_shader_param *viewproj;
 	struct gs_shader_param *world;
 
-	DARRAY(struct shader_attrib) attribs;
-	DARRAY(struct gs_shader_param) params;
-	DARRAY(gs_samplerstate_t *) samplers;
+	DARRAY(struct shader_attrib, attribs);
+	DARRAY(struct gs_shader_param, params);
+	DARRAY(gs_samplerstate_t *, samplers);
 };
 
 struct program_param {
@@ -500,8 +500,8 @@ struct gs_program {
 	struct gs_shader *vertex_shader;
 	struct gs_shader *pixel_shader;
 
-	DARRAY(struct program_param) params;
-	DARRAY(GLint) attribs;
+	DARRAY(struct program_param, params);
+	DARRAY(GLint, attribs);
 
 	struct gs_program **prev_next;
 	struct gs_program *next;
@@ -517,8 +517,8 @@ struct gs_vertex_buffer {
 	GLuint normal_buffer;
 	GLuint tangent_buffer;
 	GLuint color_buffer;
-	DARRAY(GLuint) uv_buffers;
-	DARRAY(size_t) uv_sizes;
+	DARRAY(GLuint, uv_buffers);
+	DARRAY(size_t, uv_sizes);
 
 	gs_device_t *device;
 	size_t num;
@@ -664,7 +664,7 @@ struct gs_device {
 	struct matrix4 cur_view;
 	struct matrix4 cur_viewproj;
 
-	DARRAY(struct matrix4) proj_stack;
+	DARRAY(struct matrix4, proj_stack);
 
 	struct fbo_info *cur_fbo;
 };

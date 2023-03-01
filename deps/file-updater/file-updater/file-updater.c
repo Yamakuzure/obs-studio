@@ -13,7 +13,7 @@
 struct update_info {
 	char error[CURL_ERROR_SIZE];
 	struct curl_slist *header;
-	DARRAY(uint8_t) file_data;
+	DARRAY(uint8_t, file_data);
 	char *user_agent;
 	CURL *curl;
 	char *url;

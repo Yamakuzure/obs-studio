@@ -244,7 +244,7 @@ bool xcomp_check_ewmh(xcb_connection_t *conn, xcb_window_t root)
 
 struct darray xcomp_top_level_windows(xcb_connection_t *conn)
 {
-	DARRAY(xcb_window_t) res = {0};
+	DARRAY(xcb_window_t, res) = {0};
 
 	// EWMH top level window listing is not supported.
 	if (ATOM__NET_CLIENT_LIST == XCB_ATOM_NONE)
@@ -282,7 +282,7 @@ xcb_window_t xcomp_find_window(xcb_connection_t *conn, Display *disp,
 			       const char *str)
 {
 	xcb_window_t ret = 0;
-	DARRAY(xcb_window_t) tlw = {0};
+	DARRAY(xcb_window_t, tlw) = {0};
 	tlw.da = xcomp_top_level_windows(conn);
 	if (!str || strlen(str) == 0) {
 		if (tlw.num > 0)
@@ -442,7 +442,7 @@ struct reg_item {
 	struct xcompcap *src;
 	xcb_window_t win;
 };
-static DARRAY(struct reg_item) watcher_registry = {0};
+static DARRAY(struct reg_item, watcher_registry) = {0};
 static pthread_mutex_t watcher_lock = PTHREAD_MUTEX_INITIALIZER;
 
 void watcher_register(xcb_connection_t *conn, struct xcompcap *s)
@@ -724,7 +724,7 @@ static obs_properties_t *xcompcap_props(void *unused)
 				       OBS_COMBO_TYPE_LIST,
 				       OBS_COMBO_FORMAT_STRING);
 
-	DARRAY(struct WindowInfo) window_strings = {0};
+	DARRAY(struct WindowInfo, window_strings) = {0};
 	struct darray windows = xcomp_top_level_windows(conn);
 	for (size_t w = 0; w < windows.num; w++) {
 		xcb_window_t win = *(xcb_window_t *)darray_item(

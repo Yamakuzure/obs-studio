@@ -52,7 +52,7 @@ struct obs_x264 {
 	x264_param_t params;
 	x264_t *context;
 
-	DARRAY(uint8_t) packet_data;
+	DARRAY(uint8_t, packet_data);
 
 	uint8_t *extra_data;
 	uint8_t *sei;
@@ -663,8 +663,8 @@ static void load_headers(struct obs_x264 *obsx264)
 {
 	x264_nal_t *nals;
 	int nal_count;
-	DARRAY(uint8_t) header;
-	DARRAY(uint8_t) sei;
+	DARRAY(uint8_t, header);
+	DARRAY(uint8_t, sei);
 
 	da_init(header);
 	da_init(sei);

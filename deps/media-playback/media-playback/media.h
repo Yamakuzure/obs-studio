@@ -59,7 +59,7 @@ struct mp_media {
 	int scale_linesizes[4];
 	uint8_t *scale_pic[4];
 
-	DARRAY(AVPacket *) packet_pool;
+	DARRAY(AVPacket *, packet_pool);
 	struct mp_decode v;
 	struct mp_decode a;
 	bool request_preload;

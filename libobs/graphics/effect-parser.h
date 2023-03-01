@@ -68,12 +68,12 @@ static inline void ep_var_free(struct ep_var *epv)
 
 struct ep_param {
 	char *type, *name;
-	DARRAY(uint8_t) default_val;
-	DARRAY(char *) properties;
+	DARRAY(uint8_t, default_val);
+	DARRAY(char *, properties);
 	struct gs_effect_param *param;
 	bool is_const, is_property, is_uniform, is_texture, written;
 	int writeorder, array_count;
-	DARRAY(struct ep_param) annotations;
+	DARRAY(struct ep_param, annotations);
 };
 
 extern void ep_param_writevar(struct dstr *dst, struct darray *use_params);
@@ -113,7 +113,7 @@ static inline void ep_param_free(struct ep_param *epp)
 
 struct ep_struct {
 	char *name;
-	DARRAY(struct ep_var) vars; /* struct ep_var */
+	DARRAY(struct ep_var, vars); /* struct ep_var */
 	bool written;
 };
 
@@ -145,8 +145,8 @@ static inline void ep_struct_free(struct ep_struct *eps)
 
 struct ep_sampler {
 	char *name;
-	DARRAY(char *) states;
-	DARRAY(char *) values;
+	DARRAY(char *, states);
+	DARRAY(char *, values);
 
 	bool written;
 };
@@ -175,8 +175,8 @@ static inline void ep_sampler_free(struct ep_sampler *eps)
 
 struct ep_pass {
 	char *name;
-	DARRAY(struct cf_token) vertex_program;
-	DARRAY(struct cf_token) fragment_program;
+	DARRAY(struct cf_token, vertex_program);
+	DARRAY(struct cf_token, fragment_program);
 	struct gs_effect_pass *pass;
 };
 
@@ -197,7 +197,7 @@ static inline void ep_pass_free(struct ep_pass *epp)
 
 struct ep_technique {
 	char *name;
-	DARRAY(struct ep_pass) passes; /* struct ep_pass */
+	DARRAY(struct ep_pass, passes); /* struct ep_pass */
 };
 
 static inline void ep_technique_init(struct ep_technique *ept)
@@ -222,11 +222,11 @@ static inline void ep_technique_free(struct ep_technique *ept)
 struct ep_func {
 	char *name, *ret_type, *mapping;
 	struct dstr contents;
-	DARRAY(struct ep_var) param_vars;
-	DARRAY(char *) func_deps;
-	DARRAY(char *) struct_deps;
-	DARRAY(char *) param_deps;
-	DARRAY(char *) sampler_deps;
+	DARRAY(struct ep_var, param_vars);
+	DARRAY(char *, func_deps);
+	DARRAY(char *, struct_deps);
+	DARRAY(char *, param_deps);
+	DARRAY(char *, sampler_deps);
 	bool written;
 };
 
@@ -259,15 +259,15 @@ static inline void ep_func_free(struct ep_func *epf)
 struct effect_parser {
 	gs_effect_t *effect;
 
-	DARRAY(struct ep_param) params;
-	DARRAY(struct ep_struct) structs;
-	DARRAY(struct ep_func) funcs;
-	DARRAY(struct ep_sampler) samplers;
-	DARRAY(struct ep_technique) techniques;
+	DARRAY(struct ep_param, params);
+	DARRAY(struct ep_struct, structs);
+	DARRAY(struct ep_func, funcs);
+	DARRAY(struct ep_sampler, samplers);
+	DARRAY(struct ep_technique, techniques);
 
 	/* internal vars */
-	DARRAY(struct cf_lexer) files;
-	DARRAY(struct cf_token) tokens;
+	DARRAY(struct cf_lexer, files);
+	DARRAY(struct cf_token, tokens);
 	struct gs_effect_pass *cur_pass;
 
 	struct cf_parser cfp;

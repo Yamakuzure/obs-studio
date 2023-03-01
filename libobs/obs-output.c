@@ -1235,7 +1235,7 @@ static bool add_caption(struct obs_output *output, struct encoder_packet *out)
 	size_t size;
 	long ref = 1;
 
-	DARRAY(uint8_t) out_data;
+	DARRAY(uint8_t, out_data);
 
 	if (out->priority > 1)
 		return false;
@@ -1725,7 +1725,7 @@ static inline void insert_interleaved_packet(struct obs_output *output,
 
 static void resort_interleaved_packets(struct obs_output *output)
 {
-	DARRAY(struct encoder_packet) old_array;
+	DARRAY(struct encoder_packet, old_array);
 
 	old_array.da = output->interleaved_packets.da;
 	memset(&output->interleaved_packets, 0,

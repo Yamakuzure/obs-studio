@@ -104,7 +104,7 @@ struct slideshow {
 	uint64_t mem_usage;
 
 	pthread_mutex_t mutex;
-	DARRAY(struct image_file_data) files;
+	DARRAY(struct image_file_data, files);
 
 	enum behavior behavior;
 
@@ -142,7 +142,7 @@ static obs_source_t *get_transition(struct slideshow *ss)
 
 static obs_source_t *get_source(struct darray *array, const char *path)
 {
-	DARRAY(struct image_file_data) files;
+	DARRAY(struct image_file_data, files);
 	obs_source_t *source = NULL;
 
 	files.da = *array;
@@ -174,7 +174,7 @@ static obs_source_t *create_source_from_file(const char *file)
 
 static void free_files(struct darray *array)
 {
-	DARRAY(struct image_file_data) files;
+	DARRAY(struct image_file_data, files);
 	files.da = *array;
 
 	for (size_t i = 0; i < files.num; i++) {
@@ -208,7 +208,7 @@ static const char *ss_getname(void *unused)
 static void add_file(struct slideshow *ss, struct darray *array,
 		     const char *path, uint32_t *cx, uint32_t *cy)
 {
-	DARRAY(struct image_file_data) new_files;
+	DARRAY(struct image_file_data, new_files);
 	struct image_file_data data;
 	obs_source_t *new_source;
 
@@ -295,8 +295,8 @@ static void do_transition(void *data, bool to_null)
 
 static void ss_update(void *data, obs_data_t *settings)
 {
-	DARRAY(struct image_file_data) new_files;
-	DARRAY(struct image_file_data) old_files;
+	DARRAY(struct image_file_data, new_files);
+	DARRAY(struct image_file_data, old_files);
 	obs_source_t *new_tr = NULL;
 	obs_source_t *old_tr = NULL;
 	struct slideshow *ss = data;

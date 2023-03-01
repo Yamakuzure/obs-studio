@@ -20,7 +20,7 @@
 #include "darray.h"
 
 struct array_output_data {
-	DARRAY(uint8_t) bytes;
+	DARRAY(uint8_t, bytes);
 };
 
 EXPORT void array_output_serializer_init(struct serializer *s,

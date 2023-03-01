@@ -214,7 +214,7 @@ static inline void remove_without_release(struct obs_scene_item *item)
 static void remove_all_items(struct obs_scene *scene)
 {
 	struct obs_scene_item *item;
-	DARRAY(struct obs_scene_item *) items;
+	DARRAY(struct obs_scene_item *, items);
 
 	da_init(items);
 
@@ -897,7 +897,7 @@ update_transforms_and_prune_sources(obs_scene_t *scene,
 
 static void scene_video_render(void *data, gs_effect_t *effect)
 {
-	DARRAY(struct obs_scene_item *) remove_items;
+	DARRAY(struct obs_scene_item *, remove_items);
 	struct obs_scene *scene = data;
 	struct obs_scene_item *item;
 
@@ -1606,7 +1606,7 @@ static obs_source_t *get_child_at_idx(obs_scene_t *scene, size_t idx)
 static inline obs_source_t *dup_child(struct darray *array, size_t idx,
 				      obs_scene_t *new_scene, bool private)
 {
-	DARRAY(struct obs_scene_item *) old_items;
+	DARRAY(struct obs_scene_item *, old_items);
 	obs_source_t *source;
 
 	old_items.da = *array;
@@ -1704,7 +1704,7 @@ obs_scene_t *obs_scene_duplicate(obs_scene_t *scene, const char *name,
 {
 	bool make_unique = ((int)type & (1 << 0)) != 0;
 	bool make_private = ((int)type & (1 << 1)) != 0;
-	DARRAY(struct obs_scene_item *) items;
+	DARRAY(struct obs_scene_item *, items);
 	struct obs_scene *new_scene;
 	struct obs_scene_item *item;
 	struct obs_source *source;
@@ -3518,7 +3518,7 @@ build_current_order_info(obs_scene_t *scene,
 			 struct obs_sceneitem_order_info **items_out,
 			 size_t *size_out)
 {
-	DARRAY(struct obs_sceneitem_order_info) items;
+	DARRAY(struct obs_sceneitem_order_info, items);
 	da_init(items);
 
 	obs_sceneitem_t *item = scene->first_item;
@@ -3951,7 +3951,7 @@ obs_data_t *obs_sceneitem_transition_save(struct obs_scene_item *item,
 
 void obs_scene_prune_sources(obs_scene_t *scene)
 {
-	DARRAY(struct obs_scene_item *) remove_items;
+	DARRAY(struct obs_scene_item *, remove_items);
 	da_init(remove_items);
 
 	video_lock(scene);

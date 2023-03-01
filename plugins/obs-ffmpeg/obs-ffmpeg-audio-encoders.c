@@ -47,7 +47,7 @@ struct enc_encoder {
 	AVFrame *aframe;
 	int64_t total_samples;
 
-	DARRAY(uint8_t) packet_buffer;
+	DARRAY(uint8_t, packet_buffer);
 
 	size_t audio_planes;
 	size_t audio_size;

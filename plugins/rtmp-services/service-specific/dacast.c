@@ -23,7 +23,7 @@ struct dacast_ingest_info {
 struct dacast_ingest dacast_invalid_ingest = {"rtmp://dacast", "", "",
 					      "fake_key"};
 
-static DARRAY(struct dacast_ingest_info) cur_ingests;
+static DARRAY(struct dacast_ingest_info, cur_ingests);
 
 static void free_ingest(struct dacast_ingest ingest)
 {

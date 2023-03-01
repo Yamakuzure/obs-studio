@@ -20,7 +20,12 @@
 #include "obs-nal.h"
 
 #ifdef __cplusplus
+#include <atomic>
+typedef std::atomic_size_t a_size_t;
 extern "C" {
+#else
+#include <stdatomic.h>
+typedef atomic_size_t a_size_t;
 #endif
 
 struct encoder_packet;
@@ -52,8 +57,8 @@ EXPORT size_t obs_parse_avc_header(uint8_t **header, const uint8_t *data,
 EXPORT void obs_extract_avc_headers(const uint8_t *packet, size_t size,
 				    uint8_t **new_packet_data,
 				    size_t *new_packet_size,
-				    uint8_t **header_data, size_t *header_size,
-				    uint8_t **sei_data, size_t *sei_size);
+				    uint8_t **header_data, a_size_t *header_size,
+				    uint8_t **sei_data, a_size_t *sei_size);
 
 #ifdef __cplusplus
 }

@@ -1,6 +1,8 @@
 #pragma once
 
 #include "base.h"
+// We need to typedef DARRAY() below, do not use _Atomic(size_t) then!
+#define DARRAY_NON_ATOMIC
 #include "darray.h"
 
 #ifdef __cplusplus
@@ -61,7 +63,7 @@ struct profiler_time_entry {
 	uint64_t count;
 };
 
-typedef DARRAY(profiler_time_entry_t) profiler_time_entries_t;
+typedef DARRAY(profiler_time_entry_t, profiler_time_entries_t);
 
 typedef bool (*profiler_entry_enum_func)(void *context,
 					 profiler_snapshot_entry_t *entry);

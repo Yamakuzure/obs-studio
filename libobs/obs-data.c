@@ -52,7 +52,7 @@ struct obs_data {
 
 struct obs_data_array {
 	volatile long ref;
-	DARRAY(obs_data_t *) objects;
+	DARRAY(obs_data_t *, objects);
 };
 
 struct obs_data_number {

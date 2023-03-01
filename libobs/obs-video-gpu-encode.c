@@ -20,7 +20,7 @@
 static void *gpu_encode_thread(struct obs_core_video_mix *video)
 {
 	uint64_t interval = video_output_get_frame_time(video->video);
-	DARRAY(obs_encoder_t *) encoders;
+	DARRAY(obs_encoder_t *, encoders);
 	int wait_frames = NUM_ENCODE_TEXTURE_FRAMES_TO_WAIT;
 
 	da_init(encoders);

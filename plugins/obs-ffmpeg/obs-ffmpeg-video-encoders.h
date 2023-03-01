@@ -28,7 +28,7 @@ struct ffmpeg_video_encoder {
 
 	AVFrame *vframe;
 
-	DARRAY(uint8_t) buffer;
+	DARRAY(uint8_t, buffer);
 
 	int height;
 	bool initialized;

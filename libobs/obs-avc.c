@@ -208,12 +208,12 @@ size_t obs_parse_avc_header(uint8_t **header, const uint8_t *data, size_t size)
 
 void obs_extract_avc_headers(const uint8_t *packet, size_t size,
 			     uint8_t **new_packet_data, size_t *new_packet_size,
-			     uint8_t **header_data, size_t *header_size,
-			     uint8_t **sei_data, size_t *sei_size)
+			     uint8_t **header_data, a_size_t *header_size,
+			     uint8_t **sei_data, a_size_t *sei_size)
 {
-	DARRAY(uint8_t) new_packet;
-	DARRAY(uint8_t) header;
-	DARRAY(uint8_t) sei;
+	DARRAY(uint8_t, new_packet);
+	DARRAY(uint8_t, header);
+	DARRAY(uint8_t, sei);
 	const uint8_t *nal_start, *nal_end, *nal_codestart;
 	const uint8_t *end = packet + size;
 

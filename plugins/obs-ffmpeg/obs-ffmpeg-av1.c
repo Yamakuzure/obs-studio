@@ -35,7 +35,7 @@ struct av1_encoder {
 	struct ffmpeg_video_encoder ffve;
 	enum av1_encoder_type type;
 
-	DARRAY(uint8_t) header;
+	DARRAY(uint8_t, header);
 };
 
 static const char *aom_av1_getname(void *unused)

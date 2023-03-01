@@ -34,7 +34,7 @@ static inline void proc_info_free(struct proc_info *pi)
 struct proc_handler {
 	/* TODO: replace with hash table lookup? */
 	pthread_mutex_t mutex;
-	DARRAY(struct proc_info) procs;
+	DARRAY(struct proc_info, procs);
 };
 
 static struct proc_info *getproc(proc_handler_t *handler, const char *name)

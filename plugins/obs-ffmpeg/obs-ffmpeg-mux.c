@@ -1172,7 +1172,7 @@ static void insert_packet(struct darray *array, struct encoder_packet *packet,
 			  int64_t video_pts_offset, int64_t *audio_dts_offsets)
 {
 	struct encoder_packet pkt;
-	DARRAY(struct encoder_packet) packets;
+	DARRAY(struct encoder_packet, packets);
 	packets.da = *array;
 	size_t idx;
 

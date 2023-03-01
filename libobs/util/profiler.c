@@ -13,7 +13,7 @@
 //#define TRACK_OVERHEAD
 
 struct profiler_snapshot {
-	DARRAY(profiler_snapshot_entry_t) roots;
+	DARRAY(profiler_snapshot_entry_t, roots);
 };
 
 struct profiler_snapshot_entry {
@@ -27,7 +27,7 @@ struct profiler_snapshot_entry {
 	uint64_t min_time_between_calls;
 	uint64_t max_time_between_calls;
 	uint64_t overall_between_calls_count;
-	DARRAY(profiler_snapshot_entry_t) children;
+	DARRAY(profiler_snapshot_entry_t, children);
 };
 
 typedef struct profiler_time_entry profiler_time_entry;
@@ -44,7 +44,7 @@ struct profile_call {
 	uint64_t overhead_end;
 #endif
 	uint64_t expected_time_between_calls;
-	DARRAY(profile_call) children;
+	DARRAY(profile_call, children);
 	profile_call *parent;
 };
 
@@ -75,7 +75,7 @@ struct profile_entry {
 #endif
 	uint64_t expected_time_between_calls;
 	profile_times_table times_between_calls;
-	DARRAY(profile_entry) children;
+	DARRAY(profile_entry, children);
 };
 
 typedef struct profile_root_entry profile_root_entry;
@@ -258,7 +258,7 @@ static void merge_call(profile_entry *entry, profile_call *call,
 
 static bool enabled = false;
 static pthread_mutex_t root_mutex = PTHREAD_MUTEX_INITIALIZER;
-static DARRAY(profile_root_entry) root_entries;
+static DARRAY(profile_root_entry, root_entries);
 
 static THREAD_LOCAL profile_call *thread_context = NULL;
 static THREAD_LOCAL bool thread_enabled = true;
@@ -801,7 +801,7 @@ static void free_profile_entry(profile_entry *entry)
 
 void profiler_free(void)
 {
-	DARRAY(profile_root_entry) old_root_entries = {0};
+	DARRAY(profile_root_entry, old_root_entries) = {0};
 
 	pthread_mutex_lock(&root_mutex);
 	enabled = false;
@@ -834,7 +834,7 @@ void profiler_free(void)
 
 struct profiler_name_store {
 	pthread_mutex_t mutex;
-	DARRAY(char *) names;
+	DARRAY(char *, names);
 };
 
 profiler_name_store_t *profiler_name_store_create(void)

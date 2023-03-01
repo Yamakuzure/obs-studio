@@ -4,7 +4,7 @@
 #include <obs-module.h>
 #include "find-font.h"
 
-DARRAY(struct font_path_info) font_list;
+DARRAY(struct font_path_info, font_list);
 
 static inline bool read_data(struct serializer *s, void *data, size_t size)
 {
@@ -214,7 +214,7 @@ void save_font_list(void)
 
 static void create_bitmap_sizes(struct font_path_info *info, FT_Face face)
 {
-	DARRAY(int) sizes;
+	DARRAY(int, sizes);
 
 	if (!info->is_bitmap) {
 		info->num_sizes = 0;
@@ -284,7 +284,7 @@ static void add_font_path(FT_Face face, FT_Long idx, const char *family_in,
 void build_font_path_info(FT_Face face, FT_Long idx, const char *path)
 {
 	FT_UInt num_names = FT_Get_Sfnt_Name_Count(face);
-	DARRAY(char *) family_names;
+	DARRAY(char *, family_names);
 
 	da_init(family_names);
 	da_push_back(family_names, &face->family_name);

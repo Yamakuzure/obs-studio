@@ -66,6 +66,7 @@ if(OS_WINDOWS AND MSVC)
     /wd4458
     /wd4459
     /wd4595
+    /wd5208
     "$<$<CONFIG:DEBUG>:/DDEBUG=1;/D_DEBUG=1>"
     "$<$<CONFIG:RELWITHDEBINFO>:/Ob2>"
     /DUNICODE

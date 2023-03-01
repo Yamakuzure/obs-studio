@@ -471,7 +471,7 @@ static char *get_new_filter_name(obs_source_t *dst, const char *name)
 static void duplicate_filters(obs_source_t *dst, obs_source_t *src,
 			      bool private)
 {
-	DARRAY(obs_source_t *) filters;
+	DARRAY(obs_source_t *, filters);
 
 	da_init(filters);
 
@@ -6034,8 +6034,8 @@ void obs_source_restore_filters(obs_source_t *source, obs_data_array_t *array)
 	if (!obs_ptr_valid(array, "obs_source_restore_filters"))
 		return;
 
-	DARRAY(obs_source_t *) cur_filters;
-	DARRAY(obs_source_t *) new_filters;
+	DARRAY(obs_source_t *, cur_filters);
+	DARRAY(obs_source_t *, new_filters);
 	obs_source_t *prev = NULL;
 
 	da_init(cur_filters);

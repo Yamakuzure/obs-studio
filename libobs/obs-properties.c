@@ -61,7 +61,7 @@ struct text_data {
 };
 
 struct list_data {
-	DARRAY(struct list_item) items;
+	DARRAY(struct list_item, items);
 	enum obs_combo_type type;
 	enum obs_combo_format format;
 };
@@ -89,8 +89,8 @@ struct frame_rate_range {
 };
 
 struct frame_rate_data {
-	DARRAY(struct frame_rate_option) extra_options;
-	DARRAY(struct frame_rate_range) ranges;
+	DARRAY(struct frame_rate_option, extra_options);
+	DARRAY(struct frame_rate_range, ranges);
 };
 
 struct group_data {

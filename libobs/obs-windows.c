@@ -1160,7 +1160,7 @@ void reset_win32_symbol_paths(void)
 
 	struct obs_module *module = obs->first_module;
 	struct dstr path_str = {0};
-	DARRAY(char *) paths;
+	DARRAY(char *, paths);
 	wchar_t *path_str_w = NULL;
 	char *abspath;
 

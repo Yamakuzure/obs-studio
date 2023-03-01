@@ -39,7 +39,7 @@ static inline void decl_param_free(struct decl_param *param)
 struct decl_info {
 	char *name;
 	const char *decl_string;
-	DARRAY(struct decl_param) params;
+	DARRAY(struct decl_param, params);
 };
 
 static inline void decl_info_free(struct decl_info *decl)

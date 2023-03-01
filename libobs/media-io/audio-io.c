@@ -57,7 +57,7 @@ static inline void audio_input_free(struct audio_input *input)
 }
 
 struct audio_mix {
-	DARRAY(struct audio_input) inputs;
+	DARRAY(struct audio_input, inputs);
 	float buffer[MAX_AUDIO_CHANNELS][AUDIO_OUTPUT_FRAMES];
 	float buffer_unclamped[MAX_AUDIO_CHANNELS][AUDIO_OUTPUT_FRAMES];
 };

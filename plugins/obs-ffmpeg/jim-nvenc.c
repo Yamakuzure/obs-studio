@@ -102,12 +102,12 @@ struct nvenc_data {
 	bool can_change_bitrate;
 	int32_t bframes;
 
-	DARRAY(struct nv_bitstream) bitstreams;
-	DARRAY(struct nv_texture) textures;
-	DARRAY(struct handle_tex) input_textures;
+	DARRAY(struct nv_bitstream, bitstreams);
+	DARRAY(struct nv_texture, textures);
+	DARRAY(struct handle_tex, input_textures);
 	struct circlebuf dts_list;
 
-	DARRAY(uint8_t) packet_data;
+	DARRAY(uint8_t, packet_data);
 	int64_t packet_pts;
 	bool packet_keyframe;
 

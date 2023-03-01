@@ -55,7 +55,7 @@ struct obs_fader {
 	bool ignore_next_signal;
 
 	pthread_mutex_t callback_mutex;
-	DARRAY(struct fader_cb) callbacks;
+	DARRAY(struct fader_cb, callbacks);
 };
 
 struct meter_cb {
@@ -70,7 +70,7 @@ struct obs_volmeter {
 	float cur_db;
 
 	pthread_mutex_t callback_mutex;
-	DARRAY(struct meter_cb) callbacks;
+	DARRAY(struct meter_cb, callbacks);
 
 	enum obs_peak_meter_type peak_meter_type;
 	unsigned int update_ms;

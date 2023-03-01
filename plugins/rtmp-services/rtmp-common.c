@@ -79,7 +79,7 @@ static void update_recommendations(struct rtmp_common *service, json_t *rec)
 {
 	json_t *sr = json_object_get(rec, "supported resolutions");
 	if (sr && json_is_array(sr)) {
-		DARRAY(struct obs_service_resolution) res_list;
+		DARRAY(struct obs_service_resolution, res_list);
 		json_t *res_obj;
 		size_t index;
 

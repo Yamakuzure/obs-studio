@@ -44,6 +44,9 @@
 #include "vaapi-utils.h"
 #include "obs-ffmpeg-formats.h"
 
+#include <stdatomic.h>
+typedef atomic_size_t a_size_t;
+
 #define do_log(level, format, ...)                          \
 	blog(level, "[FFmpeg VAAPI encoder: '%s'] " format, \
 	     obs_encoder_get_name(enc->encoder), ##__VA_ARGS__)
@@ -65,13 +68,13 @@ struct vaapi_encoder {
 
 	AVFrame *vframe;
 
-	DARRAY(uint8_t) buffer;
+	DARRAY(uint8_t, buffer);
 
 	uint8_t *header;
-	size_t header_size;
+	a_size_t header_size;
 
 	uint8_t *sei;
-	size_t sei_size;
+	a_size_t sei_size;
 
 	int height;
 	bool first_packet;

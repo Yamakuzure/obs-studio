@@ -18,8 +18,8 @@ struct DShowEncoder {
 	long long frameInterval;
 
 	bool first = true;
-	DARRAY(uint8_t) firstPacket;
-	DARRAY(uint8_t) header;
+	DARRAY(uint8_t, firstPacket);
+	DARRAY(uint8_t, header);
 
 	inline DShowEncoder(obs_encoder_t *context_, const wchar_t *device_)
 		: context(context_), device(device_)

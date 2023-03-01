@@ -59,7 +59,7 @@ struct netif_saddr_item {
 };
 
 struct netif_saddr_data {
-	DARRAY(struct netif_saddr_item) addrs;
+	DARRAY(struct netif_saddr_item, addrs);
 };
 
 static inline void netif_saddr_data_free(struct netif_saddr_data *data)

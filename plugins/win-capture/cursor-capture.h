@@ -20,7 +20,7 @@ struct cursor_data {
 	uint32_t last_cx;
 	uint32_t last_cy;
 
-	DARRAY(struct cached_cursor) cached_textures;
+	DARRAY(struct cached_cursor, cached_textures);
 };
 
 extern void cursor_capture(struct cursor_data *data);

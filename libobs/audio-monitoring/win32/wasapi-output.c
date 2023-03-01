@@ -46,7 +46,7 @@ struct audio_monitor {
 	struct circlebuf delay_buffer;
 	uint32_t delay_size;
 
-	DARRAY(float) buf;
+	DARRAY(float, buf);
 	SRWLOCK playback_mutex;
 };
 

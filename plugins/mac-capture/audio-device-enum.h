@@ -14,7 +14,7 @@ static inline void device_item_free(struct device_item *item)
 }
 
 struct device_list {
-	DARRAY(struct device_item) items;
+	DARRAY(struct device_item, items);
 };
 
 static inline void device_list_free(struct device_list *list)

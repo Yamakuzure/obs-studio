@@ -63,7 +63,7 @@ struct vlc_source {
 	size_t audio_capacity;
 
 	pthread_mutex_t mutex;
-	DARRAY(struct media_file_data) files;
+	DARRAY(struct media_file_data, files);
 	enum behavior behavior;
 	bool loop;
 	bool shuffle;
@@ -77,7 +77,7 @@ struct vlc_source {
 
 static libvlc_media_t *get_media(struct darray *array, const char *path)
 {
-	DARRAY(struct media_file_data) files;
+	DARRAY(struct media_file_data, files);
 	libvlc_media_t *media = NULL;
 
 	files.da = *array;
@@ -104,7 +104,7 @@ static inline libvlc_media_t *create_media_from_file(const char *file)
 
 static void free_files(struct darray *array)
 {
-	DARRAY(struct media_file_data) files;
+	DARRAY(struct media_file_data, files);
 	files.da = *array;
 
 	for (size_t i = 0; i < files.num; i++) {
@@ -533,7 +533,7 @@ static void add_file(struct vlc_source *c, struct darray *array,
 		     const char *path, int network_caching, int track_index,
 		     int subtitle_index, bool subtitle_enable)
 {
-	DARRAY(struct media_file_data) new_files;
+	DARRAY(struct media_file_data, new_files);
 	struct media_file_data data;
 	struct dstr new_path = {0};
 	libvlc_media_t *new_media;
@@ -624,8 +624,8 @@ static bool valid_extension(const char *ext)
 
 static void vlcs_update(void *data, obs_data_t *settings)
 {
-	DARRAY(struct media_file_data) new_files;
-	DARRAY(struct media_file_data) old_files;
+	DARRAY(struct media_file_data, new_files);
+	DARRAY(struct media_file_data, old_files);
 	libvlc_media_list_t *media_list;
 	struct vlc_source *c = data;
 	obs_data_array_t *array;
@@ -725,8 +725,8 @@ static void vlcs_update(void *data, obs_data_t *settings)
 	c->shuffle = obs_data_get_bool(settings, S_SHUFFLE);
 
 	if (c->files.num > 1 && c->shuffle) {
-		DARRAY(struct media_file_data) new_files;
-		DARRAY(size_t) idxs;
+		DARRAY(struct media_file_data, new_files);
+		DARRAY(size_t, idxs);
 
 		da_init(new_files);
 		da_init(idxs);

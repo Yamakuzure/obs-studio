@@ -69,7 +69,7 @@ enum obs_frontend_event {
 #ifndef SWIG
 
 struct obs_frontend_source_list {
-	DARRAY(obs_source_t *) sources;
+	DARRAY(obs_source_t *, sources);
 };
 
 static inline void

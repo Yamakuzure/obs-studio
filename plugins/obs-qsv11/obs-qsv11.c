@@ -90,7 +90,7 @@ struct obs_qsv {
 	qsv_param_t params;
 	qsv_t *context;
 
-	DARRAY(uint8_t) packet_data;
+	DARRAY(uint8_t, packet_data);
 
 	uint8_t *extra_data;
 	uint8_t *sei;
@@ -777,8 +777,8 @@ static bool update_settings(struct obs_qsv *obsqsv, obs_data_t *settings)
 
 static void load_hevc_headers(struct obs_qsv *obsqsv)
 {
-	DARRAY(uint8_t) header;
-	DARRAY(uint8_t) sei;
+	DARRAY(uint8_t, header);
+	DARRAY(uint8_t, sei);
 
 	da_init(header);
 	da_init(sei);
@@ -799,13 +799,13 @@ static void load_hevc_headers(struct obs_qsv *obsqsv)
 
 static void load_headers(struct obs_qsv *obsqsv)
 {
-	DARRAY(uint8_t) header;
+	DARRAY(uint8_t, header);
 	static uint8_t sei = 0;
 
 	// Not sure if SEI is needed.
 	// Just filling in empty meaningless SEI message.
 	// Seems to work fine.
-	// DARRAY(uint8_t) sei;
+	// DARRAY(uint8_t, sei);
 
 	da_init(header);
 	// da_init(sei);

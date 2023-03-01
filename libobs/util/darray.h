@@ -20,12 +20,23 @@
 
 #include "bmem.h"
 
-#ifdef __cplusplus
+#if defined(__cplusplus)
 #include <atomic>
 #include <cassert>
 #include <cstdlib>
 #include <cstring>
-using std::atomic_size_t;
+#ifdef DARRAY_NON_ATOMIC
+/* Note: profiler.h needs to typedef DARRAY() into a type, which is not allowed
+ *       in C++17. It would get answered by something like: (example)
+ * error: member 'a_size_t da_union_profiler_time_entries_t::<unnamed struct>::num'
+ *        with constructor not allowed in anonymous aggregate
+ * In such cases we simply use a volatile size_t, the profiler sould be happy
+ * with that, too.
+ */
+typedef volatile size_t a_size_t;
+#else
+typedef std::atomic_size_t a_size_t;
+#endif // DARRAY_NON_ATOMIC
 extern "C" {
 #else
 #include <assert.h>
@@ -33,7 +44,8 @@ extern "C" {
 #include <stdlib.h>
 #include <string.h>
 #define nullptr NULL
-#endif
+typedef atomic_size_t a_size_t;
+#endif // __cplusplus
 
 /*
  * Dynamic array.
@@ -47,9 +59,16 @@ extern "C" {
 #define DARRAY_INVALID ((size_t)-1)
 
 struct darray {
+#if defined(__cplusplus)
+	explicit darray() = default;
+	void *array{nullptr};
+	a_size_t num{0};
+	volatile size_t capacity{0};
+#else
 	void *array;
-	atomic_size_t num;
+	a_size_t num;
 	volatile size_t capacity;
+#endif // __cplusplus
 };
 
 static inline void darray_init(struct darray *dst)
@@ -476,15 +495,27 @@ static inline void darray_swap(const size_t element_size, struct darray *dst,
  *       typesafe inline functions per type.  It just feels like a mess to me.
  */
 
-#define DARRAY(type)                     \
-	union {                          \
-		struct darray da;        \
-		struct {                 \
-			type *array;     \
-			size_t num;      \
-			size_t capacity; \
-		};                       \
-	}
+#if defined(__cplusplus)
+#define DARRAY(type, NAME)                        \
+	union da_union_##NAME {                   \
+		struct darray da {};              \
+		struct {                          \
+			type *array;              \
+			a_size_t num;             \
+			volatile size_t capacity; \
+		};                                \
+	} NAME
+#else
+#define DARRAY(type, NAME)                        \
+	union {                                   \
+		struct darray da;                 \
+		struct {                          \
+			type *array;              \
+			a_size_t num;             \
+			volatile size_t capacity; \
+		};                                \
+	} NAME
+#endif // __cplusplus
 
 #define da_init(v) darray_init(&v.da)
 

@@ -25,17 +25,18 @@
 
 #ifdef __cplusplus
 #include <atomic>
-using std::atomic_size_t;
+typedef std::atomic_size_t a_size_t;
 extern "C" {
 #else
 #include <stdatomic.h>
+typedef atomic_size_t a_size_t;
 #endif
 
 /* Dynamic circular buffer */
 
 struct circlebuf {
 	void *data;
-	atomic_size_t size;
+	a_size_t size;
 
 	size_t start_pos;
 	size_t end_pos;

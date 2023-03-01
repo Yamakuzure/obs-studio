@@ -736,7 +736,7 @@ static void make_globent(struct os_globent *ent, WIN32_FIND_DATA *wfd,
 
 int os_glob(const char *pattern, int flags, os_glob_t **pglob)
 {
-	DARRAY(struct os_globent) files;
+	DARRAY(struct os_globent, files);
 	HANDLE handle;
 	WIN32_FIND_DATA wfd;
 	int ret = -1;

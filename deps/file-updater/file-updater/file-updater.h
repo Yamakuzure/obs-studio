@@ -9,7 +9,7 @@ struct file_download_data {
 	const char *name;
 	int version;
 
-	DARRAY(uint8_t) buffer;
+	DARRAY(uint8_t, buffer);
 };
 
 typedef bool (*confirm_file_callback_t)(void *param,

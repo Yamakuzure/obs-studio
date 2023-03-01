@@ -36,8 +36,8 @@ struct nvenc_encoder {
 	bool hevc;
 #endif
 	int gpu;
-	DARRAY(uint8_t) header;
-	DARRAY(uint8_t) sei;
+	DARRAY(uint8_t, header);
+	DARRAY(uint8_t, sei);
 	int64_t dts_offset; // Revert when FFmpeg fixes b-frame DTS calculation
 };
 

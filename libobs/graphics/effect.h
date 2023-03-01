@@ -54,15 +54,15 @@ struct gs_effect_param {
 	enum gs_shader_param_type type;
 
 	bool changed;
-	DARRAY(uint8_t) cur_val;
-	DARRAY(uint8_t) default_val;
+	DARRAY(uint8_t, cur_val);
+	DARRAY(uint8_t, default_val);
 
 	gs_effect_t *effect;
 	gs_samplerstate_t *next_sampler;
 
 	/*char *full_name;
 	float scroller_min, scroller_max, scroller_inc, scroller_mul;*/
-	DARRAY(struct gs_effect_param) annotations;
+	DARRAY(struct gs_effect_param, annotations);
 };
 
 static inline void effect_param_init(struct gs_effect_param *param)
@@ -101,8 +101,8 @@ struct gs_effect_pass {
 
 	gs_shader_t *vertshader;
 	gs_shader_t *pixelshader;
-	DARRAY(struct pass_shaderparam) vertshader_params;
-	DARRAY(struct pass_shaderparam) pixelshader_params;
+	DARRAY(struct pass_shaderparam, vertshader_params);
+	DARRAY(struct pass_shaderparam, pixelshader_params);
 };
 
 static inline void effect_pass_init(struct gs_effect_pass *pass)
@@ -127,7 +127,7 @@ struct gs_effect_technique {
 	enum effect_section section;
 	struct gs_effect *effect;
 
-	DARRAY(struct gs_effect_pass) passes;
+	DARRAY(struct gs_effect_pass, passes);
 };
 
 static inline void effect_technique_init(struct gs_effect_technique *t)
@@ -152,8 +152,8 @@ struct gs_effect {
 	bool cached;
 	char *effect_path, *effect_dir;
 
-	DARRAY(struct gs_effect_param) params;
-	DARRAY(struct gs_effect_technique) techniques;
+	DARRAY(struct gs_effect_param, params);
+	DARRAY(struct gs_effect_technique, techniques);
 
 	struct gs_effect_technique *cur_technique;
 	struct gs_effect_pass *cur_pass;

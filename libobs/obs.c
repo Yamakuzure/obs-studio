@@ -1271,7 +1271,7 @@ static bool com_initialized = false;
 /* Separate from actual context initialization
  * since this can be set before startup and persist
  * after shutdown. */
-static DARRAY(struct dstr) core_module_paths = {0};
+static DARRAY(struct dstr, core_module_paths) = {0};
 
 char *obs_find_data_file(const char *file)
 {
@@ -2440,7 +2440,7 @@ void obs_load_sources(obs_data_array_t *array, obs_load_source_cb cb,
 		      void *private_data)
 {
 	struct obs_core_data *data = &obs->data;
-	DARRAY(obs_source_t *) sources;
+	DARRAY(obs_source_t *, sources);
 	size_t count;
 	size_t i;
 

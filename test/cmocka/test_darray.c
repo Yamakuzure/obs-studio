@@ -9,7 +9,7 @@ static void array_basic_test(void **state)
 {
 	UNUSED_PARAMETER(state);
 
-	DARRAY(uint8_t) testarray;
+	DARRAY(uint8_t, testarray);
 	da_init(testarray);
 
 	uint8_t t = 1;

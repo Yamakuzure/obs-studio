@@ -72,7 +72,7 @@ struct video_output {
 	atomic_bool initialized;
 
 	pthread_mutex_t input_mutex;
-	DARRAY(struct video_input) inputs;
+	DARRAY(struct video_input, inputs);
 
 	size_t available_frames;
 	size_t first_added;

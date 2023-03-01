@@ -53,7 +53,7 @@ struct shader_var {
 	int array_count;
 	size_t gl_sampler_id; /* optional: used/parsed by GL */
 
-	DARRAY(uint8_t) default_val;
+	DARRAY(uint8_t, default_val);
 };
 
 static inline void shader_var_init(struct shader_var *sv)
@@ -92,8 +92,8 @@ static inline void shader_var_free(struct shader_var *sv)
 
 struct shader_sampler {
 	char *name;
-	DARRAY(char *) states;
-	DARRAY(char *) values;
+	DARRAY(char *, states);
+	DARRAY(char *, values);
 };
 
 static inline void shader_sampler_init(struct shader_sampler *ss)
@@ -121,7 +121,7 @@ EXPORT void shader_sampler_convert(struct shader_sampler *ss,
 
 struct shader_struct {
 	char *name;
-	DARRAY(struct shader_var) vars;
+	DARRAY(struct shader_var, vars);
 };
 
 static inline void shader_struct_init(struct shader_struct *ss)
@@ -146,7 +146,7 @@ struct shader_func {
 	char *name;
 	char *return_type;
 	char *mapping;
-	DARRAY(struct shader_var) params;
+	DARRAY(struct shader_var, params);
 
 	struct cf_token *start, *end;
 };
@@ -181,10 +181,10 @@ static inline void shader_func_free(struct shader_func *sf)
 struct shader_parser {
 	struct cf_parser cfp;
 
-	DARRAY(struct shader_var) params;
-	DARRAY(struct shader_struct) structs;
-	DARRAY(struct shader_sampler) samplers;
-	DARRAY(struct shader_func) funcs;
+	DARRAY(struct shader_var, params);
+	DARRAY(struct shader_struct, structs);
+	DARRAY(struct shader_sampler, samplers);
+	DARRAY(struct shader_func, funcs);
 };
 
 static inline void shader_parser_init(struct shader_parser *sp)
