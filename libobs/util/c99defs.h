@@ -76,7 +76,15 @@
 #define PRAGMA_WARN_STRINGOP_OVERFLOW
 #endif
 
+#if defined(__cplusplus)
+#include <cstddef>
+#include <cstdint>
+#if __cplusplus < 201703L
+#include <cstdbool>
+#endif // < C++17
+#else
 #include <stddef.h>
 #include <stdint.h>
 #include <stdbool.h>
+#endif // __cplusplus
 #include <sys/types.h>
