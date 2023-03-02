@@ -17,15 +17,12 @@
 
 #pragma once
 
+#include "util/c17atomics.h"
+
 #include "obs-nal.h"
 
 #ifdef __cplusplus
-#include <atomic>
-typedef std::atomic_size_t a_size_t;
 extern "C" {
-#else
-#include <stdatomic.h>
-typedef atomic_size_t a_size_t;
 #endif
 
 struct encoder_packet;

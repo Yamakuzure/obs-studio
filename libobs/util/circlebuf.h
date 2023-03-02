@@ -16,6 +16,7 @@
 
 #pragma once
 
+#include "c17atomics.h"
 #include "c99defs.h"
 #include <string.h>
 #include <stdlib.h>
@@ -24,12 +25,7 @@
 #include "bmem.h"
 
 #ifdef __cplusplus
-#include <atomic>
-typedef std::atomic_size_t a_size_t;
 extern "C" {
-#else
-#include <stdatomic.h>
-typedef atomic_size_t a_size_t;
 #endif
 
 /* Dynamic circular buffer */

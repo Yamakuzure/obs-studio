@@ -16,35 +16,20 @@
 
 #pragma once
 
+#include "c17atomics.h"
 #include "c99defs.h"
 
 #include "bmem.h"
 
 #if defined(__cplusplus)
-#include <atomic>
 #include <cassert>
 #include <cstdlib>
 #include <cstring>
-#ifdef DARRAY_NON_ATOMIC
-/* Note: profiler.h needs to typedef DARRAY() into a type, which is not allowed
- *       in C++17. It would get answered by something like: (example)
- * error: member 'a_size_t da_union_profiler_time_entries_t::<unnamed struct>::num'
- *        with constructor not allowed in anonymous aggregate
- * In such cases we simply use a volatile size_t, the profiler sould be happy
- * with that, too.
- */
-typedef volatile size_t a_size_t;
-#else
-typedef std::atomic_size_t a_size_t;
-#endif // DARRAY_NON_ATOMIC
 extern "C" {
 #else
 #include <assert.h>
-#include <stdatomic.h>
 #include <stdlib.h>
 #include <string.h>
-#define nullptr NULL
-typedef atomic_size_t a_size_t;
 #endif // __cplusplus
 
 /*

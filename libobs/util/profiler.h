@@ -1,9 +1,14 @@
 #pragma once
 
 #include "base.h"
-// We need to typedef DARRAY() below, do not use _Atomic(size_t) then!
-#define DARRAY_NON_ATOMIC
+
+// We need to typedef DARRAY() below, so do not use _Atomic(size_t) then!
+#define USE_NON_ATOMIC_SIZE_T
+
 #include "darray.h"
+
+// Everybody else can use _Atomic(size_t) instead.
+#undef USE_NON_ATOMIC_SIZE_T
 
 #ifdef __cplusplus
 extern "C" {

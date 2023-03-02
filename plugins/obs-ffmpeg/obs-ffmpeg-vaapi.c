@@ -44,9 +44,6 @@
 #include "vaapi-utils.h"
 #include "obs-ffmpeg-formats.h"
 
-#include <stdatomic.h>
-typedef atomic_size_t a_size_t;
-
 #define do_log(level, format, ...)                          \
 	blog(level, "[FFmpeg VAAPI encoder: '%s'] " format, \
 	     obs_encoder_get_name(enc->encoder), ##__VA_ARGS__)

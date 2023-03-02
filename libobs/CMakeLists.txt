@@ -78,6 +78,7 @@ target_sources(
           util/bitstream.h
           util/bmem.c
           util/bmem.h
+          util/c17atomics.h
           util/c99defs.h
           util/cf-lexer.c
           util/cf-lexer.h
