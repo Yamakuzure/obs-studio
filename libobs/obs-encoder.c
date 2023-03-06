@@ -950,21 +950,41 @@ static inline void send_packet(struct obs_encoder *encoder,
 void full_stop(struct obs_encoder *encoder)
 {
 	if (encoder) {
+#if defined(_DEBUG)
+		char const *enc_name = encoder->info.get_name(NULL);
+#endif // _DEBUG
+		debug_log("Locking encoder %s outputs_mutex", enc_name);
 		pthread_mutex_lock(&encoder->outputs_mutex);
+		debug_log("Stopping encoder %s with %zu outputs ", enc_name,
+			  encoder->outputs.num);
 		for (size_t i = 0; i < encoder->outputs.num; i++) {
+			debug_log("Stopping encoder %s output idx %zu",
+				  enc_name, i);
 			struct obs_output *output = encoder->outputs.array[i];
 			obs_output_force_stop(output);
 
+			debug_log("Locking encoder %s interleaved_mutex",
+				  enc_name);
 			pthread_mutex_lock(&output->interleaved_mutex);
+			debug_log(
+				"Sending encoder %s a NULL interleaved packet",
+				enc_name);
 			output->info.encoded_packet(output->context.data, NULL);
+			debug_log("Unlocking encoder %s interleaved_mutex!",
+				  enc_name);
 			pthread_mutex_unlock(&output->interleaved_mutex);
 		}
+		debug_log("Unlocking encoder %s outputs_mutex!", enc_name);
 		pthread_mutex_unlock(&encoder->outputs_mutex);
 
+		debug_log("Locking encoder %s callbacks_mutex", enc_name);
 		pthread_mutex_lock(&encoder->callbacks_mutex);
+		debug_log("Freeing encoder %s callbacks", enc_name);
 		da_free(encoder->callbacks);
+		debug_log("Unlocking encoder %s callbacks_mutex!", enc_name);
 		pthread_mutex_unlock(&encoder->callbacks_mutex);
 
+		debug_log("Removing encoder %s connections", enc_name);
 		remove_connection(encoder, false);
 		encoder->initialized = false;
 	}
