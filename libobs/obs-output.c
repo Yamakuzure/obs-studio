@@ -30,6 +30,17 @@
 #define RECONNECT_RETRY_MAX_MSEC (15 * 60 * 1000)
 #define RECONNECT_RETRY_BASE_EXP 1.5f
 
+#if defined(_DEBUG)
+#ifdef _WIN32
+static __declspec(thread) volatile interleave_stall_reported = false;
+static __declspec(thread) volatile output_is_active = false;
+#else
+#include <threads.h>
+static thread_local volatile bool interleave_stall_reported = false;
+static thread_local volatile bool output_is_active = false;
+#endif // _WIN32
+#endif // _DEBUG
+
 static inline bool active(const struct obs_output *output)
 {
 	return os_atomic_load_bool(&output->active);
@@ -1330,8 +1341,24 @@ static inline void send_interleaved(struct obs_output *output)
 	/* do not send an interleaved packet if there's no packet of the
 	 * opposing type of a higher timestamp in the interleave buffer.
 	 * this ensures that the timestamps are monotonic */
-	if (!has_higher_opposing_ts(output, &out))
+	if (!has_higher_opposing_ts(output, &out)) {
+#if defined(_DEBUG)
+		// Don't flood the log, one message is sufficient
+		if (!interleave_stall_reported) {
+			debug_log("No higher opposing time stamp found,"
+				  " stalling...");
+			interleave_stall_reported = true;
+		}
+#endif // _DEBUG
 		return;
+	}
+
+#if defined(_DEBUG)
+	if (interleave_stall_reported) {
+		debug_log("Sending interleaved packets again...");
+		interleave_stall_reported = false;
+	}
+#endif // _DEBUG
 
 	da_erase(output->interleaved_packets, 0);
 
@@ -1815,6 +1842,18 @@ static void interleave_packets(void *data, struct encoder_packet *packet)
 static void default_encoded_callback(void *param, struct encoder_packet *packet)
 {
 	struct obs_output *output = param;
+
+#if defined(_DEBUG)
+	// Only report switches, or we'll flood the log!
+	if (active(output) != output_is_active) {
+		output_is_active = active(output);
+		debug_log("output is now %s",
+			  output_is_active ? "ACTIVE" : "inactive");
+		if (output_is_active)
+			debug_log("New receiver registered at: %p",
+				  output->info.encoded_packet);
+	}
+#endif // _DEBUG
 
 	if (data_active(output)) {
 		if (packet->type == OBS_ENCODER_AUDIO)
