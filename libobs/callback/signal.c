@@ -320,7 +320,7 @@ void signal_handler_signal(signal_handler_t *handler, const char *signal,
 		for (size_t i = 0; i < sig->callbacks.num; i++) {
 			struct signal_callback *cb = sig->callbacks.array + i;
 			if (!cb->remove) {
-				debug_log("Calling callback fo idx %zu...", i);
+				debug_log("Calling callback for idx %zu...", i);
 				current_signal_cb = cb;
 				cb->callback(cb->data, params);
 				current_signal_cb = NULL;
