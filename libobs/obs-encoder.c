@@ -560,24 +560,39 @@ static inline void obs_encoder_start_internal(
 {
 	struct encoder_callback cb = {false, new_packet, param};
 	bool first = false;
+#if defined(_DEBUG)
+	char const *enc_name = encoder->info.get_name(NULL);
+#endif // _DEBUG
 
-	if (!encoder->context.data || !encoder->media)
+	if (!encoder->context.data || !encoder->media) {
+		debug_log("encoder %s has no context.data and no media!"
+			  " Breaking OFF!",
+			  enc_name);
 		return;
+	}
 
+	debug_log("Locking encoder %s callbacks_mutex", enc_name);
 	pthread_mutex_lock(&encoder->callbacks_mutex);
 
 	first = (encoder->callbacks.num == 0);
 
 	size_t idx = get_callback_idx(encoder, new_packet, param);
-	if (idx == DARRAY_INVALID)
+	debug_log("encoder %s has callback id: %zu (%s first)", enc_name, idx,
+		  first ? "is" : "not");
+	if (idx == DARRAY_INVALID) {
+		debug_log("Adding encoder %s as new encoder", enc_name);
 		da_push_back(encoder->callbacks, &cb);
+	}
 
+	debug_log("Unlocking encoder %s callbacks_mutex", enc_name);
 	pthread_mutex_unlock(&encoder->callbacks_mutex);
 
 	if (first) {
+		debug_log("Unpausing encoder %s", enc_name);
 		os_atomic_set_bool(&encoder->paused, false);
 		pause_reset(&encoder->pause);
 
+		debug_log("Adding encoder %s conection", enc_name);
 		encoder->cur_pts = 0;
 		add_connection(encoder);
 	}
@@ -588,13 +603,21 @@ void obs_encoder_start(obs_encoder_t *encoder,
 					  struct encoder_packet *packet),
 		       void *param)
 {
-	if (!obs_encoder_valid(encoder, "obs_encoder_start"))
+	if (!obs_encoder_valid(encoder, "obs_encoder_start")) {
+		debug_log("encoder invalid!");
 		return;
-	if (!obs_ptr_valid(new_packet, "obs_encoder_start"))
+	}
+	if (!obs_ptr_valid(new_packet, "obs_encoder_start")) {
+		debug_log("new_packet invalid!");
 		return;
+	}
 
+	debug_log("Locking encoder %s init_mutex",
+		  encoder->info.get_name(NULL));
 	pthread_mutex_lock(&encoder->init_mutex);
 	obs_encoder_start_internal(encoder, new_packet, param);
+	debug_log("Unocking encoder %s init_mutex",
+		  encoder->info.get_name(NULL));
 	pthread_mutex_unlock(&encoder->init_mutex);
 }
 

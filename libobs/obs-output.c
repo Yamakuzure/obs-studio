@@ -1982,6 +1982,9 @@ static inline void start_audio_encoders(struct obs_output *output,
 {
 	for (size_t i = 0; i < MAX_OUTPUT_AUDIO_ENCODERS; i++) {
 		if (output->audio_encoders[i]) {
+			debug_log("call obs_encoder_start() on output %s"
+			          " audio idx %zu",
+			          output->info.get_name(NULL), i);
 			obs_encoder_start(output->audio_encoders[i],
 					  encoded_callback, output);
 		}
@@ -2031,13 +2034,23 @@ static void hook_data_capture(struct obs_output *output, bool encoded,
 	encoded_callback_t encoded_callback;
 
 	if (encoded) {
+#if defined(_DEBUG)
+		char const *out_name = output->info.get_name(NULL);
+#endif // _DEBUG
+		debug_log("Locking output %s interleaved_mutex", out_name);
 		pthread_mutex_lock(&output->interleaved_mutex);
+		debug_log("Reset output %s packet data", out_name);
 		reset_packet_data(output);
+		debug_log("Unlocking output %s interleaved_mutex", out_name);
 		pthread_mutex_unlock(&output->interleaved_mutex);
 
 		encoded_callback = (has_video && has_audio)
 					   ? interleave_packets
 					   : default_encoded_callback;
+		debug_log("Output %s uses %s", out_name,
+			  (has_video && has_audio)
+				  ? "interleave_packets"
+				  : "default_encoded_callback");
 
 		if (output->delay_sec) {
 			output->active_delay_ns =
@@ -2056,9 +2069,12 @@ static void hook_data_capture(struct obs_output *output, bool encoded,
 
 		if (has_audio)
 			start_audio_encoders(output, encoded_callback);
-		if (has_video)
+		if (has_video) {
+			debug_log("call obs_encoder_start() on output %s video",
+				  out_name);
 			obs_encoder_start(output->video_encoder,
 					  encoded_callback, output);
+		}
 	} else {
 		if (has_video)
 			start_raw_video(output->video,
