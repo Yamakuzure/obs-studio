@@ -299,7 +299,7 @@ static inline bool audio_input_init(struct audio_input *input,
 	return true;
 }
 
-bool audio_output_connect(audio_t *audio, size_t mi,
+WARN_UNUSED_RESULT bool audio_output_connect(audio_t *audio, size_t mi,
 			  const struct audio_convert_info *conversion,
 			  audio_output_callback_t callback, void *param)
 {

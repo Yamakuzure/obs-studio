@@ -1977,36 +1977,48 @@ static void default_raw_audio_callback(void *param, size_t mix_idx,
 	}
 }
 
-static inline void start_audio_encoders(struct obs_output *output,
+WARN_UNUSED_RESULT static inline bool start_audio_encoders(struct obs_output *output,
 					encoded_callback_t encoded_callback)
 {
-	for (size_t i = 0; i < MAX_OUTPUT_AUDIO_ENCODERS; i++) {
+	bool success = true;
+	for (size_t i = 0; success && (i < MAX_OUTPUT_AUDIO_ENCODERS); i++) {
 		if (output->audio_encoders[i]) {
 			debug_log("call obs_encoder_start() on output %s"
-			          " audio idx %zu",
-			          output->info.get_name(NULL), i);
-			obs_encoder_start(output->audio_encoders[i],
-					  encoded_callback, output);
+				  " audio idx %zu",
+				  output->info.get_name(NULL), i);
+			success = obs_encoder_start(output->audio_encoders[i],
+						    encoded_callback, output);
 		}
 	}
+
+	debug_log("start_audio_encoders() %s", success ? "succeeded." : "FAILED!");
+
+	return success;
 }
 
-static inline void start_raw_audio(obs_output_t *output)
+WARN_UNUSED_RESULT static inline bool start_raw_audio(obs_output_t *output)
 {
+	bool success = true;
 	if (output->info.raw_audio2) {
-		for (int idx = 0; idx < MAX_AUDIO_MIXES; idx++) {
+		for (int idx = 0; success && (idx < MAX_AUDIO_MIXES); idx++) {
 			if ((output->mixer_mask & ((size_t)1 << idx)) != 0) {
-				audio_output_connect(
+				success = audio_output_connect(
 					output->audio, idx,
 					get_audio_conversion(output),
 					default_raw_audio_callback, output);
 			}
 		}
 	} else {
-		audio_output_connect(output->audio, get_first_mixer(output),
-				     get_audio_conversion(output),
-				     default_raw_audio_callback, output);
+		success = audio_output_connect(output->audio,
+					       get_first_mixer(output),
+					       get_audio_conversion(output),
+					       default_raw_audio_callback,
+					       output);
 	}
+
+	debug_log("start_raw_audio() %s", success ? "succeeded." : "FAILED!");
+
+	return success;
 }
 
 static void reset_packet_data(obs_output_t *output)
@@ -2028,9 +2040,10 @@ static inline bool preserve_active(struct obs_output *output)
 	return (output->delay_flags & OBS_OUTPUT_DELAY_PRESERVE) != 0;
 }
 
-static void hook_data_capture(struct obs_output *output, bool encoded,
+WARN_UNUSED_RESULT static bool hook_data_capture(struct obs_output *output, bool encoded,
 			      bool has_video, bool has_audio)
 {
+	bool success = true;
 	encoded_callback_t encoded_callback;
 
 	if (encoded) {
@@ -2068,21 +2081,27 @@ static void hook_data_capture(struct obs_output *output, bool encoded,
 		}
 
 		if (has_audio)
-			start_audio_encoders(output, encoded_callback);
-		if (has_video) {
+			success =
+				start_audio_encoders(output, encoded_callback);
+		if (has_video && success) {
 			debug_log("call obs_encoder_start() on output %s video",
 				  out_name);
-			obs_encoder_start(output->video_encoder,
-					  encoded_callback, output);
+			success = obs_encoder_start(output->video_encoder,
+						    encoded_callback, output);
 		}
 	} else {
 		if (has_video)
-			start_raw_video(output->video,
-					obs_output_get_video_conversion(output),
-					default_raw_video_callback, output);
-		if (has_audio)
-			start_raw_audio(output);
+			success = start_raw_video(output->video,
+						  obs_output_get_video_conversion(output),
+						  default_raw_video_callback,
+						  output);
+		if (has_audio && success)
+			success = start_raw_audio(output);
 	}
+
+	debug_log("hook data capture %s", success ? "succeeded." : "FAILED!");
+
+	return success;
 }
 
 static inline void signal_start(struct obs_output *output)
@@ -2321,7 +2340,10 @@ bool obs_output_begin_data_capture(obs_output_t *output, uint32_t flags)
 		pair_encoders(output);
 
 	os_atomic_set_bool(&output->data_active, true);
-	hook_data_capture(output, encoded, has_video, has_audio);
+	if ( !hook_data_capture(output, encoded, has_video, has_audio)) {
+		debug_log("Unable to hook data capture, breaking off!");
+		return false;
+	}
 
 	if (has_service)
 		obs_service_activate(output->service);

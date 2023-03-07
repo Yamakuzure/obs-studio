@@ -3133,14 +3133,17 @@ struct obs_core_video_mix *get_mix_for_video(video_t *v)
 	return result;
 }
 
-void start_raw_video(video_t *v, const struct video_scale_info *conversion,
-		     void (*callback)(void *param, struct video_data *frame),
-		     void *param)
+WARN_UNUSED_RESULT bool
+start_raw_video(video_t *v, const struct video_scale_info *conversion,
+		void (*callback)(void *param, struct video_data *frame),
+		void *param)
 {
 	struct obs_core_video_mix *video = get_mix_for_video(v);
 	if (video)
 		os_atomic_inc_long(&video->raw_active);
-	video_output_connect(v, conversion, callback, param);
+	debug_log("calling video_output_connect() (video: %p, raw_active: %ld)",
+		  video, os_atomic_load_long(&video->raw_active));
+	return video_output_connect(v, conversion, callback, param);
 }
 
 void stop_raw_video(video_t *v,
@@ -3159,7 +3162,8 @@ void obs_add_raw_video_callback(const struct video_scale_info *conversion,
 				void *param)
 {
 	struct obs_core_video_mix *video = obs->video.main_mix;
-	start_raw_video(video->video, conversion, callback, param);
+	if (!start_raw_video(video->video, conversion, callback, param))
+		blog(LOG_ERROR, "start_raw_video() FAILED!");
 }
 
 void obs_remove_raw_video_callback(void (*callback)(void *param,
@@ -3175,8 +3179,9 @@ void obs_add_raw_audio_callback(size_t mix_idx,
 				audio_output_callback_t callback, void *param)
 {
 	struct obs_core_audio *audio = &obs->audio;
-	audio_output_connect(audio->audio, mix_idx, conversion, callback,
-			     param);
+	if (!audio_output_connect(audio->audio, mix_idx, conversion, callback,
+				  param))
+		blog(LOG_ERROR, "audio_output_connect() FAILED!");
 }
 
 void obs_remove_raw_audio_callback(size_t mix_idx,
@@ -3213,28 +3218,44 @@ extern bool init_gpu_encoding(struct obs_core_video_mix *video);
 extern void stop_gpu_encoding_thread(struct obs_core_video_mix *video);
 extern void free_gpu_encoding(struct obs_core_video_mix *video);
 
-bool start_gpu_encode(obs_encoder_t *encoder)
+WARN_UNUSED_RESULT bool start_gpu_encode(obs_encoder_t *encoder)
 {
 	struct obs_core_video_mix *video = get_mix_for_video(encoder->media);
 	bool success = true;
 
+	debug_log("call obs_enter_graphics() (video is: %p)", video);
 	obs_enter_graphics();
+
+	debug_log("Locking gpu_encoder_mutex (Num: %zu)",
+		  video->gpu_encoders.num);
 	pthread_mutex_lock(&video->gpu_encoder_mutex);
 
-	if (!video->gpu_encoders.num)
+	if (!video->gpu_encoders.num) {
 		success = init_gpu_encoding(video);
+		debug_log("init_gpu_encoding() %s",
+			  success ? "succeeded" : "FAILED");
+	}
 	if (success)
 		da_push_back(video->gpu_encoders, &encoder);
-	else
+	else {
+		debug_log("call free_gpu_encoding()");
 		free_gpu_encoding(video);
+	}
 
+	debug_log("Unlocking gpu_encoder_mutex");
 	pthread_mutex_unlock(&video->gpu_encoder_mutex);
+	debug_log("call obs_leave_graphics() (video is: %p)", video);
 	obs_leave_graphics();
 
 	if (success) {
 		os_atomic_inc_long(&video->gpu_encoder_active);
 		video_output_inc_texture_encoders(video->video);
 	}
+
+	debug_log("gpu_encoder_active: %ld, raw_active: %s, success: %s",
+		  video->gpu_encoder_active,
+		  video_output_active(video->video) ? "true" : "false",
+		  success ? "true" : "FALSE");
 
 	return success;
 }

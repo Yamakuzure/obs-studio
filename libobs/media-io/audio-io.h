@@ -222,9 +222,10 @@ EXPORT void audio_output_close(audio_t *audio);
 typedef void (*audio_output_callback_t)(void *param, size_t mix_idx,
 					struct audio_data *data);
 
-EXPORT bool audio_output_connect(audio_t *video, size_t mix_idx,
-				 const struct audio_convert_info *conversion,
-				 audio_output_callback_t callback, void *param);
+WARN_UNUSED_RESULT EXPORT bool
+audio_output_connect(audio_t *video, size_t mix_idx,
+		     const struct audio_convert_info *conversion,
+		     audio_output_callback_t callback, void *param);
 EXPORT void audio_output_disconnect(audio_t *video, size_t mix_idx,
 				    audio_output_callback_t callback,
 				    void *param);

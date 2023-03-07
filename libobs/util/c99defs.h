@@ -33,6 +33,18 @@
 #define FORCE_INLINE inline __attribute__((always_inline))
 #endif
 
+#if defined(__cplusplus) && (__cplusplus >= 201703L)
+#define WARN_UNUSED_RESULT [[nodiscard]]
+#elif defined(_MSC_VER)
+#if defined(_Check_return_)
+#define WARN_UNUSED_RESULT _Check_return_ /* SAL */
+#else
+#define WARN_UNUSED_RESULT
+#endif // _Check_return_
+#else
+#define WARN_UNUSED_RESULT __attribute__((warn_unused_result))
+#endif // __cplusplus && C++17 and later
+
 #if defined(SWIG_TYPE_TABLE)
 #define OBS_DEPRECATED
 #else

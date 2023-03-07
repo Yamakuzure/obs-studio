@@ -298,7 +298,7 @@ EXPORT bool video_format_get_parameters_for_format(
 EXPORT int video_output_open(video_t **video, struct video_output_info *info);
 EXPORT void video_output_close(video_t *video);
 
-EXPORT bool
+WARN_UNUSED_RESULT EXPORT bool
 video_output_connect(video_t *video, const struct video_scale_info *conversion,
 		     void (*callback)(void *param, struct video_data *frame),
 		     void *param);

@@ -184,27 +184,41 @@ static inline bool gpu_encode_available(const struct obs_encoder *encoder)
 	       (video->using_p010_tex || video->using_nv12_tex);
 }
 
-static void add_connection(struct obs_encoder *encoder)
+static WARN_UNUSED_RESULT bool add_connection(struct obs_encoder *encoder)
 {
+	bool success = true;
+
 	if (encoder->info.type == OBS_ENCODER_AUDIO) {
 		struct audio_convert_info audio_info = {0};
 		get_audio_info(encoder, &audio_info);
 
-		audio_output_connect(encoder->media, encoder->mixer_idx,
-				     &audio_info, receive_audio, encoder);
+		debug_log("connecting audio output %s ...",
+			  encoder->info.get_name(NULL));
+		success = audio_output_connect(encoder->media,
+					       encoder->mixer_idx, &audio_info,
+					       receive_audio, encoder);
 	} else {
 		struct video_scale_info info = {0};
 		get_video_info(encoder, &info);
 
 		if (gpu_encode_available(encoder)) {
-			start_gpu_encode(encoder);
+			debug_log("start gpu encode on %s ...",
+				  encoder->info.get_name(NULL));
+			success = start_gpu_encode(encoder);
 		} else {
-			start_raw_video(encoder->media, &info, receive_video,
-					encoder);
+			debug_log("start raw video on %s ...",
+				  encoder->info.get_name(NULL));
+			success = start_raw_video(encoder->media, &info,
+						  receive_video, encoder);
 		}
 	}
 
-	set_encoder_active(encoder, true);
+	debug_log("Connecting %s %s", encoder->info.get_name(NULL),
+		  success ? "succeeded" : "FAILED");
+
+	set_encoder_active(encoder, success);
+
+	return success;
 }
 
 static void remove_connection(struct obs_encoder *encoder, bool shutdown)
@@ -553,13 +567,14 @@ void pause_reset(struct pause_data *pause)
 	pthread_mutex_unlock(&pause->mutex);
 }
 
-static inline void obs_encoder_start_internal(
+static inline WARN_UNUSED_RESULT bool obs_encoder_start_internal(
 	obs_encoder_t *encoder,
 	void (*new_packet)(void *param, struct encoder_packet *packet),
 	void *param)
 {
 	struct encoder_callback cb = {false, new_packet, param};
 	bool first = false;
+	bool success = true;
 #if defined(_DEBUG)
 	char const *enc_name = encoder->info.get_name(NULL);
 #endif // _DEBUG
@@ -568,7 +583,7 @@ static inline void obs_encoder_start_internal(
 		debug_log("encoder %s has no context.data and no media!"
 			  " Breaking OFF!",
 			  enc_name);
-		return;
+		return false;
 	}
 
 	debug_log("Locking encoder %s callbacks_mutex", enc_name);
@@ -582,6 +597,10 @@ static inline void obs_encoder_start_internal(
 	if (idx == DARRAY_INVALID) {
 		debug_log("Adding encoder %s as new encoder", enc_name);
 		da_push_back(encoder->callbacks, &cb);
+#if defined(_DEBUG)
+		idx = get_callback_idx(encoder, new_packet, param);
+		debug_log("encoder %s got the callback id: %zu", enc_name, idx);
+#endif // _DEBUG
 	}
 
 	debug_log("Unlocking encoder %s callbacks_mutex", enc_name);
@@ -592,33 +611,43 @@ static inline void obs_encoder_start_internal(
 		os_atomic_set_bool(&encoder->paused, false);
 		pause_reset(&encoder->pause);
 
-		debug_log("Adding encoder %s conection", enc_name);
+		debug_log("Adding encoder %s connection", enc_name);
 		encoder->cur_pts = 0;
-		add_connection(encoder);
+		success = add_connection(encoder);
 	}
+
+	debug_log("starting encoder %s (internal) %s", encoder->info.get_name(NULL), success ? "succeeded." : "FAILED!");
+
+	return success;
 }
 
-void obs_encoder_start(obs_encoder_t *encoder,
+WARN_UNUSED_RESULT bool obs_encoder_start(obs_encoder_t *encoder,
 		       void (*new_packet)(void *param,
 					  struct encoder_packet *packet),
 		       void *param)
 {
+	bool success = true;
+
 	if (!obs_encoder_valid(encoder, "obs_encoder_start")) {
 		debug_log("encoder invalid!");
-		return;
+		return false;
 	}
 	if (!obs_ptr_valid(new_packet, "obs_encoder_start")) {
 		debug_log("new_packet invalid!");
-		return;
+		return false;
 	}
 
 	debug_log("Locking encoder %s init_mutex",
 		  encoder->info.get_name(NULL));
 	pthread_mutex_lock(&encoder->init_mutex);
-	obs_encoder_start_internal(encoder, new_packet, param);
-	debug_log("Unocking encoder %s init_mutex",
+	success = obs_encoder_start_internal(encoder, new_packet, param);
+	debug_log("Unlocking encoder %s init_mutex",
 		  encoder->info.get_name(NULL));
 	pthread_mutex_unlock(&encoder->init_mutex);
+
+	debug_log("starting encoder %s %s", encoder->info.get_name(NULL), success ? "succeeded." : "FAILED!");
+
+	return success;
 }
 
 static inline bool obs_encoder_stop_internal(

@@ -519,7 +519,7 @@ extern bool audio_callback(void *param, uint64_t start_ts_in,
 
 extern struct obs_core_video_mix *get_mix_for_video(video_t *video);
 
-extern void
+extern WARN_UNUSED_RESULT bool
 start_raw_video(video_t *video, const struct video_scale_info *conversion,
 		void (*callback)(void *param, struct video_data *frame),
 		void *param);
@@ -1265,10 +1265,10 @@ extern struct obs_encoder_info *find_encoder(const char *id);
 extern bool obs_encoder_initialize(obs_encoder_t *encoder);
 extern void obs_encoder_shutdown(obs_encoder_t *encoder);
 
-extern void obs_encoder_start(obs_encoder_t *encoder,
-			      void (*new_packet)(void *param,
-						 struct encoder_packet *packet),
-			      void *param);
+extern WARN_UNUSED_RESULT bool obs_encoder_start(
+	obs_encoder_t *encoder,
+	void (*new_packet)(void *param, struct encoder_packet *packet),
+	void *param);
 extern void obs_encoder_stop(obs_encoder_t *encoder,
 			     void (*new_packet)(void *param,
 						struct encoder_packet *packet),
@@ -1279,7 +1279,7 @@ extern void obs_encoder_add_output(struct obs_encoder *encoder,
 extern void obs_encoder_remove_output(struct obs_encoder *encoder,
 				      struct obs_output *output);
 
-extern bool start_gpu_encode(obs_encoder_t *encoder);
+extern WARN_UNUSED_RESULT bool start_gpu_encode(obs_encoder_t *encoder);
 extern void stop_gpu_encode(obs_encoder_t *encoder);
 
 extern bool do_encode(struct obs_encoder *encoder, struct encoder_frame *frame);

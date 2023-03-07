@@ -373,7 +373,7 @@ static inline void reset_frames(video_t *video)
 	os_atomic_set_long(&video->total_frames, 0);
 }
 
-bool video_output_connect(
+WARN_UNUSED_RESULT bool video_output_connect(
 	video_t *video, const struct video_scale_info *conversion,
 	void (*callback)(void *param, struct video_data *frame), void *param)
 {
@@ -599,6 +599,9 @@ uint32_t video_output_get_total_frames(const video_t *video)
 
 void video_output_inc_texture_encoders(video_t *video)
 {
+	debug_log("gpu_refs: %ld, raw_active: %s",
+		  os_atomic_load_long(&video->gpu_refs),
+		  os_atomic_load_bool(&video->raw_active) ? "true" : "false");
 	if (os_atomic_inc_long(&video->gpu_refs) == 1 &&
 	    !os_atomic_load_bool(&video->raw_active)) {
 		reset_frames(video);
@@ -607,6 +610,9 @@ void video_output_inc_texture_encoders(video_t *video)
 
 void video_output_dec_texture_encoders(video_t *video)
 {
+	debug_log("gpu_refs: %ld, raw_active: %s",
+		  os_atomic_load_long(&video->gpu_refs),
+		  os_atomic_load_bool(&video->raw_active) ? "true" : "false");
 	if (os_atomic_dec_long(&video->gpu_refs) == 0 &&
 	    !os_atomic_load_bool(&video->raw_active)) {
 		log_skipped(video);
