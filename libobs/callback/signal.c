@@ -303,10 +303,13 @@ void signal_handler_signal(signal_handler_t *handler, const char *signal,
 {
 	struct signal_info *sig = getsignal_locked(handler, signal);
 	long remove_refs = 0;
-	debug_log("getsignal_locked() returned: %p (signalling is: %s)", sig,
-		  sig ? (sig->signalling ? "true" : "false") : "N/A");
+
 	if (!sig)
 		return;
+
+	debug_log(
+		"Handling signal '%s' with %zd local and %zd global callbacks",
+		signal, sig->callbacks.num, handler->global_callbacks.num);
 
 	// Note: As long as darray::num is atomic, we can check it prior locking
 	if (sig->callbacks.num > 0) {
