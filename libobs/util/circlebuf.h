@@ -39,21 +39,32 @@ struct circlebuf {
 	size_t capacity;
 };
 
-#define cb_get_size(CB_s_)          atomic_load(&((CB_s_).size))
-#define cb_get_size_p(CB_p_)        atomic_load(&((CB_p_)->size))
+#define cb_get_size(CB_s_) atomic_load(&((CB_s_).size))
+#define cb_get_size_p(CB_p_) atomic_load(&((CB_p_)->size))
 #define cb_set_size_p(CB_p_, SIZE_) atomic_store(&((CB_p_)->size), (SIZE_))
 #define cb_add_size_p(CB_p_, SIZE_) atomic_fetch_add(&((CB_p_)->size), (SIZE_))
 #define cb_sub_size_p(CB_p_, SIZE_) atomic_fetch_sub(&((CB_p_)->size), (SIZE_))
 
 static inline void circlebuf_init(struct circlebuf *cb)
 {
+#if defined(ATOMIC_LONG_LOCK_FREE) && (ATOMIC_LONG_LOCK_FREE == 2)
+	static_assert(sizeof(a_size_t) == sizeof(size_t),
+		      "ATOMIC_LONG_LOCK_FREE is greater than 1,"
+		      " but atomic_size_t has a different size than size_t");
 	memset(cb, 0, sizeof(struct circlebuf));
+#else
+	cb->data = nullptr;
+	atomic_init(&cb->size, 0);
+	cb->start_pos = 0;
+	cb->end_pos = 0;
+	cb->capacity = 0;
+#endif // ATOMIC_LONG_LOCK_FREE
 }
 
 static inline void circlebuf_free(struct circlebuf *cb)
 {
 	bfree(cb->data);
-	memset(cb, 0, sizeof(struct circlebuf));
+	circlebuf_init(cb);
 }
 
 static inline void circlebuf_reorder_data(struct circlebuf *cb,
