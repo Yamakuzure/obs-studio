@@ -1542,7 +1542,7 @@ static void python_tick(void *param, float seconds)
 	uint64_t ts = obs_get_video_frame_time();
 
 	pthread_mutex_lock(&tick_mutex);
-	valid = !!first_tick_script;
+	valid = first_tick_script != nullptr;
 	pthread_mutex_unlock(&tick_mutex);
 
 	/* --------------------------------- */
@@ -1679,32 +1679,35 @@ bool obs_scripting_load_python(const char *python_path)
 	UNUSED_PARAMETER(python_path);
 #endif
 
-	Py_Initialize();
-	if (!Py_IsInitialized())
-		return false;
+	/* ---------------------------------------------- */
+	/* Must set arguments for guis to work            */
+#if PY_VERSION_HEX >= 0x03110000
+	PyConfig py_conf;
+	char *argv[128] = {"obs", 0x0};
+	int argc = 1;
+	wchar_t program_name[] = L"obs";
 
-#if RUNTIME_LINK
-	if (python_version.major == 3 && python_version.minor < 7) {
-		PyEval_InitThreads();
-		if (!PyEval_ThreadsInitialized())
-			return false;
-	}
-#elif PY_VERSION_HEX < 0x03070000
+	PyConfig_InitIsolatedConfig(&py_conf);
+	PyConfig_SetBytesArgv(&py_conf, argc, argv);
+	py_conf.use_environment = 1;     // Obey user environment
+	py_conf.user_site_directory = 1; // Allow users to use their packages
+	// Setting this pre-intializes Python implictly which will change the config
+	PyConfig_SetString(&py_conf, &py_conf.program_name, program_name);
+
+	Py_InitializeFromConfig(&py_conf);
+
+	// clean up
+	PyConfig_Clear(&py_conf);
+#else
+#if PY_VERSION_HEX < 0x03070000
 	PyEval_InitThreads();
 	if (!PyEval_ThreadsInitialized())
 		return false;
-#endif
-
-	/* ---------------------------------------------- */
-	/* Must set arguments for guis to work            */
-
+#endif // Python < 3.7
 	wchar_t *argv[] = {L"", NULL};
 	int argc = sizeof(argv) / sizeof(wchar_t *) - 1;
-
-	PRAGMA_WARN_PUSH
-	PRAGMA_WARN_DEPRECATION
 	PySys_SetArgv(argc, argv);
-	PRAGMA_WARN_POP
+#endif // Python 3.11+
 
 #ifdef DEBUG_PYTHON_STARTUP
 	/* ---------------------------------------------- */
