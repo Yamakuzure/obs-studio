@@ -124,7 +124,7 @@ os_process_pipe_t *os_process_pipe_create(const char *cmd_line,
 		goto error;
 	}
 
-	debug_log("call create_process() on '%s' %s <=> %s",
+	debug_log("call create_process() on '%s' %s <=> %s", cmd_line,
 		  read_pipe ? "NULL" : "input", read_pipe ? "output" : "NULL");
 	success = create_process(cmd_line, read_pipe ? NULL : input,
 				 read_pipe ? output : NULL, err_output,
