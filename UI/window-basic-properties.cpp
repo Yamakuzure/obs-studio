@@ -43,8 +43,8 @@ static void CreateTransitionScene(OBSSource scene, const char *text,
 
 OBSBasicProperties::OBSBasicProperties(QWidget *parent, OBSSource source_)
 	: QDialog(parent),
-	  ui(new Ui::OBSBasicProperties),
 	  main(qobject_cast<OBSBasic *>(parent)),
+	  ui(new Ui::OBSBasicProperties),
 	  acceptClicked(false),
 	  source(source_),
 	  removedSignal(obs_source_get_signal_handler(source), "remove",

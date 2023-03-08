@@ -100,6 +100,7 @@ else()
   option(CALM_DEPRECATION "Keep deprecated-declarations as warnings" OFF)
   add_compile_options(
     -Werror
+    -Wall
     -Wextra
     -Wvla
     -Wswitch
@@ -109,6 +110,7 @@ else()
     -Wunused-parameter
     -Wno-unused-function
     -Wno-missing-field-initializers
+    -Wno-switch
     -fno-strict-aliasing
     "$<$<COMPILE_LANGUAGE:C>:-Werror-implicit-function-declaration;-Wno-missing-braces>"
     "$<$<BOOL:${USE_LIBCXX}>:-stdlib=libc++>"

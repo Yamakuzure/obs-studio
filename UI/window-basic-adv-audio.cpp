@@ -11,12 +11,12 @@ Q_DECLARE_METATYPE(OBSSource);
 
 OBSBasicAdvAudio::OBSBasicAdvAudio(QWidget *parent)
 	: QDialog(parent),
-	  ui(new Ui::OBSAdvAudio),
 	  sourceAddedSignal(obs_get_signal_handler(), "source_activate",
 			    OBSSourceAdded, this),
 	  sourceRemovedSignal(obs_get_signal_handler(), "source_deactivate",
 			      OBSSourceRemoved, this),
-	  showInactive(false)
+	  showInactive(false),
+	  ui(new Ui::OBSAdvAudio)
 {
 	ui->setupUi(this);
 

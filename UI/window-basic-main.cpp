@@ -284,7 +284,7 @@ extern void RegisterYoutubeAuth();
 #endif
 
 OBSBasic::OBSBasic(QWidget *parent)
-	: OBSMainWindow(parent), undo_s(ui), ui(new Ui::OBSBasic)
+	: OBSMainWindow(parent), ui(new Ui::OBSBasic), undo_s(ui)
 {
 #if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
 	qRegisterMetaTypeStreamOperators<SignalContainer<OBSScene>>(
