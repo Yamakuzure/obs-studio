@@ -30,7 +30,7 @@ public:
 	void Deactivate() override;
 	void UpdateVideoFrame(video_data *pData);
 	void WriteAudio(audio_data *frames);
-	void SetSize(int width, int height);
+	void SetSize(int width_, int height_);
 	int GetWidth();
 	int GetHeight();
 };

@@ -210,10 +210,10 @@ static bool decklink_device_changed(obs_properties_t *props,
 		const std::vector<DeckLinkDeviceMode *> &modes =
 			device->GetInputModes();
 
-		for (DeckLinkDeviceMode *mode : modes) {
+		for (DeckLinkDeviceMode *devmode : modes) {
 			obs_property_list_add_int(modeList,
-						  mode->GetName().c_str(),
-						  mode->GetId());
+						  devmode->GetName().c_str(),
+						  devmode->GetId());
 		}
 
 		if (device->GetMaxChannel() >= 8) {

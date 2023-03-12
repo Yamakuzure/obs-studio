@@ -577,22 +577,22 @@ WASAPISource::UpdateParams WASAPISource::BuildUpdateParams(obs_data_t *settings)
 	if (sourceType != SourceType::Input) {
 		const char *const window =
 			obs_data_get_string(settings, OPT_WINDOW);
-		char *window_class = nullptr;
-		char *title = nullptr;
-		char *executable = nullptr;
-		ms_build_window_strings(window, &window_class, &title,
-					&executable);
-		if (window_class) {
-			params.window_class = window_class;
-			bfree(window_class);
+		char *window_class_p = nullptr;
+		char *title_p = nullptr;
+		char *executable_p = nullptr;
+		ms_build_window_strings(window, &window_class_p, &title_p,
+					&executable_p);
+		if (window_class_p) {
+			params.window_class = window_class_p;
+			bfree(window_class_p);
 		}
-		if (title) {
-			params.title = title;
-			bfree(title);
+		if (title_p) {
+			params.title = title_p;
+			bfree(title_p);
 		}
-		if (executable) {
-			params.executable = executable;
-			bfree(executable);
+		if (executable_p) {
+			params.executable = executable_p;
+			bfree(executable_p);
 		}
 	}
 
@@ -635,7 +635,7 @@ void WASAPISource::Update(obs_data_t *settings)
 {
 	UpdateParams params = BuildUpdateParams(settings);
 
-	const bool restart =
+	volatile bool do_restart =
 		(sourceType == SourceType::ProcessOutput)
 			? ((priority != params.priority) ||
 			   (window_class != params.window_class) ||
@@ -646,7 +646,7 @@ void WASAPISource::Update(obs_data_t *settings)
 	UpdateSettings(std::move(params));
 	LogSettings();
 
-	if (restart)
+	if (do_restart)
 		SetEvent(restartSignal);
 }
 
@@ -654,7 +654,7 @@ void WASAPISource::OnWindowChanged(obs_data_t *settings)
 {
 	UpdateParams params = BuildUpdateParams(settings);
 
-	const bool restart =
+	volatile bool do_restart =
 		(sourceType == SourceType::ProcessOutput)
 			? ((priority != params.priority) ||
 			   (window_class != params.window_class) ||
@@ -664,7 +664,7 @@ void WASAPISource::OnWindowChanged(obs_data_t *settings)
 
 	UpdateSettings(std::move(params));
 
-	if (restart)
+	if (do_restart)
 		SetEvent(restartSignal);
 }
 

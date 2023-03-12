@@ -189,7 +189,7 @@ static void *load_cube_file(const char *const path, uint32_t *const width,
 
 	FILE *const file = os_fopen(path, "rb");
 	if (file) {
-		float red, green, blue;
+		float red = 0.f, green = 0.f, blue = 0.f;
 		unsigned width_1d = 0;
 		unsigned width_3d = 0;
 

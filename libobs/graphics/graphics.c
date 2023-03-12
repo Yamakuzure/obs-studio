@@ -28,6 +28,10 @@
 #include "effect-parser.h"
 #include "effect.h"
 
+#ifdef _MSC_VER
+#pragma warning(disable : 4152) /* casting func ptr to void */
+#endif
+
 #ifdef near
 #undef near
 #endif

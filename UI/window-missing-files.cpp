@@ -327,7 +327,7 @@ Qt::ItemFlags MissingFilesModel::flags(const QModelIndex &index) const
 	return flags;
 }
 
-void MissingFilesModel::fileCheckLoop(QList<MissingFileEntry> files,
+void MissingFilesModel::fileCheckLoop(QList<MissingFileEntry> checkFiles,
 				      QString path, bool skipPrompt)
 {
 	loop = false;
@@ -338,11 +338,12 @@ void MissingFilesModel::fileCheckLoop(QList<MissingFileEntry> files,
 
 	bool prompted = skipPrompt;
 
-	for (int i = 0; i < files.length(); i++) {
-		if (files[i].state != MissingFilesState::Missing)
+	for (int i = 0; i < checkFiles.length(); i++) {
+		if (checkFiles[i].state != MissingFilesState::Missing)
 			continue;
 
-		QUrl origFile = QUrl().fromLocalFile(files[i].originalPath);
+		QUrl origFile =
+			QUrl().fromLocalFile(checkFiles[i].originalPath);
 		QString filename = origFile.fileName();
 		QString testFile = dir + filename;
 

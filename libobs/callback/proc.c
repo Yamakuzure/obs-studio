@@ -119,14 +119,14 @@ bool proc_handler_call(proc_handler_t *handler, const char *name,
 
 	pthread_mutex_lock(&handler->mutex);
 	struct proc_info *info = getproc(handler, name);
-	struct proc_info info_copy;
+	struct proc_info info_copy = {0};
 	if (info)
 		info_copy = *info;
 	pthread_mutex_unlock(&handler->mutex);
 
-	if (!info)
-		return false;
-
-	info_copy.callback(info_copy.data, params);
-	return true;
+	if (info_copy.callback) {
+		info_copy.callback(info_copy.data, params);
+		return true;
+	}
+	return false;
 }

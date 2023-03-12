@@ -34,6 +34,10 @@
 
 #include "../../deps/w32-pthreads/pthread.h"
 
+#ifdef _MSC_VER
+#pragma warning(disable : 4152) /* casting func ptr to void */
+#endif
+
 #define MAX_SZ_LEN 256
 
 static bool have_clockfreq = false;

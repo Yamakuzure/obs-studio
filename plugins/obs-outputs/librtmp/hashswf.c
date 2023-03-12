@@ -20,6 +20,10 @@
  *  http://www.gnu.org/copyleft/lgpl.html
  */
 
+#ifdef _MSC_VER
+#pragma warning(disable : 4206) /* compilation unit may be empty */
+#endif
+
 #ifdef USE_HASHSWF
 #include "rtmp_sys.h"
 #include "log.h"

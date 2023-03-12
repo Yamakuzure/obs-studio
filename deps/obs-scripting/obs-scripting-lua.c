@@ -134,12 +134,9 @@ static bool load_lua_script(struct obs_lua_script *data)
 	}
 
 	ret = lua_gettop(script);
-	if (ret == 1 && lua_isboolean(script, -1)) {
-		bool success = lua_toboolean(script, -1);
-
-		if (!success) {
-			goto fail;
-		}
+	if (ret == 1 && lua_isboolean(script, -1) &&
+	    (0 == lua_toboolean(script, -1))) {
+		goto fail;
 	}
 
 	lua_getglobal(script, "script_tick");

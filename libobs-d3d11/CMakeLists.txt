@@ -31,6 +31,10 @@ target_compile_features(libobs-d3d11 PRIVATE cxx_std_17)
 
 target_compile_definitions(libobs-d3d11 PRIVATE UNICODE _UNICODE _CRT_SECURE_NO_WARNINGS _CRT_NONSTDC_NO_WARNINGS)
 
+if(OS_WINDOWS AND MSVC)
+	target_compile_options(libobs-d3d11 PRIVATE /wd4595)
+endif()
+
 if(NOT DEFINED GPU_PRIORITY_VAL
    OR "x${GPU_PRIORITY_VAL}x" STREQUAL "xx"
    OR "${GPU_PRIORITY_VAL}" STREQUAL "0")

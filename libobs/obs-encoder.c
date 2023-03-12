@@ -19,6 +19,11 @@
 #include "obs-internal.h"
 #include "util/util_uint64.h"
 
+#ifdef _MSC_VER
+/* conversion from data/function pointer */
+#pragma warning(disable : 4152)
+#endif
+
 #define encoder_active(encoder) os_atomic_load_bool(&encoder->active)
 #define set_encoder_active(encoder, val) \
 	os_atomic_set_bool(&encoder->active, val)

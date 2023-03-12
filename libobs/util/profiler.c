@@ -899,8 +899,8 @@ static void add_entry_to_snapshot(profile_entry *entry,
 		copy_map_to_array(&entry->times, &s_entry->times,
 				  &s_entry->min_time, &s_entry->max_time);
 
-	if ((s_entry->expected_time_between_calls =
-		     entry->expected_time_between_calls))
+	if (0 != (s_entry->expected_time_between_calls =
+			  entry->expected_time_between_calls))
 		s_entry->overall_between_calls_count =
 			copy_map_to_array(&entry->times_between_calls,
 					  &s_entry->times_between_calls,

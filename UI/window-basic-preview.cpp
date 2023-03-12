@@ -468,15 +468,15 @@ void OBSBasicPreview::GetStretchHandleData(const vec2 &pos, bool ignoreGroup)
 	float scale = main->previewScale / main->GetDevicePixelRatio();
 	vec2 scaled_pos = pos;
 	vec2_divf(&scaled_pos, &scaled_pos, scale);
-	HandleFindData data(scaled_pos, scale);
-	obs_scene_enum_items(scene, FindHandleAtPos, &data);
+	HandleFindData find_data(scaled_pos, scale);
+	obs_scene_enum_items(scene, FindHandleAtPos, &find_data);
 
-	stretchItem = std::move(data.item);
-	stretchHandle = data.handle;
+	stretchItem = std::move(find_data.item);
+	stretchHandle = find_data.handle;
 
-	rotateAngle = data.angle;
-	rotatePoint = data.rotatePoint;
-	offsetPoint = data.offsetPoint;
+	rotateAngle = find_data.angle;
+	rotatePoint = find_data.rotatePoint;
+	offsetPoint = find_data.offsetPoint;
 
 	if (stretchHandle != ItemHandle::None) {
 		matrix4 boxTransform;
@@ -625,13 +625,13 @@ void OBSBasicPreview::mousePressEvent(QMouseEvent *event)
 
 	if (altDown || shiftDown || ctrlDown) {
 		vec2 s;
-		SceneFindBoxData data(s, s);
+		SceneFindBoxData find_data(s, s);
 
 		obs_scene_enum_items(main->GetCurrentScene(), FindSelected,
-				     &data);
+				     &find_data);
 
 		std::lock_guard<std::mutex> lock(selectMutex);
-		selectedItems = data.sceneItems;
+		selectedItems = find_data.sceneItems;
 	}
 
 	vec2_set(&startPos, x, y);
@@ -791,15 +791,14 @@ void OBSBasicPreview::mouseReleaseEvent(QMouseEvent *event)
 	OBSDataAutoRelease rwrapper =
 		obs_scene_save_transform_states(main->GetCurrentScene(), true);
 
-	auto undo_redo = [](const std::string &data) {
-		OBSDataAutoRelease dat =
-			obs_data_create_from_json(data.c_str());
+	auto undo_redo = [](const std::string &str) {
+		OBSDataAutoRelease dat = obs_data_create_from_json(str.c_str());
 		OBSSourceAutoRelease source = obs_get_source_by_name(
 			obs_data_get_string(dat, "scene_name"));
 		reinterpret_cast<OBSBasic *>(App()->GetMainWindow())
 			->SetCurrentScene(source.Get(), true);
 
-		obs_scene_load_transform_states(data.c_str());
+		obs_scene_load_transform_states(str.c_str());
 	};
 
 	if (wrapper && rwrapper) {
@@ -1203,7 +1202,7 @@ static bool FindItemsInBox(obs_scene_t * /* scene */, obs_sceneitem_t *item,
 	return true;
 }
 
-void OBSBasicPreview::BoxItems(const vec2 &startPos, const vec2 &pos)
+void OBSBasicPreview::BoxItems(const vec2 &boxStartPos, const vec2 &pos)
 {
 	OBSBasic *main = reinterpret_cast<OBSBasic *>(App()->GetMainWindow());
 
@@ -1214,11 +1213,11 @@ void OBSBasicPreview::BoxItems(const vec2 &startPos, const vec2 &pos)
 	if (cursor().shape() != Qt::CrossCursor)
 		setCursor(Qt::CrossCursor);
 
-	SceneFindBoxData data(startPos, pos);
-	obs_scene_enum_items(scene, FindItemsInBox, &data);
+	SceneFindBoxData box_data(boxStartPos, pos);
+	obs_scene_enum_items(scene, FindItemsInBox, &box_data);
 
 	std::lock_guard<std::mutex> lock(selectMutex);
-	hoveredPreviewItems = data.sceneItems;
+	hoveredPreviewItems = box_data.sceneItems;
 }
 
 vec3 OBSBasicPreview::CalculateStretchPos(const vec3 &tl, const vec3 &br)
@@ -1584,7 +1583,8 @@ void OBSBasicPreview::RotateItem(const vec2 &pos)
 
 void OBSBasicPreview::mouseMoveEvent(QMouseEvent *event)
 {
-	OBSBasic *main = reinterpret_cast<OBSBasic *>(App()->GetMainWindow());
+	OBSBasic *main_window =
+		reinterpret_cast<OBSBasic *>(App()->GetMainWindow());
 	changed = true;
 
 #if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
@@ -1593,7 +1593,7 @@ void OBSBasicPreview::mouseMoveEvent(QMouseEvent *event)
 	QPointF qtPos = event->localPos();
 #endif
 
-	float pixelRatio = main->GetDevicePixelRatio();
+	float pixelRatio = main_window->GetDevicePixelRatio();
 
 	if (scrollMode && event->buttons() == Qt::LeftButton) {
 		scrollingOffset.x += pixelRatio * (qtPos.x() - scrollingFrom.x);
@@ -1627,7 +1627,7 @@ void OBSBasicPreview::mouseMoveEvent(QMouseEvent *event)
 
 			selectionBox = false;
 
-			OBSScene scene = main->GetCurrentScene();
+			OBSScene scene = main_window->GetCurrentScene();
 			obs_sceneitem_t *group =
 				obs_sceneitem_get_group(scene, stretchItem);
 			if (group) {
@@ -1671,11 +1671,9 @@ void OBSBasicPreview::mouseMoveEvent(QMouseEvent *event)
 
 		if (!mouseMoved && hoveredPreviewItems.size() > 0) {
 			mousePos = pos;
-			OBSBasic *main = reinterpret_cast<OBSBasic *>(
-				App()->GetMainWindow());
-			float scale = main->GetDevicePixelRatio();
-			float x = qtPos.x() - main->previewX / scale;
-			float y = qtPos.y() - main->previewY / scale;
+			float scale = main_window->GetDevicePixelRatio();
+			float x = qtPos.x() - main_window->previewX / scale;
+			float y = qtPos.y() - main_window->previewY / scale;
 			vec2_set(&startPos, x, y);
 			updateCursor = true;
 		}
@@ -2441,11 +2439,11 @@ void OBSBasicPreview::DrawSpacingHelpers()
 	OBSBasic *main = OBSBasic::Get();
 
 	vec2 s;
-	SceneFindBoxData data(s, s);
+	SceneFindBoxData box_data(s, s);
 
-	obs_scene_enum_items(main->GetCurrentScene(), FindSelected, &data);
+	obs_scene_enum_items(main->GetCurrentScene(), FindSelected, &box_data);
 
-	if (data.sceneItems.size() > 1)
+	if (box_data.sceneItems.size() > 1)
 		return;
 
 	OBSSceneItem item = main->GetCurrentSceneItem();

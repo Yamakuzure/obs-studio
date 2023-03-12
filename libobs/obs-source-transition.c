@@ -116,7 +116,7 @@ static void recalculate_transition_matrix(obs_source_t *tr, size_t idx)
 	obs_source_t *child;
 	struct matrix4 mat;
 	struct vec2 pos;
-	struct vec2 scale;
+	struct vec2 scale = {.x = 1.0f, .y = 1.0f};
 	float tr_cx = (float)get_cx(tr);
 	float tr_cy = (float)get_cy(tr);
 	float source_cx;

@@ -418,8 +418,9 @@ void OBSHotkeyWidget::HandleChangedBindings(obs_hotkey_id id_)
 	using LoadBindings_t = decltype(&LoadBindings);
 
 	obs_enum_hotkey_bindings(
-		[](void *data, size_t, obs_hotkey_binding_t *binding) {
-			auto LoadBindings = *static_cast<LoadBindings_t>(data);
+		[](void *hk_data, size_t, obs_hotkey_binding_t *binding) {
+			auto LoadBindings =
+				*static_cast<LoadBindings_t>(hk_data);
 			LoadBindings(binding);
 			return true;
 		},

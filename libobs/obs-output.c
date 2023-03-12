@@ -32,8 +32,8 @@
 
 #if defined(_DEBUG)
 #ifdef _WIN32
-static __declspec(thread) volatile interleave_stall_reported = false;
-static __declspec(thread) volatile output_is_active = false;
+static __declspec(thread) volatile bool interleave_stall_reported = false;
+static __declspec(thread) volatile bool output_is_active = false;
 #else
 #include <threads.h>
 static thread_local volatile bool interleave_stall_reported = false;

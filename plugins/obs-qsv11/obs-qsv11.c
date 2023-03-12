@@ -640,8 +640,8 @@ static void update_params(struct obs_qsv *obsqsv, obs_data_t *settings)
 			hdr_nominal_peak_level * 10000;
 		obsqsv->params.MinDisplayMasteringLuminance = 0;
 
-		obsqsv->params.MaxContentLightLevel = hdr_nominal_peak_level;
-		obsqsv->params.MaxPicAverageLightLevel = hdr_nominal_peak_level;
+		obsqsv->params.MaxContentLightLevel = (mfxU16)hdr_nominal_peak_level;
+		obsqsv->params.MaxPicAverageLightLevel = (mfxU16)hdr_nominal_peak_level;
 	}
 
 	/* internal convenience parameter, overrides rate control param
@@ -709,9 +709,9 @@ static void update_params(struct obs_qsv *obsqsv, obs_data_t *settings)
 		int actual_cqp = cqp;
 		if (obsqsv->codec == QSV_CODEC_AV1)
 			actual_cqp *= 4;
-		obsqsv->params.nQPI = actual_cqp;
-		obsqsv->params.nQPP = actual_cqp;
-		obsqsv->params.nQPB = actual_cqp;
+		obsqsv->params.nQPI = (mfxU16)actual_cqp;
+		obsqsv->params.nQPP = (mfxU16)actual_cqp;
+		obsqsv->params.nQPB = (mfxU16)actual_cqp;
 	}
 	obsqsv->params.nTargetBitRate = (mfxU16)target_bitrate;
 	obsqsv->params.nMaxBitRate = (mfxU16)max_bitrate;
@@ -1268,8 +1268,6 @@ static void parse_packet_av1(struct obs_qsv *obsqsv,
 
 	packet->priority = priority;
 
-	bool pFrame = pBS->FrameType & MFX_FRAMETYPE_P;
-
 	packet->dts = ts_mfx_to_obs(pBS->DecodeTimeStamp, voi);
 
 #if 0
@@ -1291,8 +1289,6 @@ static void parse_packet_hevc(struct obs_qsv *obsqsv,
 			      const struct video_output_info *voi,
 			      bool *received_packet)
 {
-	bool is_vcl_packet = false;
-
 	if (pBS == NULL || pBS->DataLength == 0) {
 		*received_packet = false;
 		return;

@@ -545,7 +545,7 @@ bool audio_callback(void *param, uint64_t start_ts_in, uint64_t end_ts_in,
 	/* build audio render order
 	 * NOTE: these are source channels, not audio channels */
 	for (uint32_t i = 0; i < MAX_CHANNELS; i++) {
-		obs_source_t *source = obs_get_output_source(i);
+		source = obs_get_output_source(i);
 		if (source) {
 			obs_source_enum_active_tree(source, push_audio_tree,
 						    audio);
@@ -568,7 +568,7 @@ bool audio_callback(void *param, uint64_t start_ts_in, uint64_t end_ts_in,
 	/* ------------------------------------------------ */
 	/* render audio data */
 	for (size_t i = 0; i < audio->render_order.num; i++) {
-		obs_source_t *source = audio->render_order.array[i];
+		source = audio->render_order.array[i];
 		obs_source_audio_render(source, mixers, channels, sample_rate,
 					audio_size);
 
@@ -626,7 +626,7 @@ bool audio_callback(void *param, uint64_t start_ts_in, uint64_t end_ts_in,
 	/* mix audio */
 	if (!audio->buffering_wait_ticks) {
 		for (size_t i = 0; i < audio->root_nodes.num; i++) {
-			obs_source_t *source = audio->root_nodes.array[i];
+			source = audio->root_nodes.array[i];
 
 			if (source->audio_pending)
 				continue;

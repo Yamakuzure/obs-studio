@@ -11,6 +11,10 @@
 #include "service-specific/showroom.h"
 #include "service-specific/dacast.h"
 
+#ifdef _MSC_VER
+#pragma warning(disable : 4706) /* disable warning caused by jansson macros */
+#endif
+
 struct rtmp_common {
 	char *service;
 	char *protocol;

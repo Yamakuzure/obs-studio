@@ -33,13 +33,13 @@ void gs_index_buffer::Rebuild(ID3D11Device *dev)
 
 void gs_texture_2d::RebuildSharedTextureFallback()
 {
-	static const gs_color_format format = GS_BGRA;
+	static const gs_color_format col_format = GS_BGRA;
 	static const DXGI_FORMAT dxgi_format_resource =
-		ConvertGSTextureFormatResource(format);
+		ConvertGSTextureFormatResource(col_format);
 	static const DXGI_FORMAT dxgi_format_view =
-		ConvertGSTextureFormatView(format);
+		ConvertGSTextureFormatView(col_format);
 	static const DXGI_FORMAT dxgi_format_view_linear =
-		ConvertGSTextureFormatViewLinear(format);
+		ConvertGSTextureFormatViewLinear(col_format);
 
 	td = {};
 	td.Width = 2;
@@ -292,13 +292,13 @@ void gs_timer_range::Rebuild(ID3D11Device *dev)
 
 void gs_texture_3d::RebuildSharedTextureFallback()
 {
-	static const gs_color_format format = GS_BGRA;
+	static const gs_color_format col_format = GS_BGRA;
 	static const DXGI_FORMAT dxgi_format_resource =
-		ConvertGSTextureFormatResource(format);
+		ConvertGSTextureFormatResource(col_format);
 	static const DXGI_FORMAT dxgi_format_view =
-		ConvertGSTextureFormatView(format);
+		ConvertGSTextureFormatView(col_format);
 	static const DXGI_FORMAT dxgi_format_view_linear =
-		ConvertGSTextureFormatViewLinear(format);
+		ConvertGSTextureFormatViewLinear(col_format);
 
 	td = {};
 	td.Width = 2;

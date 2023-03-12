@@ -74,7 +74,8 @@ OBSBasicTransform::OBSBasicTransform(OBSSceneItem item, OBSBasic *parent)
 	SetScene(scene);
 	SetItem(item);
 
-	std::string name = obs_source_get_name(obs_sceneitem_get_source(item));
+	std::string name =
+		obs_source_get_name(obs_sceneitem_get_source(item));
 	setWindowTitle(QTStr("Basic.TransformWindow.Title").arg(name.c_str()));
 
 	OBSDataAutoRelease wrapper =
@@ -90,14 +91,14 @@ OBSBasicTransform::~OBSBasicTransform()
 	OBSDataAutoRelease wrapper =
 		obs_scene_save_transform_states(main->GetCurrentScene(), false);
 
-	auto undo_redo = [](const std::string &data) {
+	auto undo_redo = [](const std::string &str) {
 		OBSDataAutoRelease dat =
-			obs_data_create_from_json(data.c_str());
+			obs_data_create_from_json(str.c_str());
 		OBSSourceAutoRelease source = obs_get_source_by_name(
 			obs_data_get_string(dat, "scene_name"));
 		reinterpret_cast<OBSBasic *>(App()->GetMainWindow())
 			->SetCurrentScene(source.Get(), true);
-		obs_scene_load_transform_states(data.c_str());
+		obs_scene_load_transform_states(str.c_str());
 	};
 
 	std::string redo_data(obs_data_get_json(wrapper));

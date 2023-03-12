@@ -62,7 +62,7 @@ void EnumProfiles(std::function<bool(const char *, const char *)> &&cb)
 		file += "/basic.ini";
 
 		ConfigFile config;
-		int ret = config.Open(file.c_str(), CONFIG_OPEN_EXISTING);
+		ret = config.Open(file.c_str(), CONFIG_OPEN_EXISTING);
 		if (ret != CONFIG_SUCCESS)
 			continue;
 

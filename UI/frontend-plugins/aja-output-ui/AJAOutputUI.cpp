@@ -41,9 +41,9 @@ void AJAOutputUI::SetupPropertiesView()
 		delete propertiesView;
 
 	obs_data_t *settings = obs_data_create();
-	OBSData data = load_settings(kProgramPropsFilename);
-	if (data) {
-		obs_data_apply(settings, data);
+	OBSData new_data = load_settings(kProgramPropsFilename);
+	if (new_data) {
+		obs_data_apply(settings, new_data);
 	} else {
 		// apply default settings
 		obs_data_set_default_int(
@@ -98,9 +98,9 @@ void AJAOutputUI::SetupPreviewPropertiesView()
 
 	obs_data_t *settings = obs_data_create();
 
-	OBSData data = load_settings(kPreviewPropsFilename);
-	if (data) {
-		obs_data_apply(settings, data);
+	OBSData new_data = load_settings(kPreviewPropsFilename);
+	if (new_data) {
+		obs_data_apply(settings, new_data);
 	} else {
 		// apply default settings
 		obs_data_set_default_int(
@@ -258,9 +258,9 @@ void AJAOutputUI::SetupMiscPropertiesView()
 		delete miscPropertiesView;
 
 	obs_data_t *settings = obs_data_create();
-	OBSData data = load_settings(kMiscPropsFilename);
-	if (data) {
-		obs_data_apply(settings, data);
+	OBSData new_data = load_settings(kMiscPropsFilename);
+	if (new_data) {
+		obs_data_apply(settings, new_data);
 	}
 
 	miscPropertiesView = new OBSPropertiesView(

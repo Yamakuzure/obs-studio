@@ -1507,7 +1507,7 @@ void OBSBasicSettings::ResetEncoders(bool streamOnly)
 	const char *type;
 	BPtr<char *> output_vcodecs;
 	BPtr<char *> output_acodecs;
-	size_t idx = 0;
+	int idx = 0;
 
 	if (!vcodecs || IsCustomService()) {
 		const char *output;
@@ -1666,7 +1666,7 @@ void OBSBasicSettings::ResetEncoders(bool streamOnly)
 	/* Find fallback encoders                            */
 
 	if (!lastAdvVideoEnc.isEmpty()) {
-		int idx = ui->advOutEncoder->findData(lastAdvVideoEnc);
+		idx = ui->advOutEncoder->findData(lastAdvVideoEnc);
 		if (idx == -1) {
 			lastAdvVideoEnc = get_adv_fallback(lastAdvVideoEnc);
 			ui->advOutEncoder->setProperty("changed",
@@ -1680,7 +1680,7 @@ void OBSBasicSettings::ResetEncoders(bool streamOnly)
 	}
 
 	if (!lastAdvAudioEnc.isEmpty()) {
-		int idx = ui->advOutAEncoder->findData(lastAdvAudioEnc);
+		idx = ui->advOutAEncoder->findData(lastAdvAudioEnc);
 		if (idx == -1) {
 			lastAdvAudioEnc =
 				get_adv_audio_fallback(lastAdvAudioEnc);

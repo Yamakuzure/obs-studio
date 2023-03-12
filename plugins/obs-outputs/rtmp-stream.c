@@ -758,7 +758,7 @@ static void *send_thread(void *data)
 		 * unpublish / deletestream messages when we call RTMP_Close,
 		 * since we want to re-use this stream when we reconnect */
 		RTMPSockBuf_Close(&stream->rtmp.m_sb);
-		stream->rtmp.m_sb.sb_socket = -1;
+		stream->rtmp.m_sb.sb_socket = (SOCKET)-1;
 	}
 
 	RTMP_Close(&stream->rtmp);
@@ -1035,7 +1035,8 @@ static int init_send(struct rtmp_stream *stream)
 	if (stream->new_socket_loop) {
 		int one = 1;
 #ifdef _WIN32
-		if (ioctlsocket(stream->rtmp.m_sb.sb_socket, FIONBIO, &one)) {
+		if (ioctlsocket(stream->rtmp.m_sb.sb_socket, FIONBIO,
+				(u_long *)(&one))) {
 			stream->rtmp.last_error_code = WSAGetLastError();
 #else
 		if (ioctl(stream->rtmp.m_sb.sb_socket, FIONBIO, &one)) {

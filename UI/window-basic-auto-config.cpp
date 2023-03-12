@@ -969,9 +969,9 @@ AutoConfig::AutoConfig(QWidget *parent) : QWizard(parent)
 		/* Newer generations of NVENC have a high enough quality to
 		 * bitrate ratio that if NVENC is available, it makes sense to
 		 * just always prefer hardware encoding by default */
-		bool preferHardware = nvencAvailable || appleAvailable ||
+		bool doPreferHardware = nvencAvailable || appleAvailable ||
 				      os_get_physical_cores() <= 4;
-		streamPage->ui->preferHardware->setChecked(preferHardware);
+		streamPage->ui->preferHardware->setChecked(doPreferHardware);
 	}
 
 	setOptions(QWizard::WizardOptions());
@@ -1015,19 +1015,19 @@ void AutoConfig::TestHardwareEncoding()
 	}
 }
 
-bool AutoConfig::CanTestServer(const char *server)
+bool AutoConfig::CanTestServer(const char *test_server)
 {
 	if (!testRegions || (regionUS && regionEU && regionAsia && regionOther))
 		return true;
 
 	if (service == Service::Twitch) {
-		if (astrcmp_n(server, "US West:", 8) == 0 ||
-		    astrcmp_n(server, "US East:", 8) == 0 ||
-		    astrcmp_n(server, "US Central:", 11) == 0) {
+		if (astrcmp_n(test_server, "US West:", 8) == 0 ||
+		    astrcmp_n(test_server, "US East:", 8) == 0 ||
+		    astrcmp_n(test_server, "US Central:", 11) == 0) {
 			return regionUS;
-		} else if (astrcmp_n(server, "EU:", 3) == 0) {
+		} else if (astrcmp_n(test_server, "EU:", 3) == 0) {
 			return regionEU;
-		} else if (astrcmp_n(server, "Asia:", 5) == 0) {
+		} else if (astrcmp_n(test_server, "Asia:", 5) == 0) {
 			return regionAsia;
 		} else if (regionOther) {
 			return true;

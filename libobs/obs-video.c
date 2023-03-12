@@ -27,6 +27,7 @@
 #ifdef _WIN32
 #define WIN32_MEAN_AND_LEAN
 #include <windows.h>
+#pragma warning(disable : 4152) /* casting func ptr to void */
 #endif
 
 static uint64_t tick_sources(uint64_t cur_time, uint64_t last_time)
@@ -859,15 +860,15 @@ static inline void video_sleep(struct obs_core_video *video, uint64_t *p_time,
 
 	pthread_mutex_lock(&obs->video.mixes_mutex);
 	for (size_t i = 0, num = obs->video.mixes.num; i < num; i++) {
-		struct obs_core_video_mix *video = obs->video.mixes.array[i];
-		bool raw_active = video->raw_was_active;
-		bool gpu_active = video->gpu_was_active;
+		struct obs_core_video_mix *video_mix = obs->video.mixes.array[i];
+		bool raw_active = video_mix->raw_was_active;
+		bool gpu_active = video_mix->gpu_was_active;
 
 		if (raw_active)
-			circlebuf_push_back(&video->vframe_info_buffer,
+			circlebuf_push_back(&video_mix->vframe_info_buffer,
 					    &vframe_info, sizeof(vframe_info));
 		if (gpu_active)
-			circlebuf_push_back(&video->vframe_info_buffer_gpu,
+			circlebuf_push_back(&video_mix->vframe_info_buffer_gpu,
 					    &vframe_info, sizeof(vframe_info));
 	}
 	pthread_mutex_unlock(&obs->video.mixes_mutex);

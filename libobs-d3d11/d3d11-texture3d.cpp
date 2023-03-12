@@ -18,7 +18,7 @@
 #include <util/base.h>
 #include "d3d11-subsystem.hpp"
 
-void gs_texture_3d::InitSRD(vector<D3D11_SUBRESOURCE_DATA> &srd)
+void gs_texture_3d::InitSRD(vector<D3D11_SUBRESOURCE_DATA> &srd_)
 {
 	uint32_t rowSizeBits = width * gs_get_format_bpp(format);
 	uint32_t sliceSizeBytes = height * rowSizeBits / 8;
@@ -35,14 +35,14 @@ void gs_texture_3d::InitSRD(vector<D3D11_SUBRESOURCE_DATA> &srd)
 		newSRD.pSysMem = data[level].data();
 		newSRD.SysMemPitch = newRowSize;
 		newSRD.SysMemSlicePitch = newSlizeSize;
-		srd.push_back(newSRD);
+		srd_.push_back(newSRD);
 
 		newRowSize /= 2;
 		newSlizeSize /= 4;
 	}
 }
 
-void gs_texture_3d::BackupTexture(const uint8_t *const *data)
+void gs_texture_3d::BackupTexture(const uint8_t *const *data_)
 {
 	this->data.resize(levels);
 
@@ -52,14 +52,14 @@ void gs_texture_3d::BackupTexture(const uint8_t *const *data)
 	const uint32_t bbp = gs_get_format_bpp(format);
 
 	for (uint32_t i = 0; i < levels; i++) {
-		if (!data[i])
+		if (!data_[i])
 			break;
 
 		const uint32_t texSize = bbp * w * h * d / 8;
 		this->data[i].resize(texSize);
 
 		vector<uint8_t> &subData = this->data[i];
-		memcpy(&subData[0], data[i], texSize);
+		memcpy(&subData[0], data_[i], texSize);
 
 		if (w > 1)
 			w /= 2;
@@ -86,7 +86,7 @@ void gs_texture_3d::GetSharedHandle(IDXGIResource *dxgi_res)
 	}
 }
 
-void gs_texture_3d::InitTexture(const uint8_t *const *data)
+void gs_texture_3d::InitTexture(const uint8_t *const *data_)
 {
 	HRESULT hr;
 
@@ -108,12 +108,12 @@ void gs_texture_3d::InitTexture(const uint8_t *const *data)
 	else if ((flags & GS_SHARED_TEX) != 0)
 		td.MiscFlags |= D3D11_RESOURCE_MISC_SHARED;
 
-	if (data) {
-		BackupTexture(data);
+	if (data_) {
+		BackupTexture(data_);
 		InitSRD(srd);
 	}
 
-	hr = device->device->CreateTexture3D(&td, data ? srd.data() : NULL,
+	hr = device->device->CreateTexture3D(&td, data_ ? srd.data() : NULL,
 					     texture.Assign());
 	if (FAILED(hr))
 		throw HRError("Failed to create 3D texture", hr);
@@ -217,10 +217,10 @@ gs_texture_3d::gs_texture_3d(gs_device_t *device, uint32_t handle)
 
 	texture->GetDesc(&td);
 
-	const gs_color_format format = ConvertDXGITextureFormat(td.Format);
+	const gs_color_format col_format = ConvertDXGITextureFormat(td.Format);
 
 	this->type = GS_TEXTURE_3D;
-	this->format = format;
+	this->format = col_format;
 	this->levels = 1;
 	this->device = device;
 

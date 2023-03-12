@@ -263,7 +263,8 @@ void OBSBasicSourceSelect::on_buttonBox_accepted()
 		const char *scene_name =
 			obs_source_get_name(main->GetCurrentSceneSource());
 
-		auto undo = [scene_name, main](const std::string &) {
+		auto undo = [scene_name, main](const std::string &str) {
+			UNUSED_PARAMETER(str);
 			obs_source_t *scene_source =
 				obs_get_source_by_name(scene_name);
 			main->SetCurrentScene(scene_source, true);
@@ -271,10 +272,11 @@ void OBSBasicSourceSelect::on_buttonBox_accepted()
 
 			obs_scene_t *scene = obs_get_scene_by_name(scene_name);
 			OBSSceneItem item;
-			auto cb = [](obs_scene_t *, obs_sceneitem_t *sceneitem,
-				     void *data) {
+			auto cb = [](obs_scene_t *scene,
+				     obs_sceneitem_t *sceneitem, void *data_) {
+				UNUSED_PARAMETER(scene);
 				OBSSceneItem &last =
-					*reinterpret_cast<OBSSceneItem *>(data);
+					*reinterpret_cast<OBSSceneItem *>(data_);
 				last = sceneitem;
 				return true;
 			};
@@ -285,7 +287,8 @@ void OBSBasicSourceSelect::on_buttonBox_accepted()
 		};
 
 		auto redo = [scene_name, main, source_name,
-			     visible](const std::string &) {
+			     visible](const std::string &str) {
+			UNUSED_PARAMETER(str);
 			obs_source_t *scene_source =
 				obs_get_source_by_name(scene_name);
 			main->SetCurrentScene(scene_source, true);
@@ -312,9 +315,9 @@ void OBSBasicSourceSelect::on_buttonBox_accepted()
 			reinterpret_cast<OBSBasic *>(App()->GetMainWindow());
 		std::string scene_name =
 			obs_source_get_name(main->GetCurrentSceneSource());
-		auto undo = [scene_name, main](const std::string &data) {
+		auto undo = [scene_name, main](const std::string &str) {
 			OBSSourceAutoRelease source =
-				obs_get_source_by_name(data.c_str());
+				obs_get_source_by_name(str.c_str());
 			obs_source_remove(source);
 
 			OBSSourceAutoRelease scene_source =
@@ -332,13 +335,13 @@ void OBSBasicSourceSelect::on_buttonBox_accepted()
 			ui->sourceName->text().toUtf8().constData());
 		obs_data_set_bool(wrapper, "visible", visible);
 
-		auto redo = [scene_name, main](const std::string &data) {
+		auto redo = [scene_name, main](const std::string &str) {
 			OBSSourceAutoRelease scene_source =
 				obs_get_source_by_name(scene_name.c_str());
 			main->SetCurrentScene(scene_source.Get(), true);
 
 			OBSDataAutoRelease dat =
-				obs_data_create_from_json(data.c_str());
+				obs_data_create_from_json(str.c_str());
 			OBSSource source;
 			AddNew(NULL, obs_data_get_string(dat, "id"),
 			       obs_data_get_string(dat, "name"),
@@ -417,7 +420,7 @@ OBSBasicSourceSelect::OBSBasicSourceSelect(OBSBasic *parent, const char *id_,
 		ui->sourceName->setEnabled(false);
 
 		int count = main->ui->scenes->count();
-		for (int i = 0; i < count; i++) {
+		for (i = 0; i < count; i++) {
 			QListWidgetItem *item = main->ui->scenes->item(i);
 			OBSScene scene = GetOBSRef<OBSScene>(item);
 			OBSSource sceneSource = obs_scene_get_source(scene);

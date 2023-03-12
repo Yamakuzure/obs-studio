@@ -156,8 +156,7 @@ try {
 	if (FAILED(hr))
 		throw "CreateDXGIFactory1 failed";
 
-	uint32_t idx = 0;
-	while (get_adapter_caps(factory, idx++))
+	for (uint32_t i = 0; get_adapter_caps(factory, i); ++i)
 		;
 
 	for (auto &[idx, caps] : adapter_info) {

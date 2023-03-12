@@ -750,7 +750,7 @@ static void *ffmpeg_mux_io_thread(void *data)
 	// ffmpeg, then we flush the chunk. next_seek_position is the actual
 	// offset we should seek to when we write the chunk.
 	uint64_t current_seek_position = 0;
-	uint64_t next_seek_position;
+	uint64_t next_seek_position = 0;
 
 	for (;;) {
 		// Wait for ffmpeg to write data to the buffer
@@ -1005,8 +1005,8 @@ static inline int open_output_file(struct ffmpeg_mux *ffm)
 	}
 
 	AVDictionary *dict = NULL;
-	if ((ret = av_dict_parse_string(&dict, ffm->params.muxer_settings, "=",
-					" ", 0))) {
+	if (0 != (ret = av_dict_parse_string(&dict, ffm->params.muxer_settings,
+					     "=", " ", 0))) {
 		fprintf(stderr, "Failed to parse muxer settings: %s\n%s\n",
 			av_err2str(ret), ffm->params.muxer_settings);
 
@@ -1017,8 +1017,8 @@ static inline int open_output_file(struct ffmpeg_mux *ffm)
 		printf("Using muxer settings:");
 
 		AVDictionaryEntry *entry = NULL;
-		while ((entry = av_dict_get(dict, "", entry,
-					    AV_DICT_IGNORE_SUFFIX)))
+		while (0 != (entry = av_dict_get(dict, "", entry,
+						 AV_DICT_IGNORE_SUFFIX)))
 			printf("\n\t%s=%s", entry->key, entry->value);
 
 		printf("\n");

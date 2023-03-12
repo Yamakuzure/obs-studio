@@ -22,6 +22,10 @@
 #include "obs-internal.h"
 #include "obs-module.h"
 
+#ifdef _MSC_VER
+#pragma warning(disable : 4152) /* casting func ptr to void */
+#endif
+
 extern const char *get_module_extension(void);
 
 static inline int req_func_not_found(const char *name, const char *path)
@@ -657,26 +661,26 @@ cleanup:
 
 #define REGISTER_OBS_DEF(size_var, structure, dest, info)               \
 	do {                                                            \
-		struct structure data = {0};                            \
+		struct structure data_ = {0};                           \
 		if (!size_var) {                                        \
 			blog(LOG_ERROR, "Tried to register " #structure \
 					" outside of obs_module_load"); \
 			return;                                         \
 		}                                                       \
                                                                         \
-		if (size_var > sizeof(data)) {                          \
+		if (size_var > sizeof(data_)) {                         \
 			blog(LOG_ERROR,                                 \
 			     "Tried to register " #structure            \
 			     " with size %llu which is more "           \
 			     "than libobs currently supports "          \
 			     "(%llu)",                                  \
 			     (long long unsigned)size_var,              \
-			     (long long unsigned)sizeof(data));         \
+			     (long long unsigned)sizeof(data_));        \
 			goto error;                                     \
 		}                                                       \
                                                                         \
-		memcpy(&data, info, size_var);                          \
-		da_push_back(dest, &data);                              \
+		memcpy(&data_, info, size_var);                         \
+		da_push_back(dest, &data_);                             \
 	} while (false)
 
 #define CHECK_REQUIRED_VAL(type, info, val, func)                       \
@@ -691,17 +695,17 @@ cleanup:
 		}                                                       \
 	} while (false)
 
-#define HANDLE_ERROR(size_var, structure, info)                            \
-	do {                                                               \
-		struct structure data = {0};                               \
-		if (!size_var)                                             \
-			return;                                            \
-                                                                           \
-		memcpy(&data, info,                                        \
-		       sizeof(data) < size_var ? sizeof(data) : size_var); \
-                                                                           \
-		if (data.type_data && data.free_type_data)                 \
-			data.free_type_data(data.type_data);               \
+#define HANDLE_ERROR(size_var, structure, info)                              \
+	do {                                                                 \
+		struct structure data_ = {0};                                \
+		if (!size_var)                                               \
+			return;                                              \
+                                                                             \
+		memcpy(&data_, info,                                         \
+		       sizeof(data_) < size_var ? sizeof(data_) : size_var); \
+                                                                             \
+		if (data_.type_data && data_.free_type_data)                 \
+			data_.free_type_data(data_.type_data);               \
 	} while (false)
 
 #define source_warn(format, ...) \

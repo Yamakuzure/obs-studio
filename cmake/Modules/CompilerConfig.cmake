@@ -57,16 +57,13 @@ if(OS_WINDOWS AND MSVC)
   add_compile_options(
     /Brepro
     /MP
-    /W3
+    /W4
     /WX
+	/wd4100
     /wd4127
+	/wd4200
     /wd4201
-    /wd4456
-    /wd4457
-    /wd4458
-    /wd4459
-    /wd4595
-    /wd5208
+	/wd4324
     "$<$<CONFIG:DEBUG>:/DDEBUG=1;/D_DEBUG=1>"
     "$<$<CONFIG:RELWITHDEBINFO>:/Ob2>"
     /DUNICODE

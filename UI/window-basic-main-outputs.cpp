@@ -2037,8 +2037,8 @@ inline void AdvancedOutput::SetupVodTrack(obs_service_t *service)
 							: false;
 	} else {
 		OBSDataAutoRelease settings = obs_service_get_settings(service);
-		const char *service = obs_data_get_string(settings, "service");
-		if (!ServiceSupportsVodTrack(service))
+		const char *srv = obs_data_get_string(settings, "service");
+		if (!ServiceSupportsVodTrack(srv))
 			vodTrackEnabled = false;
 	}
 

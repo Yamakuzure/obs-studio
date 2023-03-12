@@ -88,7 +88,7 @@ private:
 
 	QList<MissingFileEntry> files;
 
-	void fileCheckLoop(QList<MissingFileEntry> files, QString path,
+	void fileCheckLoop(QList<MissingFileEntry> checkFiles, QString path,
 			   bool skipPrompt);
 };
 

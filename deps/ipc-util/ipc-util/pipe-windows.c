@@ -138,7 +138,7 @@ static DWORD CALLBACK ipc_pipe_internal_server_thread(LPVOID param)
 			break;
 		}
 
-		DWORD wait = WaitForMultipleObjects(_countof(handles), handles,
+		wait = WaitForMultipleObjects(_countof(handles), handles,
 						    FALSE, INFINITE);
 		if (wait != WAIT_OBJECT_0) {
 			break;

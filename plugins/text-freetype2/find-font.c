@@ -301,8 +301,8 @@ void build_font_path_info(FT_Face face, FT_Long idx, const char *path)
 		if (!family)
 			continue;
 
-		for (size_t i = 0; i < family_names.num; i++) {
-			if (astrcmpi(family_names.array[i], family) == 0) {
+		for (size_t j = 0; j < family_names.num; j++) {
+			if (astrcmpi(family_names.array[j], family) == 0) {
 				bfree(family);
 				family = NULL;
 				break;

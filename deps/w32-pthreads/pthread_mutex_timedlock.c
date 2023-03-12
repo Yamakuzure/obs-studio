@@ -67,41 +67,32 @@ ptw32_timed_eventwait (HANDLE event, const struct timespec *abstime)
   DWORD status;
 
   if (event == NULL)
+    return EINVAL;
+
+  if (abstime == NULL)
     {
-      return EINVAL;
+      milliseconds = INFINITE;
     }
   else
     {
-      if (abstime == NULL)
-	{
-	  milliseconds = INFINITE;
-	}
-      else
-	{
-	  /* 
-	   * Calculate timeout as milliseconds from current system time. 
-	   */
-	  milliseconds = ptw32_relmillisecs (abstime);
-	}
-
-      status = WaitForSingleObject (event, milliseconds);
-
-      if (status == WAIT_OBJECT_0)
-	{
-	  return 0;
-	}
-      else if (status == WAIT_TIMEOUT)
-	{
-	  return ETIMEDOUT;
-	}
-      else
-	{
-	  return EINVAL;
-	}
+      /*
+       * Calculate timeout as milliseconds from current system time. 
+       */
+      milliseconds = ptw32_relmillisecs (abstime);
     }
 
-  return 0;
+  status = WaitForSingleObject (event, milliseconds);
 
+  if (status == WAIT_OBJECT_0)
+    {
+      return 0;
+    }
+  else if (status == WAIT_TIMEOUT)
+    {
+      return ETIMEDOUT;
+    }
+
+  return EINVAL;
 }				/* ptw32_timed_semwait */
 
 
@@ -256,8 +247,6 @@ pthread_mutex_timedlock (pthread_mutex_t * mutex,
             }
           else
             {
-              pthread_t self = pthread_self();
-
               if (0 == (PTW32_INTERLOCKED_LONG) PTW32_INTERLOCKED_COMPARE_EXCHANGE_LONG(
                            (PTW32_INTERLOCKED_LONGPTR) &mx->lock_idx,
 		           (PTW32_INTERLOCKED_LONG) 1,

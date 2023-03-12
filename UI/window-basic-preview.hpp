@@ -117,7 +117,7 @@ private:
 
 	static void SnapItemMovement(vec2 &offset);
 	void MoveItems(const vec2 &pos);
-	void BoxItems(const vec2 &startPos, const vec2 &pos);
+	void BoxItems(const vec2 &boxStartPos, const vec2 &pos);
 
 	void ProcessClick(const vec2 &pos);
 

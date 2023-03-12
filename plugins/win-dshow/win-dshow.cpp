@@ -1175,7 +1175,7 @@ inline bool DShowInput::Activate(obs_data_t *settings)
 	}
 
 	frame.range = range;
-	frame.trc = trc;
+	frame.trc = (uint8_t)trc;
 
 	bool success = video_format_get_parameters_for_format(
 		cs, range, ConvertVideoFormat(videoConfig.format),
@@ -1817,10 +1817,11 @@ static bool DeviceIntervalChanged(obs_properties_t *props, obs_property_t *p,
 	if (video_format_matches && !frameRateSupported &&
 	    best_interval != val) {
 		long long listed_val = 0;
-		for (const FPSFormat &format : validFPSFormats) {
-			long long diff = llabs(format.interval - best_interval);
+		for (const FPSFormat &fpsformat : validFPSFormats) {
+			long long diff =
+				llabs(fpsformat.interval - best_interval);
 			if (diff < DEVICE_INTERVAL_DIFF_LIMIT) {
-				listed_val = format.interval;
+				listed_val = fpsformat.interval;
 				break;
 			}
 		}

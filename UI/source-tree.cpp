@@ -209,9 +209,9 @@ void SourceTreeItem::ReconnectSignals()
 
 	/* --------------------------------------------------------- */
 
-	auto removeItem = [](void *data, calldata_t *cd) {
+	auto removeItem = [](void *item_data, calldata_t *cd) {
 		SourceTreeItem *this_ =
-			reinterpret_cast<SourceTreeItem *>(data);
+			reinterpret_cast<SourceTreeItem *>(item_data);
 		obs_sceneitem_t *curItem =
 			(obs_sceneitem_t *)calldata_ptr(cd, "item");
 
@@ -224,9 +224,9 @@ void SourceTreeItem::ReconnectSignals()
 			QMetaObject::invokeMethod(this_, "Clear");
 	};
 
-	auto itemVisible = [](void *data, calldata_t *cd) {
+	auto itemVisible = [](void *vis_data, calldata_t *cd) {
 		SourceTreeItem *this_ =
-			reinterpret_cast<SourceTreeItem *>(data);
+			reinterpret_cast<SourceTreeItem *>(vis_data);
 		obs_sceneitem_t *curItem =
 			(obs_sceneitem_t *)calldata_ptr(cd, "item");
 		bool visible = calldata_bool(cd, "visible");
@@ -236,9 +236,9 @@ void SourceTreeItem::ReconnectSignals()
 						  Q_ARG(bool, visible));
 	};
 
-	auto itemLocked = [](void *data, calldata_t *cd) {
+	auto itemLocked = [](void *lock_data, calldata_t *cd) {
 		SourceTreeItem *this_ =
-			reinterpret_cast<SourceTreeItem *>(data);
+			reinterpret_cast<SourceTreeItem *>(lock_data);
 		obs_sceneitem_t *curItem =
 			(obs_sceneitem_t *)calldata_ptr(cd, "item");
 		bool locked = calldata_bool(cd, "locked");
@@ -248,9 +248,9 @@ void SourceTreeItem::ReconnectSignals()
 						  Q_ARG(bool, locked));
 	};
 
-	auto itemSelect = [](void *data, calldata_t *cd) {
+	auto itemSelect = [](void *sel_data, calldata_t *cd) {
 		SourceTreeItem *this_ =
-			reinterpret_cast<SourceTreeItem *>(data);
+			reinterpret_cast<SourceTreeItem *>(sel_data);
 		obs_sceneitem_t *curItem =
 			(obs_sceneitem_t *)calldata_ptr(cd, "item");
 
@@ -258,9 +258,9 @@ void SourceTreeItem::ReconnectSignals()
 			QMetaObject::invokeMethod(this_, "Select");
 	};
 
-	auto itemDeselect = [](void *data, calldata_t *cd) {
+	auto itemDeselect = [](void *des_data, calldata_t *cd) {
 		SourceTreeItem *this_ =
-			reinterpret_cast<SourceTreeItem *>(data);
+			reinterpret_cast<SourceTreeItem *>(des_data);
 		obs_sceneitem_t *curItem =
 			(obs_sceneitem_t *)calldata_ptr(cd, "item");
 
@@ -268,9 +268,9 @@ void SourceTreeItem::ReconnectSignals()
 			QMetaObject::invokeMethod(this_, "Deselect");
 	};
 
-	auto reorderGroup = [](void *data, calldata_t *) {
+	auto reorderGroup = [](void *grp_data, calldata_t *) {
 		SourceTreeItem *this_ =
-			reinterpret_cast<SourceTreeItem *>(data);
+			reinterpret_cast<SourceTreeItem *>(grp_data);
 		QMetaObject::invokeMethod(this_->tree, "ReorderItems");
 	};
 
@@ -295,18 +295,18 @@ void SourceTreeItem::ReconnectSignals()
 
 	/* --------------------------------------------------------- */
 
-	auto renamed = [](void *data, calldata_t *cd) {
+	auto renamed = [](void *ren_data, calldata_t *cd) {
 		SourceTreeItem *this_ =
-			reinterpret_cast<SourceTreeItem *>(data);
+			reinterpret_cast<SourceTreeItem *>(ren_data);
 		const char *name = calldata_string(cd, "new_name");
 
 		QMetaObject::invokeMethod(this_, "Renamed",
 					  Q_ARG(QString, QT_UTF8(name)));
 	};
 
-	auto removeSource = [](void *data, calldata_t *) {
+	auto removeSource = [](void *rem_data, calldata_t *) {
 		SourceTreeItem *this_ =
-			reinterpret_cast<SourceTreeItem *>(data);
+			reinterpret_cast<SourceTreeItem *>(rem_data);
 		this_->DisconnectSignals();
 		this_->sceneitem = nullptr;
 		QMetaObject::invokeMethod(this_->tree, "RefreshItems");
@@ -344,7 +344,7 @@ void SourceTreeItem::enterEvent(QEvent *event)
 
 	OBSBasicPreview *preview = OBSBasicPreview::Get();
 
-	std::lock_guard<std::mutex> lock(preview->selectMutex);
+	std::lock_guard<std::mutex> event_lock(preview->selectMutex);
 	preview->hoveredPreviewItems.clear();
 	preview->hoveredPreviewItems.push_back(sceneitem);
 }
@@ -355,7 +355,7 @@ void SourceTreeItem::leaveEvent(QEvent *event)
 
 	OBSBasicPreview *preview = OBSBasicPreview::Get();
 
-	std::lock_guard<std::mutex> lock(preview->selectMutex);
+	std::lock_guard<std::mutex> event_lock(preview->selectMutex);
 	preview->hoveredPreviewItems.clear();
 }
 
@@ -454,9 +454,9 @@ void SourceTreeItem::ExitEditModeInternal(bool save)
 	std::string prevName(obs_source_get_name(source));
 	std::string scene_name =
 		obs_source_get_name(main->GetCurrentSceneSource());
-	auto undo = [scene_name, prevName, main](const std::string &data) {
+	auto undo = [scene_name, prevName, main](const std::string &undo_data) {
 		OBSSourceAutoRelease source =
-			obs_get_source_by_name(data.c_str());
+			obs_get_source_by_name(undo_data.c_str());
 		obs_source_set_name(source, prevName.c_str());
 
 		OBSSourceAutoRelease scene_source =
@@ -466,9 +466,9 @@ void SourceTreeItem::ExitEditModeInternal(bool save)
 
 	std::string editedName = newName;
 
-	auto redo = [scene_name, main, editedName](const std::string &data) {
+	auto redo = [scene_name, main, editedName](const std::string &redo_data) {
 		OBSSourceAutoRelease source =
-			obs_get_source_by_name(data.c_str());
+			obs_get_source_by_name(redo_data.c_str());
 		obs_source_set_name(source, editedName.c_str());
 
 		OBSSourceAutoRelease scene_source =
@@ -589,10 +589,10 @@ void SourceTreeItem::Update(bool force)
 #endif
 		boxLayout->insertWidget(0, expand);
 
-		OBSDataAutoRelease data =
+		OBSDataAutoRelease grp_data =
 			obs_sceneitem_get_private_settings(sceneitem);
 		expand->blockSignals(true);
-		expand->setChecked(obs_data_get_bool(data, "collapsed"));
+		expand->setChecked(obs_data_get_bool(grp_data, "collapsed"));
 		expand->blockSignals(false);
 
 		connect(expand, &QPushButton::toggled, this,
@@ -606,9 +606,9 @@ void SourceTreeItem::Update(bool force)
 
 void SourceTreeItem::ExpandClicked(bool checked)
 {
-	OBSDataAutoRelease data = obs_sceneitem_get_private_settings(sceneitem);
+	OBSDataAutoRelease pset = obs_sceneitem_get_private_settings(sceneitem);
 
-	obs_data_set_bool(data, "collapsed", checked);
+	obs_data_set_bool(pset, "collapsed", checked);
 
 	if (!checked)
 		tree->GetStm()->ExpandGroup(sceneitem);
@@ -953,9 +953,9 @@ void SourceTreeModel::GroupSelectedItems(QModelIndexList &indices)
 
 	st->undoSceneData = main->BackupScene(scene);
 
-	obs_sceneitem_t *item = obs_scene_insert_group(
+	obs_sceneitem_t *new_item = obs_scene_insert_group(
 		scene, QT_TO_UTF8(name), item_order.data(), item_order.size());
-	if (!item) {
+	if (!new_item) {
 		st->undoSceneData = nullptr;
 		return;
 	}
@@ -968,7 +968,7 @@ void SourceTreeModel::GroupSelectedItems(QModelIndexList &indices)
 	hasGroups = true;
 	st->UpdateWidgets(true);
 
-	obs_sceneitem_select(item, true);
+	obs_sceneitem_select(new_item, true);
 
 	/* ----------------------------------------------------------------- */
 	/* obs_scene_insert_group triggers a full refresh of scene items via */
@@ -1227,10 +1227,10 @@ void SourceTree::dropEvent(QDropEvent *event)
 
 	bool dropOnCollapsed = false;
 	if (dropGroup) {
-		obs_data_t *data =
+		obs_data_t *pset =
 			obs_sceneitem_get_private_settings(dropGroup);
-		dropOnCollapsed = obs_data_get_bool(data, "collapsed");
-		obs_data_release(data);
+		dropOnCollapsed = obs_data_get_bool(pset, "collapsed");
+		obs_data_release(pset);
 	}
 
 	if (indicator == QAbstractItemView::BelowItem ||
@@ -1449,8 +1449,8 @@ void SourceTree::dropEvent(QDropEvent *event)
 
 	using updateScene_t = decltype(updateScene);
 
-	auto preUpdateScene = [](void *data, obs_scene_t *) {
-		(*reinterpret_cast<updateScene_t *>(data))();
+	auto preUpdateScene = [](void *upd_data, obs_scene_t *) {
+		(*reinterpret_cast<updateScene_t *>(upd_data))();
 	};
 
 	ignoreReorder = true;

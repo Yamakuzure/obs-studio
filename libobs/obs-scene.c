@@ -22,6 +22,10 @@
 #include "obs-scene.h"
 #include "obs-internal.h"
 
+#ifdef _MSC_VER
+#pragma warning( \
+	disable : 4132) /* not initialized const object - needed here for forwarding */
+#endif
 const struct obs_source_info group_info;
 
 static void resize_group(obs_sceneitem_t *group);
@@ -770,19 +774,15 @@ static inline void render_item(struct obs_scene_item *item)
 
 			if (item->user_visible &&
 			    transition_active(item->show_transition)) {
-				const int cx =
-					obs_source_get_width(item->source);
-				const int cy =
-					obs_source_get_height(item->source);
+				cx = obs_source_get_width(item->source);
+				cy = obs_source_get_height(item->source);
 				obs_transition_set_size(item->show_transition,
 							cx, cy);
 				obs_source_video_render(item->show_transition);
 			} else if (!item->user_visible &&
 				   transition_active(item->hide_transition)) {
-				const int cx =
-					obs_source_get_width(item->source);
-				const int cy =
-					obs_source_get_height(item->source);
+				cx = obs_source_get_width(item->source);
+				cy = obs_source_get_height(item->source);
 				obs_transition_set_size(item->hide_transition,
 							cx, cy);
 				obs_source_video_render(item->hide_transition);
@@ -1338,7 +1338,7 @@ static bool apply_scene_item_volume(struct obs_scene_item *item, float *buf,
 				    uint64_t ts, size_t sample_rate)
 {
 	bool actions_pending;
-	struct item_action action;
+	struct item_action action = {.visible = false, .timestamp = 0};
 
 	pthread_mutex_lock(&item->actions_mutex);
 

@@ -433,12 +433,13 @@ static inline int get_preset(amf_base *enc, const char *preset)
 static inline void refresh_throughput_caps(amf_base *enc, const char *&preset)
 {
 	AMF_RESULT res = AMF_OK;
-	AMFCapsPtr caps;
+	AMFCapsPtr cur_caps = NULL;
+	;
 
 	set_opt(QUALITY_PRESET, get_preset(enc, preset));
-	res = enc->amf_encoder->GetCaps(&caps);
+	res = enc->amf_encoder->GetCaps(&cur_caps);
 	if (res == AMF_OK) {
-		caps->GetProperty(get_opt_name(CAP_MAX_THROUGHPUT),
+		cur_caps->GetProperty(get_opt_name(CAP_MAX_THROUGHPUT),
 				  &enc->max_throughput);
 	}
 }
@@ -504,7 +505,7 @@ static void convert_to_encoder_packet(amf_base *enc, AMFDataPtr &data,
 	enc->packet_data = AMFBufferPtr(data);
 	data->GetProperty(L"PTS", &packet->pts);
 
-	const wchar_t *get_output_type;
+	const wchar_t *get_output_type = nullptr;
 	switch (enc->codec) {
 	case amf_codec_type::AVC:
 		get_output_type = AMF_VIDEO_ENCODER_OUTPUT_DATA_TYPE;
@@ -679,7 +680,7 @@ try {
 	if (res != AMF_OK)
 		throw amf_error("CreateSurfaceFromDX11Native failed", res);
 
-	int64_t last_ts = convert_to_amf_ts(enc, pts - 1);
+	//int64_t last_ts = convert_to_amf_ts(enc, pts - 1);
 	int64_t cur_ts = convert_to_amf_ts(enc, pts);
 
 	amf_surf->SetPts(cur_ts);
@@ -787,7 +788,7 @@ try {
 	if (res != AMF_OK)
 		throw amf_error("CreateSurfaceFromHostNative failed", res);
 
-	int64_t last_ts = convert_to_amf_ts(enc, frame->pts - 1);
+	//int64_t last_ts = convert_to_amf_ts(enc, frame->pts - 1);
 	int64_t cur_ts = convert_to_amf_ts(enc, frame->pts);
 
 	amf_surf->SetPts(cur_ts);
@@ -1357,12 +1358,12 @@ static void amf_avc_create_internal(amf_base *enc, obs_data_t *settings)
 	if (!amf_create_encoder(enc))
 		throw "Failed to create encoder";
 
-	AMFCapsPtr caps;
-	res = enc->amf_encoder->GetCaps(&caps);
+	AMFCapsPtr cur_caps = NULL;
+	res = enc->amf_encoder->GetCaps(&cur_caps);
 	if (res == AMF_OK) {
-		caps->GetProperty(AMF_VIDEO_ENCODER_CAP_BFRAMES,
+		cur_caps->GetProperty(AMF_VIDEO_ENCODER_CAP_BFRAMES,
 				  &enc->bframes_supported);
-		caps->GetProperty(AMF_VIDEO_ENCODER_CAP_MAX_THROUGHPUT,
+		cur_caps->GetProperty(AMF_VIDEO_ENCODER_CAP_MAX_THROUGHPUT,
 				  &enc->max_throughput);
 	}
 
@@ -1681,10 +1682,10 @@ static void amf_hevc_create_internal(amf_base *enc, obs_data_t *settings)
 	if (!amf_create_encoder(enc))
 		throw "Failed to create encoder";
 
-	AMFCapsPtr caps;
-	res = enc->amf_encoder->GetCaps(&caps);
+	AMFCapsPtr cur_caps = NULL;
+	res = enc->amf_encoder->GetCaps(&cur_caps);
 	if (res == AMF_OK) {
-		caps->GetProperty(AMF_VIDEO_ENCODER_HEVC_CAP_MAX_THROUGHPUT,
+		cur_caps->GetProperty(AMF_VIDEO_ENCODER_HEVC_CAP_MAX_THROUGHPUT,
 				  &enc->max_throughput);
 	}
 
@@ -1730,8 +1731,8 @@ static void amf_hevc_create_internal(amf_base *enc, obs_data_t *settings)
 		md->minMasteringLuminance = 0;
 		md->maxMasteringLuminance =
 			amf_make_lum(hdr_nominal_peak_level);
-		md->maxContentLightLevel = hdr_nominal_peak_level;
-		md->maxFrameAverageLightLevel = hdr_nominal_peak_level;
+		md->maxContentLightLevel = (amf_uint16)hdr_nominal_peak_level;
+		md->maxFrameAverageLightLevel = (amf_uint16)hdr_nominal_peak_level;
 		set_hevc_property(enc, INPUT_HDR_METADATA, buf);
 	}
 
@@ -2008,10 +2009,10 @@ static void amf_av1_create_internal(amf_base *enc, obs_data_t *settings)
 	if (!amf_create_encoder(enc))
 		throw "Failed to create encoder";
 
-	AMFCapsPtr caps;
-	AMF_RESULT res = enc->amf_encoder->GetCaps(&caps);
+	AMFCapsPtr cur_caps = NULL;
+	AMF_RESULT res = enc->amf_encoder->GetCaps(&cur_caps);
 	if (res == AMF_OK) {
-		caps->GetProperty(AMF_VIDEO_ENCODER_AV1_CAP_MAX_THROUGHPUT,
+		cur_caps->GetProperty(AMF_VIDEO_ENCODER_AV1_CAP_MAX_THROUGHPUT,
 				  &enc->max_throughput);
 	}
 

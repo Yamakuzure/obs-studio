@@ -4,7 +4,7 @@
 static void fatal_sock_shutdown(struct rtmp_stream *stream)
 {
 	closesocket(stream->rtmp.m_sb.sb_socket);
-	stream->rtmp.m_sb.sb_socket = -1;
+	stream->rtmp.m_sb.sb_socket = (SOCKET)-1;
 	stream->write_buf_len = 0;
 	os_event_signal(stream->buffer_space_available_event);
 }
@@ -61,7 +61,7 @@ static bool socket_event(struct rtmp_stream *stream, bool *can_write,
 
 	if (net_events.lNetworkEvents & FD_READ) {
 		char discard[16384];
-		int err_code;
+		int err_code = 0;
 		bool fatal = false;
 
 		for (;;) {
@@ -184,7 +184,7 @@ static enum data_ret write_data(struct rtmp_stream *stream, bool *can_write,
 
 		os_event_signal(stream->buffer_space_available_event);
 	} else {
-		int err_code;
+		int err_code = 0;
 		bool fatal_err = false;
 
 		if (ret == -1) {

@@ -26,7 +26,7 @@ public:
 	HRESULT STDMETHODCALLTYPE SetTimecodeFromComponents(
 		BMDTimecodeFormat format, uint8_t hours, uint8_t minutes,
 		uint8_t seconds, uint8_t frames,
-		BMDTimecodeFlags flags) override;
+		BMDTimecodeFlags flags_) override;
 
 	HRESULT
 	STDMETHODCALLTYPE

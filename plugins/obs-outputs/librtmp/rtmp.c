@@ -301,11 +301,11 @@ RTMP_TLS_LoadCerts(RTMP *r) {
     HCERTSTORE hCertStore;
     PCCERT_CONTEXT pCertContext = NULL;
 
-    if (!(hCertStore = CertOpenSystemStore((HCRYPTPROV)NULL, L"ROOT"))) {
+    if (NULL == (hCertStore = CertOpenSystemStore((HCRYPTPROV)NULL, L"ROOT"))) {
         goto error;
     }
 
-    while (pCertContext = CertEnumCertificatesInStore(hCertStore, pCertContext)) {
+    while (NULL != (pCertContext = CertEnumCertificatesInStore(hCertStore, pCertContext))) {
         mbedtls_x509_crt_parse_der(chain,
                                    (unsigned char *)pCertContext->pbCertEncoded,
                                    pCertContext->cbCertEncoded);
@@ -468,7 +468,7 @@ void
 RTMP_Init(RTMP *r)
 {
     memset(r, 0, sizeof(RTMP));
-    r->m_sb.sb_socket = -1;
+    r->m_sb.sb_socket = (SOCKET)-1;
     RTMP_Reset(r);
     RTMP_TLS_Init(r);
 }
@@ -2538,7 +2538,6 @@ b64enc(const unsigned char *input, int length, char *output, int maxsize)
     if(mbedtls_base64_encode((unsigned char *) output, maxsize, &osize, input, length) == 0)
     {
         output[osize] = '\0';
-        return 1;
     }
     else
     {
@@ -2550,7 +2549,6 @@ b64enc(const unsigned char *input, int length, char *output, int maxsize)
     if(base64_encode((unsigned char *) output, &buf_size, input, length) == 0)
     {
         output[buf_size] = '\0';
-        return 1;
     }
     else
     {
@@ -3120,9 +3118,8 @@ HandleInvoke(RTMP *r, const char *body, unsigned int nBodySize)
     if (AVMATCH(&method, &av__result))
     {
         AVal methodInvoked = {0};
-        int i;
 
-        for (i=0; i<r->m_numCalls; i++)
+        for (int i=0; i<r->m_numCalls; i++)
         {
             if (r->m_methodCalls[i].num == (int)txn)
             {
@@ -3154,10 +3151,10 @@ HandleInvoke(RTMP *r, const char *body, unsigned int nBodySize)
             }
             if (r->Link.protocol & RTMP_FEATURE_WRITE)
             {
-                for (int i = 0; i < r->Link.nStreams; i++)
-                    SendReleaseStream(r, i);
-                for (int i = 0; i < r->Link.nStreams; i++)
-                    SendFCPublish(r, i);
+                for (int j = 0; j < r->Link.nStreams; j++)
+                    SendReleaseStream(r, j);
+                for (int j = 0; j < r->Link.nStreams; j++)
+                    SendFCPublish(r, j);
             }
             else
             {
@@ -3232,8 +3229,7 @@ HandleInvoke(RTMP *r, const char *body, unsigned int nBodySize)
     }
     else if (AVMATCH(&method, &av__onbwdone))
     {
-        int i;
-        for (i = 0; i < r->m_numCalls; i++)
+        for (int i = 0; i < r->m_numCalls; i++)
             if (AVMATCH(&r->m_methodCalls[i].name, &av__checkbw))
             {
                 AV_erase(r->m_methodCalls, &r->m_numCalls, i, TRUE);
@@ -3244,11 +3240,10 @@ HandleInvoke(RTMP *r, const char *body, unsigned int nBodySize)
     {
 #if defined(CRYPTO) || defined(USE_ONLY_MD5)
         AVal methodInvoked = {0};
-        int i;
 
         if (r->Link.protocol & RTMP_FEATURE_WRITE)
         {
-            for (i=0; i<r->m_numCalls; i++)
+            for (int i=0; i<r->m_numCalls; i++)
             {
                 if (r->m_methodCalls[i].num == txn)
                 {
@@ -3354,9 +3349,8 @@ HandleInvoke(RTMP *r, const char *body, unsigned int nBodySize)
         else if (AVMATCH(&code, &av_NetStream_Play_Start)
                  || AVMATCH(&code, &av_NetStream_Play_PublishNotify))
         {
-            int i;
             r->m_bPlaying = TRUE;
-            for (i = 0; i < r->m_numCalls; i++)
+            for (int i = 0; i < r->m_numCalls; i++)
             {
                 if (AVMATCH(&r->m_methodCalls[i].name, &av_play))
                 {
@@ -3368,9 +3362,8 @@ HandleInvoke(RTMP *r, const char *body, unsigned int nBodySize)
 
         else if (AVMATCH(&code, &av_NetStream_Publish_Start))
         {
-            int i;
             r->m_bPlaying = TRUE;
-            for (i = 0; i < r->m_numCalls; i++)
+            for (int i = 0; i < r->m_numCalls; i++)
             {
                 if (AVMATCH(&r->m_methodCalls[i].name, &av_publish))
                 {
@@ -3412,8 +3405,7 @@ HandleInvoke(RTMP *r, const char *body, unsigned int nBodySize)
     }
     else if (AVMATCH(&method, &av_playlist_ready))
     {
-        int i;
-        for (i = 0; i < r->m_numCalls; i++)
+        for (int i = 0; i < r->m_numCalls; i++)
         {
             if (AVMATCH(&r->m_methodCalls[i].name, &av_set_playlist))
             {
@@ -3757,7 +3749,7 @@ HandleClientBW(RTMP *r, const RTMPPacket *packet)
     if (packet->m_nBodySize > 4)
         r->m_nClientBW2 = packet->m_body[4];
     else
-        r->m_nClientBW2 = -1;
+        r->m_nClientBW2 = (uint8_t)-1;
     RTMP_Log(RTMP_LOGDEBUG, "%s: client BW = %d %d", __FUNCTION__, r->m_nClientBW,
              r->m_nClientBW2);
 }
@@ -4321,7 +4313,7 @@ RTMP_Close(RTMP *r)
         r->Link.streams[idx].id = -1;
 
     r->m_stream_id = -1;
-    r->m_sb.sb_socket = -1;
+    r->m_sb.sb_socket = (SOCKET)-1;
     r->m_nBWCheckCounter = 0;
     r->m_nBytesIn = 0;
     r->m_nBytesInSent = 0;
@@ -4638,7 +4630,7 @@ restart:
     }
 
     ptr = r->m_sb.sb_start + sizeof("HTTP/1.1 200");
-    while ((ptr = strstr(ptr, "Content-")))
+    while (NULL != (ptr = strstr(ptr, "Content-")))
     {
         if (!strncasecmp(ptr+8, "length:", 7)) break;
         ptr += 8;

@@ -258,7 +258,7 @@ string CurrentTimeString()
 
 	static thread_local char buf[80];
 
-	struct tm tstruct{};
+	struct tm tstruct {};
 	auto tp = system_clock::now();
 	auto now = system_clock::to_time_t(tp);
 
@@ -284,7 +284,7 @@ string CurrentTimeString()
 string CurrentDateTimeString()
 {
 	time_t now = time(nullptr);
-	struct tm tstruct{};
+	struct tm tstruct {};
 	static thread_local char buf[80];
 
 #ifdef _WIN32
@@ -318,29 +318,34 @@ static void LogString(fstream &logFile, const char *timeString, char *str,
 
 static inline void LogStringChunk(fstream &logFile, char *str, int log_level)
 {
-	char *nextLine = str;
+	char *str_p = str;
+	char *last_p = str + strlen(str) - 1;
 	string timeString = CurrentTimeString();
 	timeString += ": ";
 
-	while (*nextLine) {
-		char *nextLine = strchr(str, '\n');
+	while (*str_p && (str_p < last_p)) {
+		char *nextLine = strchr(str_p, '\n');
 		if (!nextLine)
 			break;
 
-		if (nextLine != str && nextLine[-1] == '\r') {
+		if (nextLine != str_p && nextLine[-1] == '\r') {
 			nextLine[-1] = 0;
 		} else {
 			nextLine[0] = 0;
 		}
 
-		LogString(logFile, timeString.c_str(), str, log_level);
+		obsLogMutex.lock();
+		LogString(logFile, timeString.c_str(), str_p, log_level);
+		obsLogMutex.unlock();
 		nextLine++;
-		str = nextLine;
+		str_p = nextLine;
 	}
 
-	obsLogMutex.lock();
-	LogString(logFile, timeString.c_str(), str, log_level);
-	obsLogMutex.unlock();
+	if (str_p && *str_p && (str_p < last_p)) {
+		obsLogMutex.lock();
+		LogString(logFile, timeString.c_str(), str_p, log_level);
+		obsLogMutex.unlock();
+	}
 }
 
 #define MAX_REPEATED_LINES 30
@@ -759,26 +764,27 @@ bool OBSApp::InitGlobalConfig()
 	}
 
 	if (!opt_starting_collection.empty()) {
-		string path = GetSceneCollectionFileFromName(
+		string stPath = GetSceneCollectionFileFromName(
 			opt_starting_collection.c_str());
-		if (!path.empty()) {
+		if (!stPath.empty()) {
 			config_set_string(globalConfig, "Basic",
 					  "SceneCollection",
 					  opt_starting_collection.c_str());
 			config_set_string(globalConfig, "Basic",
-					  "SceneCollectionFile", path.c_str());
+					  "SceneCollectionFile",
+					  stPath.c_str());
 			changed = true;
 		}
 	}
 
 	if (!opt_starting_profile.empty()) {
-		string path =
+		string stPath =
 			GetProfileDirFromName(opt_starting_profile.c_str());
-		if (!path.empty()) {
+		if (!stPath.empty()) {
 			config_set_string(globalConfig, "Basic", "Profile",
 					  opt_starting_profile.c_str());
 			config_set_string(globalConfig, "Basic", "ProfileDir",
-					  path.c_str());
+					  stPath.c_str());
 			changed = true;
 		}
 	}
@@ -2948,6 +2954,7 @@ static bool update_reconnect(ConfigFile &config)
 	return false;
 }
 
+#if 0  /// Nowhere needed ?
 static void convert_x264_settings(obs_data_t *data)
 {
 	bool use_bufsize = obs_data_get_bool(data, "use_bufsize");
@@ -2992,6 +2999,7 @@ static void convert_14_2_encoder_setting(const char *encoder, const char *file)
 	obs_data_item_release(&rc_item);
 	obs_data_item_release(&cbr_item);
 }
+#endif // 0
 
 static void convert_nvenc_h264_presets(obs_data_t *data)
 {

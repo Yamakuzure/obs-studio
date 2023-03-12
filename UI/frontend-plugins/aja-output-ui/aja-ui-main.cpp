@@ -192,10 +192,10 @@ void preview_output_toggle()
 }
 
 void populate_misc_device_list(obs_property_t *list,
-			       aja::CardManager *cardManager,
+			       aja::CardManager *srcCardManager,
 			       NTV2DeviceID &firstDeviceID)
 {
-	for (const auto &iter : *cardManager) {
+	for (const auto &iter : *srcCardManager) {
 		if (!iter.second)
 			continue;
 		if (firstDeviceID == DEVICE_ID_NOTFOUND)
@@ -231,10 +231,10 @@ bool on_misc_device_selected(void *data, obs_properties_t *props,
 	const char *cardID = obs_data_get_string(settings, kUIPropDevice.id);
 	if (!cardID || !cardID[0])
 		return false;
-	aja::CardManager *cardManager = (aja::CardManager *)data;
-	if (!cardManager)
+	aja::CardManager *myCardManager = (aja::CardManager *)data;
+	if (!myCardManager)
 		return false;
-	auto cardEntry = cardManager->GetCardEntry(cardID);
+	auto cardEntry = myCardManager->GetCardEntry(cardID);
 	if (!cardEntry)
 		return false;
 
@@ -309,10 +309,10 @@ bool on_multi_view_toggle(void *data, obs_properties_t *, obs_property_t *,
 	const char *cardID = obs_data_get_string(settings, kUIPropDevice.id);
 	if (!cardID || !cardID[0])
 		return false;
-	aja::CardManager *cardManager = (aja::CardManager *)data;
-	if (!cardManager)
+	aja::CardManager *myCardManager = (aja::CardManager *)data;
+	if (!myCardManager)
 		return false;
-	CNTV2Card *card = cardManager->GetCard(cardID);
+	CNTV2Card *card = myCardManager->GetCard(cardID);
 	if (!card)
 		return false;
 

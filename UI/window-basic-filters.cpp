@@ -617,7 +617,7 @@ void OBSBasicFilters::AddNewFilter(const char *id)
 		std::string scene_name = obs_source_get_name(
 			reinterpret_cast<OBSBasic *>(App()->GetMainWindow())
 				->GetCurrentSceneSource());
-		auto undo = [scene_name](const std::string &data) {
+		auto undo = [scene_name](const std::string &str) {
 			obs_source_t *ssource =
 				obs_get_source_by_name(scene_name.c_str());
 			reinterpret_cast<OBSBasic *>(App()->GetMainWindow())
@@ -625,7 +625,7 @@ void OBSBasicFilters::AddNewFilter(const char *id)
 			obs_source_release(ssource);
 
 			obs_data_t *dat =
-				obs_data_create_from_json(data.c_str());
+				obs_data_create_from_json(str.c_str());
 			obs_source_t *source = obs_get_source_by_name(
 				obs_data_get_string(dat, "sname"));
 			obs_source_t *filter = obs_source_get_filter_by_name(
@@ -641,14 +641,14 @@ void OBSBasicFilters::AddNewFilter(const char *id)
 		obs_data_set_string(rwrapper, "sname",
 				    obs_source_get_name(source));
 		auto redo = [scene_name, id = std::string(id),
-			     name](const std::string &data) {
+			     name](const std::string &str) {
 			OBSSourceAutoRelease ssource =
 				obs_get_source_by_name(scene_name.c_str());
 			reinterpret_cast<OBSBasic *>(App()->GetMainWindow())
 				->SetCurrentScene(ssource.Get(), true);
 
 			OBSDataAutoRelease dat =
-				obs_data_create_from_json(data.c_str());
+				obs_data_create_from_json(str.c_str());
 			OBSSourceAutoRelease source = obs_get_source_by_name(
 				obs_data_get_string(dat, "sname"));
 
@@ -1121,14 +1121,14 @@ void OBSBasicFilters::FilterNameEdited(QWidget *editor, QListWidget *list)
 			reinterpret_cast<OBSBasic *>(App()->GetMainWindow())
 				->GetCurrentSceneSource());
 		auto undo = [scene_name, prev = std::string(prevName),
-			     name](const std::string &data) {
+			     name](const std::string &str) {
 			OBSSourceAutoRelease ssource =
 				obs_get_source_by_name(scene_name.c_str());
 			reinterpret_cast<OBSBasic *>(App()->GetMainWindow())
 				->SetCurrentScene(ssource.Get(), true);
 
 			OBSSourceAutoRelease source =
-				obs_get_source_by_name(data.c_str());
+				obs_get_source_by_name(str.c_str());
 			OBSSourceAutoRelease filter =
 				obs_source_get_filter_by_name(source,
 							      name.c_str());
@@ -1136,14 +1136,14 @@ void OBSBasicFilters::FilterNameEdited(QWidget *editor, QListWidget *list)
 		};
 
 		auto redo = [scene_name, prev = std::string(prevName),
-			     name](const std::string &data) {
+			     name](const std::string &str) {
 			OBSSourceAutoRelease ssource =
 				obs_get_source_by_name(scene_name.c_str());
 			reinterpret_cast<OBSBasic *>(App()->GetMainWindow())
 				->SetCurrentScene(ssource.Get(), true);
 
 			OBSSourceAutoRelease source =
-				obs_get_source_by_name(data.c_str());
+				obs_get_source_by_name(str.c_str());
 			OBSSourceAutoRelease filter =
 				obs_source_get_filter_by_name(source,
 							      prev.c_str());
@@ -1248,14 +1248,13 @@ void OBSBasicFilters::delete_filter(OBSSource filter)
 	std::string scene_name = obs_source_get_name(
 		reinterpret_cast<OBSBasic *>(App()->GetMainWindow())
 			->GetCurrentSceneSource());
-	auto undo = [scene_name](const std::string &data) {
+	auto undo = [scene_name](const std::string &str) {
 		OBSSourceAutoRelease ssource =
 			obs_get_source_by_name(scene_name.c_str());
 		reinterpret_cast<OBSBasic *>(App()->GetMainWindow())
 			->SetCurrentScene(ssource.Get(), true);
 
-		OBSDataAutoRelease dat =
-			obs_data_create_from_json(data.c_str());
+		OBSDataAutoRelease dat = obs_data_create_from_json(str.c_str());
 		OBSSourceAutoRelease source = obs_get_source_by_name(
 			obs_data_get_string(dat, "undo_name"));
 		OBSSourceAutoRelease filter = obs_load_source(dat);
@@ -1265,14 +1264,13 @@ void OBSBasicFilters::delete_filter(OBSSource filter)
 	OBSDataAutoRelease rwrapper = obs_data_create();
 	obs_data_set_string(rwrapper, "fname", obs_source_get_name(filter));
 	obs_data_set_string(rwrapper, "sname", parent_name.c_str());
-	auto redo = [scene_name](const std::string &data) {
+	auto redo = [scene_name](const std::string &str) {
 		OBSSourceAutoRelease ssource =
 			obs_get_source_by_name(scene_name.c_str());
 		reinterpret_cast<OBSBasic *>(App()->GetMainWindow())
 			->SetCurrentScene(ssource.Get(), true);
 
-		OBSDataAutoRelease dat =
-			obs_data_create_from_json(data.c_str());
+		OBSDataAutoRelease dat = obs_data_create_from_json(str.c_str());
 		OBSSourceAutoRelease source = obs_get_source_by_name(
 			obs_data_get_string(dat, "sname"));
 		OBSSourceAutoRelease filter = obs_source_get_filter_by_name(

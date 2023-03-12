@@ -388,7 +388,7 @@ struct gs_vertex_buffer : gs_obj {
 	UINT MakeBufferList(gs_vertex_shader *shader, ID3D11Buffer **buffers,
 			    uint32_t *strides);
 
-	void InitBuffer(const size_t elementSize, const size_t numVerts,
+	void InitBuffer(const size_t elementSize, const size_t numVerts_,
 			void *array, ID3D11Buffer **buffer);
 
 	void BuildBuffers();
@@ -524,11 +524,11 @@ struct gs_texture_2d : gs_texture {
 	vector<D3D11_SUBRESOURCE_DATA> srd;
 	D3D11_TEXTURE2D_DESC td = {};
 
-	void InitSRD(vector<D3D11_SUBRESOURCE_DATA> &srd);
+	void InitSRD(vector<D3D11_SUBRESOURCE_DATA> &srd_);
 	void InitTexture(const uint8_t *const *data);
 	void InitResourceView();
 	void InitRenderTargets();
-	void BackupTexture(const uint8_t *const *data);
+	void BackupTexture(const uint8_t *const *data_);
 	void GetSharedHandle(IDXGIResource *dxgi_res);
 
 	void RebuildSharedTextureFallback();
@@ -583,10 +583,10 @@ struct gs_texture_3d : gs_texture {
 	vector<D3D11_SUBRESOURCE_DATA> srd;
 	D3D11_TEXTURE3D_DESC td = {};
 
-	void InitSRD(vector<D3D11_SUBRESOURCE_DATA> &srd);
-	void InitTexture(const uint8_t *const *data);
+	void InitSRD(vector<D3D11_SUBRESOURCE_DATA> &srd_);
+	void InitTexture(const uint8_t *const *data_);
 	void InitResourceView();
-	void BackupTexture(const uint8_t *const *data);
+	void BackupTexture(const uint8_t *const *data_);
 	void GetSharedHandle(IDXGIResource *dxgi_res);
 
 	void RebuildSharedTextureFallback();

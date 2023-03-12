@@ -209,11 +209,11 @@ static inline int get_d3d9_patch(HMODULE d3d9)
 	return -1;
 }
 
-static inline uint8_t *get_d3d9_patch_addr(HMODULE d3d9, int patch)
+static inline uint8_t *get_d3d9_patch_addr(HMODULE d3d9, int patch_)
 {
-	if (patch == -1)
+	if (patch_ == -1)
 		return nullptr;
 
 	uint8_t *addr = (uint8_t *)d3d9;
-	return addr + patch_offset[patch] + CMP_SIZE;
+	return addr + patch_offset[patch_] + CMP_SIZE;
 }

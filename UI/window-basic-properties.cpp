@@ -319,9 +319,9 @@ void OBSBasicProperties::on_buttonBox_clicked(QAbstractButton *button)
 		std::string scene_name =
 			obs_source_get_name(main->GetCurrentSceneSource());
 
-		auto undo_redo = [scene_name](const std::string &data) {
+		auto undo_redo = [scene_name](const std::string &str) {
 			OBSDataAutoRelease settings =
-				obs_data_create_from_json(data.c_str());
+				obs_data_create_from_json(str.c_str());
 			OBSSourceAutoRelease source = obs_get_source_by_name(
 				obs_data_get_string(settings, "undo_sname"));
 			obs_source_reset_settings(source, settings);

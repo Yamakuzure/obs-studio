@@ -31,6 +31,10 @@
 #include "obs.h"
 #include "obs-internal.h"
 
+#ifdef _MSC_VER
+#pragma warning(disable : 4152) /* casting func ptr to void */
+#endif
+
 #define get_weak(source) ((obs_weak_source_t *)source->context.control)
 
 static bool filter_compatible(obs_source_t *source, obs_source_t *filter);
@@ -562,8 +566,7 @@ obs_source_t *obs_source_duplicate(obs_source_t *source, const char *new_name,
 			scene, new_name,
 			create_private ? OBS_SCENE_DUP_PRIVATE_COPY
 				       : OBS_SCENE_DUP_COPY);
-		obs_source_t *new_source = obs_scene_get_source(new_scene);
-		return new_source;
+		return obs_scene_get_source(new_scene);
 	}
 
 	if ((source->info.output_flags & OBS_SOURCE_DO_NOT_DUPLICATE) != 0) {
@@ -5451,7 +5454,7 @@ static void apply_audio_actions(obs_source_t *source, size_t channels,
 static void apply_audio_volume(obs_source_t *source, uint32_t mixers,
 			       size_t channels, size_t sample_rate)
 {
-	struct audio_action action;
+	struct audio_action action = {0};
 	bool actions_pending;
 	float vol;
 

@@ -27,6 +27,10 @@
 #include "util/platform.h"
 #include "util/windows/win-version.h"
 
+#ifdef _MSC_VER
+#pragma warning(disable : 4152) /* casting func ptr to void */
+#endif
+
 typedef BOOL(WINAPI *ENUMERATELOADEDMODULES64)(
 	HANDLE process,
 	PENUMLOADED_MODULES_CALLBACK64 enum_loaded_modules_callback,
@@ -314,7 +318,7 @@ static inline bool walk_stack(struct exception_handler_data *data,
 			      HANDLE thread, struct stack_trace *trace)
 {
 	struct module_info module_info = {0};
-	DWORD64 func_offset;
+	DWORD64 func_offset = 0;
 	char sym_name[256];
 	char *p;
 
@@ -550,11 +554,13 @@ static LONG CALLBACK exception_handler(PEXCEPTION_POINTERS exception)
 
 	handle_exception(&data, exception);
 	bcrash("%s", data.str.array);
-	exception_handler_data_free(&data);
-
-	inside_handler = false;
-
-	return EXCEPTION_CONTINUE_SEARCH;
+	/* bcrash exits
+	 * exception_handler_data_free(&data);
+	 *
+	 * inside_handler = false;
+	 *
+	 * return EXCEPTION_CONTINUE_SEARCH;
+	 */
 }
 
 void initialize_crash_handler(void)

@@ -154,10 +154,10 @@ libcaption_stauts_t caption_frame_decode_preamble(caption_frame_t* frame, uint16
     int row, col, chn, uln;
 
     if (eia608_parse_preamble(cc_data, &row, &col, &sty, &chn, &uln)) {
-        frame->state.row = row;
-        frame->state.col = col;
+        frame->state.row = (int8_t)row;
+        frame->state.col = (int8_t)col;
         frame->state.sty = sty;
-        frame->state.uln = uln;
+        frame->state.uln = (unsigned)uln;
     }
 
     return LIBCAPTION_OK;
@@ -259,7 +259,7 @@ libcaption_stauts_t caption_frame_decode_control(caption_frame_t* frame, uint16_
     case eia608_tab_offset_1:
     case eia608_tab_offset_2:
     case eia608_tab_offset_3:
-        frame->state.col += (cmd - eia608_tab_offset_0);
+        frame->state.col += (int8_t)(cmd - eia608_tab_offset_0);
         return LIBCAPTION_OK;
 
     // Unhandled

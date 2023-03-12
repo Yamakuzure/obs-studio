@@ -38,15 +38,14 @@ static inline struct shader_var *sp_getparam(struct gl_shader_parser *glsp,
 static inline size_t sp_getsampler(struct gl_shader_parser *glsp,
 				   struct cf_token *token)
 {
-	size_t i;
-	for (i = 0; i < glsp->parser.samplers.num; i++) {
+	for (size_t i = 0; i < glsp->parser.samplers.num; i++) {
 		struct shader_sampler *sampler =
 			glsp->parser.samplers.array + i;
 		if (strref_cmp(&token->str, sampler->name) == 0)
 			return i;
 	}
 
-	return -1;
+	return (size_t)-1;
 }
 
 static inline int cmp_type(const char *name, const size_t name_len,

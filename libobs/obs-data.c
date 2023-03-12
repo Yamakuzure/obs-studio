@@ -462,6 +462,11 @@ obs_data_item_set_autoselect_data(struct obs_data_item **p_item,
 static void obs_data_add_json_item(obs_data_t *data, const char *key,
 				   json_t *json);
 
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4706)
+#endif
+
 static inline void obs_data_add_json_object_data(obs_data_t *data, json_t *jobj)
 {
 	const char *item_key;
@@ -472,6 +477,10 @@ static inline void obs_data_add_json_object_data(obs_data_t *data, json_t *jobj)
 	}
 }
 
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+
 static inline void obs_data_add_json_object(obs_data_t *data, const char *key,
 					    json_t *jobj)
 {
@@ -481,6 +490,11 @@ static inline void obs_data_add_json_object(obs_data_t *data, const char *key,
 	obs_data_set_obj(data, key, sub_obj);
 	obs_data_release(sub_obj);
 }
+
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4706)
+#endif
 
 static void obs_data_add_json_array(obs_data_t *data, const char *key,
 				    json_t *jarray)
@@ -504,6 +518,10 @@ static void obs_data_add_json_array(obs_data_t *data, const char *key,
 	obs_data_set_array(data, key, array);
 	obs_data_array_release(array);
 }
+
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
 
 static void obs_data_add_json_item(obs_data_t *data, const char *key,
 				   json_t *json)
@@ -1731,7 +1749,7 @@ static inline const char *data_item_get_string(obs_data_item_t *item,
 {
 	const char *str;
 
-	return item_valid(item, OBS_DATA_STRING) && (str = get_data(item)) ? str
+	return item_valid(item, OBS_DATA_STRING) && (0 != (str = get_data(item))) ? str
 									   : "";
 }
 
@@ -1740,7 +1758,7 @@ static inline long long item_int(struct obs_data_item *item,
 {
 	struct obs_data_number *num;
 
-	if (item && (num = get_data(item))) {
+	if (item && (0 != (num = get_data(item)))) {
 		return (num->type == OBS_DATA_NUM_INT)
 			       ? num->int_val
 			       : (long long)num->double_val;
@@ -1761,7 +1779,7 @@ static inline double item_double(struct obs_data_item *item,
 {
 	struct obs_data_number *num;
 
-	if (item && (num = get_data(item))) {
+	if (item && (0 != (num = get_data(item)))) {
 		return (num->type == OBS_DATA_NUM_INT) ? (double)num->int_val
 						       : num->double_val;
 	}
@@ -1781,7 +1799,7 @@ static inline bool data_item_get_bool(obs_data_item_t *item,
 {
 	bool *data;
 
-	return item_valid(item, OBS_DATA_BOOLEAN) && (data = get_data(item))
+	return item_valid(item, OBS_DATA_BOOLEAN) && (0 != (data = get_data(item)))
 		       ? *data
 		       : false;
 }

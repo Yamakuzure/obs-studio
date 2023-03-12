@@ -436,7 +436,7 @@ static int libsrt_set_options_pre(URLContext *h, SRTSOCKET fd)
 
 	if (s->linger >= 0) {
 		struct linger lin;
-		lin.l_linger = s->linger;
+		lin.l_linger = (u_short)(s->linger);
 		lin.l_onoff = lin.l_linger > 0 ? 1 : 0;
 		if (libsrt_setsockopt(h, fd, SRTO_LINGER, "SRTO_LINGER", &lin,
 				      sizeof(lin)) < 0)

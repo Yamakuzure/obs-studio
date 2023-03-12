@@ -126,6 +126,12 @@ if(OS_WINDOWS)
   else()
     obs_status(WARNING "enc-amf plugin not found.")
   endif()
+  if(MSVC)
+    target_compile_options(
+      win-dshow
+      PRIVATE /wd4244
+    )
+  endif()
 
   check_obs_browser()
 elseif(OS_MACOS)
@@ -191,3 +197,9 @@ add_subdirectory(obs-transitions)
 add_subdirectory(rtmp-services)
 add_subdirectory(text-freetype2)
 add_subdirectory(aja)
+
+if(OS_WINDOWS AND MSVC)
+  target_compile_options(obs-browser PRIVATE /wd4456 /wd4458)
+  target_compile_options(obs-browser-page PRIVATE /wd4456)
+  target_compile_options(win-dshow PRIVATE /wd4456 /wd4458)
+endif()

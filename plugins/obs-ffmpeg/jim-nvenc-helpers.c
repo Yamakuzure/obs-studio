@@ -298,9 +298,11 @@ static bool av1_supported(void)
 		goto fail;
 	}
 
+#if 0  /// not used below
 	uint32_t adapter_count = (uint32_t)config_num_sections(config);
 	bool avc_supported = false;
 	bool hevc_supported = false;
+#endif // 0
 
 	/* for now, just check AV1 support on device 0 */
 	av1_supported = config_get_bool(config, "0", "supports_av1");

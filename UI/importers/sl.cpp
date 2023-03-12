@@ -278,7 +278,7 @@ static int attempt_import(const Json &root, const string &name, Json &res)
 
 		double vol = source["volume"].number_value();
 		bool muted = source["muted"].bool_value();
-		string name = source["name"].string_value();
+		string src_name = source["name"].string_value();
 		int monitoring = (int)source["monitoringType"].int_value();
 
 		Json::object out_hotkeys = Json::object{};
@@ -294,9 +294,9 @@ static int attempt_import(const Json &root, const string &name, Json &res)
 		}
 
 		int copy = 1;
-		string out_name = name;
+		string out_name = src_name;
 		while (source_name_exists(out_sources, out_name))
-			out_name = name + "(" + to_string(copy++) + ")";
+			out_name = src_name + "(" + to_string(copy++) + ")";
 
 		string sl_id = source["id"].string_value();
 
@@ -331,7 +331,7 @@ static int attempt_import(const Json &root, const string &name, Json &res)
 
 		Json in_settings = scene["settings"];
 
-		string name = scene["name"].string_value();
+		string src_name = scene["name"].string_value();
 
 		Json::object out_hotkeys = Json::object{};
 		get_hotkey_bindings(out_hotkeys, hotkey_items, "");
@@ -346,9 +346,9 @@ static int attempt_import(const Json &root, const string &name, Json &res)
 		}
 
 		int copy = 1;
-		string out_name = name;
+		string out_name = src_name;
 		while (source_name_exists(out_sources, out_name))
-			out_name = name + "(" + to_string(copy++) + ")";
+			out_name = src_name + "(" + to_string(copy++) + ")";
 
 		if (scene_name.empty())
 			scene_name = out_name;
@@ -381,16 +381,16 @@ static int attempt_import(const Json &root, const string &name, Json &res)
 		Json in_settings = transition["settings"];
 
 		int duration = transition["duration"].int_value();
-		string name = transition["name"].string_value();
+		string src_name = transition["name"].string_value();
 		string id = transition["id"].string_value();
 
 		if (id == t_id)
-			transition_name = name;
+			transition_name = src_name;
 
 		out_transitions.push_back(
 			Json::object{{"id", transition["type"]},
 				     {"settings", in_settings},
-				     {"name", name},
+				     {"name", src_name},
 				     {"duration", duration}});
 	}
 

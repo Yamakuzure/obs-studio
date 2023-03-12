@@ -34,14 +34,14 @@ HRESULT
 OBSVideoFrame::SetTimecodeFromComponents(BMDTimecodeFormat format,
 					 uint8_t hours, uint8_t minutes,
 					 uint8_t seconds, uint8_t frames,
-					 BMDTimecodeFlags flags)
+					 BMDTimecodeFlags flags_)
 {
 	UNUSED_PARAMETER(format);
 	UNUSED_PARAMETER(hours);
 	UNUSED_PARAMETER(minutes);
 	UNUSED_PARAMETER(seconds);
 	UNUSED_PARAMETER(frames);
-	UNUSED_PARAMETER(flags);
+	UNUSED_PARAMETER(flags_);
 	return 0;
 }
 

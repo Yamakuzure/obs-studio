@@ -26,7 +26,7 @@
 
 #if defined(_DEBUG)
 #ifdef _WIN32
-static __declspec(thread) volatile stream_is_active = false;
+static __declspec(thread) volatile bool stream_is_active = false;
 #else
 #include <threads.h>
 static thread_local volatile bool stream_is_active = false;
@@ -238,7 +238,7 @@ static void log_muxer_params(struct ffmpeg_muxer *stream, const char *settings)
 	int ret;
 
 	AVDictionary *dict = NULL;
-	if ((ret = av_dict_parse_string(&dict, settings, "=", " ", 0))) {
+	if (0 != (ret = av_dict_parse_string(&dict, settings, "=", " ", 0))) {
 		warn("Failed to parse muxer settings: %s\n%s", av_err2str(ret),
 		     settings);
 
@@ -250,8 +250,8 @@ static void log_muxer_params(struct ffmpeg_muxer *stream, const char *settings)
 		struct dstr str = {0};
 
 		AVDictionaryEntry *entry = NULL;
-		while ((entry = av_dict_get(dict, "", entry,
-					    AV_DICT_IGNORE_SUFFIX)))
+		while (NULL != (entry = av_dict_get(dict, "", entry,
+						    AV_DICT_IGNORE_SUFFIX)))
 			dstr_catf(&str, "\n\t%s=%s", entry->key, entry->value);
 
 		info("Using muxer settings:%s", str.array);

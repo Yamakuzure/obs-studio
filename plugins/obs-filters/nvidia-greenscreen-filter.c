@@ -201,7 +201,7 @@ static void nv_greenscreen_filter_reset(void *data, calldata_t *calldata)
 				     filter->stream);
 	if (NVCV_SUCCESS != vfxErr) {
 		const char *errString = NvCV_GetErrorStringFromCode(vfxErr);
-		error("Error setting CUDA Stream %i", vfxErr);
+		error("Error setting CUDA Stream %i '%s'", vfxErr, errString);
 		nv_greenscreen_filter_destroy(filter);
 	}
 
@@ -468,16 +468,18 @@ static void *nv_greenscreen_filter_create(obs_data_t *settings,
 				     filter->stream);
 	if (NVCV_SUCCESS != vfxErr) {
 		const char *errString = NvCV_GetErrorStringFromCode(vfxErr);
-		error("Error setting CUDA Stream %i", vfxErr);
+		error("Error setting CUDA Stream %i '%s'", vfxErr, errString);
 		nv_greenscreen_filter_destroy(filter);
 		return NULL;
 	}
 	/* check sdk version */
 	if (NvVFX_GetVersion(&filter->version) == NVCV_SUCCESS) {
-		uint8_t major = (filter->version >> 24) & 0xff;
-		uint8_t minor = (filter->version >> 16) & 0x00ff;
-		uint8_t build = (filter->version >> 8) & 0x0000ff;
-		uint8_t revision = (filter->version >> 0) & 0x000000ff;
+		/*
+		 * uint8_t major = (filter->version >> 24) & 0xff;
+		 * uint8_t minor = (filter->version >> 16) & 0x00ff;
+		 * uint8_t build = (filter->version >> 8) & 0x0000ff;
+		 * uint8_t revision = (filter->version >> 0) & 0x000000ff;
+		 */
 		// sanity check
 		nvvfx_new_sdk = filter->version >= MIN_VFX_SDK_VERSION &&
 				nvvfx_new_sdk;
@@ -508,7 +510,8 @@ static void *nv_greenscreen_filter_create(obs_data_t *settings,
 		if (NVCV_SUCCESS != vfxErr) {
 			const char *errString =
 				NvCV_GetErrorStringFromCode(vfxErr);
-			error("Error allocating FX state %i", vfxErr);
+			error("Error allocating FX state %i '%s'", vfxErr,
+			      errString);
 			nv_greenscreen_filter_destroy(filter);
 			return NULL;
 		}
@@ -518,7 +521,8 @@ static void *nv_greenscreen_filter_create(obs_data_t *settings,
 		if (NVCV_SUCCESS != vfxErr) {
 			const char *errString =
 				NvCV_GetErrorStringFromCode(vfxErr);
-			error("Error setting FX state %i", vfxErr);
+			error("Error setting FX state %i '%s'", vfxErr,
+			      errString);
 			nv_greenscreen_filter_destroy(filter);
 			return NULL;
 		}
@@ -538,15 +542,15 @@ static void *nv_greenscreen_filter_create(obs_data_t *settings,
 
 static obs_properties_t *nv_greenscreen_filter_properties(void *data)
 {
-	struct nv_greenscreen_data *filter = (struct nv_greenscreen_data *)data;
+	(void)(data);
 	obs_properties_t *props = obs_properties_create();
 	obs_property_t *mode = obs_properties_add_list(props, S_MODE, TEXT_MODE,
 						       OBS_COMBO_TYPE_LIST,
 						       OBS_COMBO_FORMAT_INT);
 	obs_property_list_add_int(mode, TEXT_MODE_QUALITY, S_MODE_QUALITY);
 	obs_property_list_add_int(mode, TEXT_MODE_PERF, S_MODE_PERF);
-	obs_property_t *threshold = obs_properties_add_float_slider(
-		props, S_THRESHOLDFX, TEXT_MODE_THRESHOLD, 0, 1, 0.05);
+	obs_properties_add_float_slider(props, S_THRESHOLDFX,
+					TEXT_MODE_THRESHOLD, 0, 1, 0.05);
 	obs_property_t *partial = obs_properties_add_int_slider(
 		props, S_PROCESSING, TEXT_PROCESSING, 1, 4, 1);
 	obs_property_set_long_description(partial, TEXT_PROCESSING_HINT);
@@ -734,7 +738,6 @@ static void nv_greenscreen_filter_render(void *data, gs_effect_t *effect)
 	}
 
 	const uint32_t target_flags = obs_source_get_output_flags(target);
-	const uint32_t parent_flags = obs_source_get_output_flags(parent);
 
 	bool custom_draw = (target_flags & OBS_SOURCE_CUSTOM_DRAW) != 0;
 	bool async = (target_flags & OBS_SOURCE_ASYNC) != 0;
@@ -907,7 +910,7 @@ bool load_nvvfx(void)
 	}
 
 #define LOAD_SYM_FROM_LIB(sym, lib, dll)                                     \
-	if (!(sym = (sym##_t)GetProcAddress(lib, #sym))) {                   \
+	if (NULL == (sym = (sym##_t)GetProcAddress(lib, #sym))) {            \
 		DWORD err = GetLastError();                                  \
 		printf("[NVIDIA VIDEO FX]: Couldn't load " #sym " from " dll \
 		       ": %lu (0x%lx)",                                      \
@@ -917,7 +920,7 @@ bool load_nvvfx(void)
 	}
 
 #define LOAD_SYM_FROM_LIB2(sym, lib, dll)                                    \
-	if (!(sym = (sym##_t)GetProcAddress(lib, #sym))) {                   \
+	if (NULL == (sym = (sym##_t)GetProcAddress(lib, #sym))) {            \
 		DWORD err = GetLastError();                                  \
 		printf("[NVIDIA VIDEO FX]: Couldn't load " #sym " from " dll \
 		       ": %lu (0x%lx)",                                      \

@@ -703,10 +703,10 @@ obs_data_array_t *OBSBasic::SaveSceneListOrder()
 	obs_data_array_t *sceneOrder = obs_data_array_create();
 
 	for (int i = 0; i < ui->scenes->count(); i++) {
-		OBSDataAutoRelease data = obs_data_create();
-		obs_data_set_string(data, "name",
+		OBSDataAutoRelease rls_data = obs_data_create();
+		obs_data_set_string(rls_data, "name",
 				    QT_TO_UTF8(ui->scenes->item(i)->text()));
-		obs_data_array_push_back(sceneOrder, data);
+		obs_data_array_push_back(sceneOrder, rls_data);
 	}
 
 	return sceneOrder;
@@ -927,8 +927,8 @@ void OBSBasic::LoadSceneListOrder(obs_data_array_t *array)
 	size_t num = obs_data_array_count(array);
 
 	for (size_t i = 0; i < num; i++) {
-		OBSDataAutoRelease data = obs_data_array_item(array, i);
-		const char *name = obs_data_get_string(data, "name");
+		OBSDataAutoRelease rls_data = obs_data_array_item(array, i);
+		const char *name = obs_data_get_string(rls_data, "name");
 
 		ReorderItemByName(ui->scenes, name, (int)i);
 	}
@@ -944,18 +944,18 @@ void OBSBasic::LoadSavedProjectors(obs_data_array_t *array)
 	size_t num = obs_data_array_count(array);
 
 	for (size_t i = 0; i < num; i++) {
-		OBSDataAutoRelease data = obs_data_array_item(array, i);
+		OBSDataAutoRelease rls_data = obs_data_array_item(array, i);
 
 		SavedProjectorInfo *info = new SavedProjectorInfo();
-		info->monitor = obs_data_get_int(data, "monitor");
+		info->monitor = obs_data_get_int(rls_data, "monitor");
 		info->type = static_cast<ProjectorType>(
-			obs_data_get_int(data, "type"));
+			obs_data_get_int(rls_data, "type"));
 		info->geometry =
-			std::string(obs_data_get_string(data, "geometry"));
-		info->name = std::string(obs_data_get_string(data, "name"));
-		info->alwaysOnTop = obs_data_get_bool(data, "alwaysOnTop");
+			std::string(obs_data_get_string(rls_data, "geometry"));
+		info->name = std::string(obs_data_get_string(rls_data, "name"));
+		info->alwaysOnTop = obs_data_get_bool(rls_data, "alwaysOnTop");
 		info->alwaysOnTopOverridden =
-			obs_data_get_bool(data, "alwaysOnTopOverridden");
+			obs_data_get_bool(rls_data, "alwaysOnTopOverridden");
 
 		savedProjectorsArray.emplace_back(info);
 	}
@@ -1041,8 +1041,8 @@ void OBSBasic::Load(const char *file)
 {
 	disableSaving++;
 
-	obs_data_t *data = obs_data_create_from_json_file_safe(file, "bak");
-	if (!data) {
+	obs_data_t *new_data = obs_data_create_from_json_file_safe(file, "bak");
+	if (!new_data) {
 		disableSaving--;
 		blog(LOG_INFO, "No scene file found, creating default scene");
 		CreateDefaultScene(true);
@@ -1050,7 +1050,7 @@ void OBSBasic::Load(const char *file)
 		return;
 	}
 
-	LoadData(data, file);
+	LoadData(new_data, file);
 }
 
 static inline void AddMissingFiles(void *data, obs_source_t *source)
@@ -1062,7 +1062,7 @@ static inline void AddMissingFiles(void *data, obs_source_t *source)
 	obs_missing_files_destroy(sf);
 }
 
-void OBSBasic::LoadData(obs_data_t *data, const char *file)
+void OBSBasic::LoadData(obs_data_t *new_data, const char *file)
 {
 	ClearSceneData();
 	InitDefaultTransitions();
@@ -1075,21 +1075,22 @@ void OBSBasic::LoadData(obs_data_t *data, const char *file)
 
 	QApplication::sendPostedEvents(nullptr);
 
-	OBSDataAutoRelease modulesObj = obs_data_get_obj(data, "modules");
+	OBSDataAutoRelease modulesObj = obs_data_get_obj(new_data, "modules");
 	if (api)
 		api->on_preload(modulesObj);
 
 	OBSDataArrayAutoRelease sceneOrder =
-		obs_data_get_array(data, "scene_order");
-	OBSDataArrayAutoRelease sources = obs_data_get_array(data, "sources");
-	OBSDataArrayAutoRelease groups = obs_data_get_array(data, "groups");
+		obs_data_get_array(new_data, "scene_order");
+	OBSDataArrayAutoRelease sources =
+		obs_data_get_array(new_data, "sources");
+	OBSDataArrayAutoRelease groups = obs_data_get_array(new_data, "groups");
 	OBSDataArrayAutoRelease transitions =
-		obs_data_get_array(data, "transitions");
-	const char *sceneName = obs_data_get_string(data, "current_scene");
+		obs_data_get_array(new_data, "transitions");
+	const char *sceneName = obs_data_get_string(new_data, "current_scene");
 	const char *programSceneName =
-		obs_data_get_string(data, "current_program_scene");
+		obs_data_get_string(new_data, "current_program_scene");
 	const char *transitionName =
-		obs_data_get_string(data, "current_transition");
+		obs_data_get_string(new_data, "current_transition");
 
 	if (!opt_starting_scene.empty()) {
 		programSceneName = opt_starting_scene.c_str();
@@ -1097,7 +1098,7 @@ void OBSBasic::LoadData(obs_data_t *data, const char *file)
 			sceneName = opt_starting_scene.c_str();
 	}
 
-	int newDuration = obs_data_get_int(data, "transition_duration");
+	int newDuration = obs_data_get_int(new_data, "transition_duration");
 	if (!newDuration)
 		newDuration = 300;
 
@@ -1107,9 +1108,9 @@ void OBSBasic::LoadData(obs_data_t *data, const char *file)
 	const char *curSceneCollection = config_get_string(
 		App()->GlobalConfig(), "Basic", "SceneCollection");
 
-	obs_data_set_default_string(data, "name", curSceneCollection);
+	obs_data_set_default_string(new_data, "name", curSceneCollection);
 
-	const char *name = obs_data_get_string(data, "name");
+	const char *name = obs_data_get_string(new_data, "name");
 	OBSSourceAutoRelease curScene;
 	OBSSourceAutoRelease curProgramScene;
 	obs_source_t *curTransition;
@@ -1117,12 +1118,12 @@ void OBSBasic::LoadData(obs_data_t *data, const char *file)
 	if (!name || !*name)
 		name = curSceneCollection;
 
-	LoadAudioDevice(DESKTOP_AUDIO_1, 1, data);
-	LoadAudioDevice(DESKTOP_AUDIO_2, 2, data);
-	LoadAudioDevice(AUX_AUDIO_1, 3, data);
-	LoadAudioDevice(AUX_AUDIO_2, 4, data);
-	LoadAudioDevice(AUX_AUDIO_3, 5, data);
-	LoadAudioDevice(AUX_AUDIO_4, 6, data);
+	LoadAudioDevice(DESKTOP_AUDIO_1, 1, new_data);
+	LoadAudioDevice(DESKTOP_AUDIO_2, 2, new_data);
+	LoadAudioDevice(AUX_AUDIO_1, 3, new_data);
+	LoadAudioDevice(AUX_AUDIO_2, 4, new_data);
+	LoadAudioDevice(AUX_AUDIO_3, 5, new_data);
+	LoadAudioDevice(AUX_AUDIO_4, 6, new_data);
 
 	if (!sources) {
 		sources = std::move(groups);
@@ -1152,9 +1153,9 @@ retryScene:
 	/* if the starting scene command line parameter is bad at all,
 	 * fall back to original settings */
 	if (!opt_starting_scene.empty() && (!curScene || !curProgramScene)) {
-		sceneName = obs_data_get_string(data, "current_scene");
+		sceneName = obs_data_get_string(new_data, "current_scene");
 		programSceneName =
-			obs_data_get_string(data, "current_program_scene");
+			obs_data_get_string(new_data, "current_program_scene");
 		opt_starting_scene.clear();
 		goto retryScene;
 	}
@@ -1173,7 +1174,7 @@ retryScene:
 
 	if (projectorSave) {
 		OBSDataArrayAutoRelease savedProjectors =
-			obs_data_get_array(data, "saved_projectors");
+			obs_data_get_array(new_data, "saved_projectors");
 
 		if (savedProjectors) {
 			LoadSavedProjectors(savedProjectors);
@@ -1193,21 +1194,23 @@ retryScene:
 			  file_base.c_str());
 
 	OBSDataArrayAutoRelease quickTransitionData =
-		obs_data_get_array(data, "quick_transitions");
+		obs_data_get_array(new_data, "quick_transitions");
 	LoadQuickTransitions(quickTransitionData);
 
 	RefreshQuickTransitions();
 
-	bool previewLocked = obs_data_get_bool(data, "preview_locked");
+	bool previewLocked = obs_data_get_bool(new_data, "preview_locked");
 	ui->preview->SetLocked(previewLocked);
 	ui->actionLockPreview->setChecked(previewLocked);
 
 	/* ---------------------- */
 
-	bool fixedScaling = obs_data_get_bool(data, "scaling_enabled");
-	int scalingLevel = (int)obs_data_get_int(data, "scaling_level");
-	float scrollOffX = (float)obs_data_get_double(data, "scaling_off_x");
-	float scrollOffY = (float)obs_data_get_double(data, "scaling_off_y");
+	bool fixedScaling = obs_data_get_bool(new_data, "scaling_enabled");
+	int scalingLevel = (int)obs_data_get_int(new_data, "scaling_level");
+	float scrollOffX =
+		(float)obs_data_get_double(new_data, "scaling_off_x");
+	float scrollOffY =
+		(float)obs_data_get_double(new_data, "scaling_off_y");
 
 	if (fixedScaling) {
 		ui->preview->SetScalingLevel(scalingLevel);
@@ -1218,7 +1221,7 @@ retryScene:
 
 	if (vcamEnabled) {
 		OBSDataAutoRelease obj =
-			obs_data_get_obj(data, "virtual-camera");
+			obs_data_get_obj(new_data, "virtual-camera");
 
 		vcamConfig.type = (VCamOutputType)obs_data_get_int(obj, "type");
 		vcamConfig.internal =
@@ -1232,7 +1235,7 @@ retryScene:
 	if (api)
 		api->on_load(modulesObj);
 
-	obs_data_release(data);
+	obs_data_release(new_data);
 
 	if (!opt_starting_scene.empty())
 		opt_starting_scene.clear();
@@ -1293,13 +1296,13 @@ void OBSBasic::SaveService()
 	if (ret <= 0)
 		return;
 
-	OBSDataAutoRelease data = obs_data_create();
+	OBSDataAutoRelease new_data = obs_data_create();
 	OBSDataAutoRelease settings = obs_service_get_settings(service);
 
-	obs_data_set_string(data, "type", obs_service_get_type(service));
-	obs_data_set_obj(data, "settings", settings);
+	obs_data_set_string(new_data, "type", obs_service_get_type(service));
+	obs_data_set_obj(new_data, "settings", settings);
 
-	if (!obs_data_save_json_safe(data, serviceJsonPath, "tmp", "bak"))
+	if (!obs_data_save_json_safe(new_data, serviceJsonPath, "tmp", "bak"))
 		blog(LOG_WARNING, "Failed to save service");
 }
 
@@ -1313,17 +1316,17 @@ bool OBSBasic::LoadService()
 	if (ret <= 0)
 		return false;
 
-	OBSDataAutoRelease data =
+	OBSDataAutoRelease new_data =
 		obs_data_create_from_json_file_safe(serviceJsonPath, "bak");
 
-	if (!data)
+	if (!new_data)
 		return false;
 
-	obs_data_set_default_string(data, "type", "rtmp_common");
-	type = obs_data_get_string(data, "type");
+	obs_data_set_default_string(new_data, "type", "rtmp_common");
+	type = obs_data_get_string(new_data, "type");
 
-	OBSDataAutoRelease settings = obs_data_get_obj(data, "settings");
-	OBSDataAutoRelease hotkey_data = obs_data_get_obj(data, "hotkeys");
+	OBSDataAutoRelease settings = obs_data_get_obj(new_data, "settings");
+	OBSDataAutoRelease hotkey_data = obs_data_get_obj(new_data, "hotkeys");
 
 	service = obs_service_create(type, "default_service", settings,
 				     hotkey_data);
@@ -2569,15 +2572,15 @@ void OBSBasic::CreateHotkeys()
 		obs_hotkey_pair_load(id, array0, array1);
 	};
 
-#define MAKE_CALLBACK(pred, method, log_action)                            \
-	[](void *data, obs_hotkey_pair_id, obs_hotkey_t *, bool pressed) { \
-		OBSBasic &basic = *static_cast<OBSBasic *>(data);          \
-		if ((pred) && pressed) {                                   \
-			blog(LOG_INFO, log_action " due to hotkey");       \
-			method();                                          \
-			return true;                                       \
-		}                                                          \
-		return false;                                              \
+#define MAKE_CALLBACK(pred, method, log_action)                             \
+	[](void *data_, obs_hotkey_pair_id, obs_hotkey_t *, bool pressed) { \
+		OBSBasic &basic = *static_cast<OBSBasic *>(data_);          \
+		if ((pred) && pressed) {                                    \
+			blog(LOG_INFO, log_action " due to hotkey");        \
+			method();                                           \
+			return true;                                        \
+		}                                                           \
+		return false;                                               \
 	}
 
 	streamingHotkeys = obs_hotkey_pair_register_frontend(
@@ -2593,8 +2596,8 @@ void OBSBasic::CreateHotkeys()
 	LoadHotkeyPair(streamingHotkeys, "OBSBasic.StartStreaming",
 		       "OBSBasic.StopStreaming");
 
-	auto cb = [](void *data, obs_hotkey_id, obs_hotkey_t *, bool pressed) {
-		OBSBasic &basic = *static_cast<OBSBasic *>(data);
+	auto cb = [](void *data_, obs_hotkey_id, obs_hotkey_t *, bool pressed) {
+		OBSBasic &basic = *static_cast<OBSBasic *>(data_);
 		if (basic.outputHandler->StreamingActive() && pressed) {
 			basic.ForceStopStreaming();
 		}
@@ -2692,12 +2695,12 @@ void OBSBasic::CreateHotkeys()
 		       "OBSBasic.HideContextBar");
 #undef MAKE_CALLBACK
 
-	auto togglePreviewProgram = [](void *data, obs_hotkey_id,
+	auto togglePreviewProgram = [](void *prg_data, obs_hotkey_id,
 				       obs_hotkey_t *, bool pressed) {
 		if (pressed)
-			QMetaObject::invokeMethod(static_cast<OBSBasic *>(data),
-						  "on_modeSwitch_clicked",
-						  Qt::QueuedConnection);
+			QMetaObject::invokeMethod(
+				static_cast<OBSBasic *>(prg_data),
+				"on_modeSwitch_clicked", Qt::QueuedConnection);
 	};
 
 	togglePreviewProgramHotkey = obs_hotkey_register_frontend(
@@ -2706,24 +2709,24 @@ void OBSBasic::CreateHotkeys()
 		this);
 	LoadHotkey(togglePreviewProgramHotkey, "OBSBasic.TogglePreviewProgram");
 
-	auto transition = [](void *data, obs_hotkey_id, obs_hotkey_t *,
+	auto transition = [](void *trn_data, obs_hotkey_id, obs_hotkey_t *,
 			     bool pressed) {
 		if (pressed)
-			QMetaObject::invokeMethod(static_cast<OBSBasic *>(data),
-						  "TransitionClicked",
-						  Qt::QueuedConnection);
+			QMetaObject::invokeMethod(
+				static_cast<OBSBasic *>(trn_data),
+				"TransitionClicked", Qt::QueuedConnection);
 	};
 
 	transitionHotkey = obs_hotkey_register_frontend(
 		"OBSBasic.Transition", Str("Transition"), transition, this);
 	LoadHotkey(transitionHotkey, "OBSBasic.Transition");
 
-	auto resetStats = [](void *data, obs_hotkey_id, obs_hotkey_t *,
+	auto resetStats = [](void *stat_data, obs_hotkey_id, obs_hotkey_t *,
 			     bool pressed) {
 		if (pressed)
-			QMetaObject::invokeMethod(static_cast<OBSBasic *>(data),
-						  "ResetStatsHotkey",
-						  Qt::QueuedConnection);
+			QMetaObject::invokeMethod(
+				static_cast<OBSBasic *>(stat_data),
+				"ResetStatsHotkey", Qt::QueuedConnection);
 	};
 
 	statsHotkey = obs_hotkey_register_frontend(
@@ -2731,24 +2734,25 @@ void OBSBasic::CreateHotkeys()
 		resetStats, this);
 	LoadHotkey(statsHotkey, "OBSBasic.ResetStats");
 
-	auto screenshot = [](void *data, obs_hotkey_id, obs_hotkey_t *,
+	auto screenshot = [](void *scr_data, obs_hotkey_id, obs_hotkey_t *,
 			     bool pressed) {
 		if (pressed)
-			QMetaObject::invokeMethod(static_cast<OBSBasic *>(data),
-						  "Screenshot",
-						  Qt::QueuedConnection);
+			QMetaObject::invokeMethod(
+				static_cast<OBSBasic *>(scr_data), "Screenshot",
+				Qt::QueuedConnection);
 	};
 
 	screenshotHotkey = obs_hotkey_register_frontend(
 		"OBSBasic.Screenshot", Str("Screenshot"), screenshot, this);
 	LoadHotkey(screenshotHotkey, "OBSBasic.Screenshot");
 
-	auto screenshotSource = [](void *data, obs_hotkey_id, obs_hotkey_t *,
-				   bool pressed) {
+	auto screenshotSource = [](void *scr_data, obs_hotkey_id,
+				   obs_hotkey_t *, bool pressed) {
 		if (pressed)
-			QMetaObject::invokeMethod(static_cast<OBSBasic *>(data),
-						  "ScreenshotSelectedSource",
-						  Qt::QueuedConnection);
+			QMetaObject::invokeMethod(
+				static_cast<OBSBasic *>(scr_data),
+				"ScreenshotSelectedSource",
+				Qt::QueuedConnection);
 	};
 
 	sourceScreenshotHotkey = obs_hotkey_register_frontend(
@@ -3034,12 +3038,12 @@ void OBSBasic::AddScene(OBSSource source)
 	obs_hotkey_register_source(
 		source, "OBSBasic.SelectScene",
 		Str("Basic.Hotkeys.SelectScene"),
-		[](void *data, obs_hotkey_id, obs_hotkey_t *, bool pressed) {
+		[](void *data_, obs_hotkey_id, obs_hotkey_t *, bool pressed) {
 			OBSBasic *main = reinterpret_cast<OBSBasic *>(
 				App()->GetMainWindow());
 
 			auto potential_source =
-				static_cast<obs_source_t *>(data);
+				static_cast<obs_source_t *>(data_);
 			OBSSourceAutoRelease source =
 				obs_source_get_ref(potential_source);
 			if (source && pressed)
@@ -3083,9 +3087,9 @@ void OBSBasic::AddScene(OBSSource source)
 	SaveProject();
 
 	if (!disableSaving) {
-		obs_source_t *source = obs_scene_get_source(scene);
+		obs_source_t *src = obs_scene_get_source(scene);
 		blog(LOG_INFO, "User added scene '%s'",
-		     obs_source_get_name(source));
+		     obs_source_get_name(src));
 
 		OBSProjector::UpdateMultiviewProjectors();
 	}
@@ -3299,10 +3303,10 @@ void OBSBasic::UpdateContextBar(bool force)
 					    la->widget())) {
 				if (toolbar->GetSource() == source)
 					updateNeeded = false;
-			} else if (MediaControls *toolbar =
+			} else if (MediaControls *tbar =
 					   dynamic_cast<MediaControls *>(
 						   la->widget())) {
-				if (toolbar->GetSource() == source)
+				if (tbar->GetSource() == source)
 					updateNeeded = false;
 			}
 		}
@@ -3514,8 +3518,8 @@ void OBSBasic::UnhideAllAudioControls()
 
 	using UnhideAudioMixer_t = decltype(UnhideAudioMixer);
 
-	auto PreEnum = [](void *data, obs_source_t *source) -> bool /* -- */
-	{ return (*reinterpret_cast<UnhideAudioMixer_t *>(data))(source); };
+	auto PreEnum = [](void *pre_data, obs_source_t *source) -> bool /* -- */
+	{ return (*reinterpret_cast<UnhideAudioMixer_t *>(pre_data))(source); };
 
 	obs_enum_sources(PreEnum, &UnhideAudioMixer);
 }
@@ -3973,8 +3977,7 @@ void OBSBasic::DuplicateSelectedScene()
 
 	int i = 2;
 	QString placeHolderText = format.arg(i);
-	OBSSourceAutoRelease source = nullptr;
-	while ((source = obs_get_source_by_name(QT_TO_UTF8(placeHolderText)))) {
+	while (nullptr != obs_get_source_by_name(QT_TO_UTF8(placeHolderText))) {
 		placeHolderText = format.arg(++i);
 	}
 
@@ -4008,15 +4011,15 @@ void OBSBasic::DuplicateSelectedScene()
 		source = obs_scene_get_source(scene);
 		SetCurrentScene(source, true);
 
-		auto undo = [](const std::string &data) {
+		auto undo = [](const std::string &str) {
 			OBSSourceAutoRelease source =
-				obs_get_source_by_name(data.c_str());
+				obs_get_source_by_name(str.c_str());
 			obs_source_remove(source);
 		};
 
-		auto redo = [this, name](const std::string &data) {
+		auto redo = [this, name](const std::string &str) {
 			OBSSourceAutoRelease source =
-				obs_get_source_by_name(data.c_str());
+				obs_get_source_by_name(str.c_str());
 			obs_scene_t *scene = obs_scene_from_source(source);
 			scene = obs_scene_duplicate(scene, name.c_str(),
 						    OBS_SCENE_DUP_REFS);
@@ -4217,16 +4220,16 @@ void OBSBasic::RemoveSelectedScene()
 		RemoveSceneAndReleaseNested(source);
 	};
 
-	OBSDataAutoRelease data = obs_data_create();
-	obs_data_set_array(data, "sources_in_deleted_scene",
+	OBSDataAutoRelease rls_data = obs_data_create();
+	obs_data_set_array(rls_data, "sources_in_deleted_scene",
 			   sources_in_deleted_scene);
-	obs_data_set_array(data, "scene_used_in_other_scenes",
+	obs_data_set_array(rls_data, "scene_used_in_other_scenes",
 			   scene_used_in_other_scenes);
-	obs_data_set_int(data, "index", ui->scenes->currentRow());
+	obs_data_set_int(rls_data, "index", ui->scenes->currentRow());
 
 	const char *scene_name = obs_source_get_name(source);
 	undo_s.add_action(QTStr("Undo.Delete").arg(scene_name), undo, redo,
-			  obs_data_get_json(data), scene_name);
+			  obs_data_get_json(rls_data), scene_name);
 
 	/* --------------------------- */
 	/* remove                      */
@@ -5163,8 +5166,8 @@ void OBSBasic::on_actionShowMissingFiles_triggered()
 {
 	obs_missing_files_t *files = obs_missing_files_create();
 
-	auto cb_sources = [](void *data, obs_source_t *source) {
-		AddMissingFiles(data, source);
+	auto cb_sources = [](void *src_data, obs_source_t *source) {
+		AddMissingFiles(src_data, source);
 		return true;
 	};
 
@@ -5369,24 +5372,24 @@ void OBSBasic::on_scenes_customContextMenuRequested(const QPoint &pos)
 			popup.addAction(QTStr("ShowInMultiview"));
 
 		OBSSource source = GetCurrentSceneSource();
-		OBSDataAutoRelease data =
+		OBSDataAutoRelease rls_data =
 			obs_source_get_private_settings(source);
 
-		obs_data_set_default_bool(data, "show_in_multiview", true);
-		bool show = obs_data_get_bool(data, "show_in_multiview");
+		obs_data_set_default_bool(rls_data, "show_in_multiview", true);
+		bool show = obs_data_get_bool(rls_data, "show_in_multiview");
 
 		multiviewAction->setCheckable(true);
 		multiviewAction->setChecked(show);
 
-		auto showInMultiview = [](OBSData data) {
+		auto showInMultiview = [](OBSData data_) {
 			bool show =
-				obs_data_get_bool(data, "show_in_multiview");
-			obs_data_set_bool(data, "show_in_multiview", !show);
+				obs_data_get_bool(data_, "show_in_multiview");
+			obs_data_set_bool(data_, "show_in_multiview", !show);
 			OBSProjector::UpdateMultiviewProjectors();
 		};
 
 		connect(multiviewAction, &QAction::triggered,
-			std::bind(showInMultiview, data.Get()));
+			std::bind(showInMultiview, rls_data.Get()));
 
 		copyFilters->setEnabled(obs_source_filter_count(source) > 0);
 	}
@@ -5418,8 +5421,7 @@ void OBSBasic::on_actionAddScene_triggered()
 
 	int i = 2;
 	QString placeHolderText = format.arg(i);
-	OBSSourceAutoRelease source = nullptr;
-	while ((source = obs_get_source_by_name(QT_TO_UTF8(placeHolderText)))) {
+	while (nullptr != obs_get_source_by_name(QT_TO_UTF8(placeHolderText))) {
 		placeHolderText = format.arg(++i);
 	}
 
@@ -5446,17 +5448,17 @@ void OBSBasic::on_actionAddScene_triggered()
 			return;
 		}
 
-		auto undo_fn = [](const std::string &data) {
-			obs_source_t *t = obs_get_source_by_name(data.c_str());
+		auto undo_fn = [](const std::string &str) {
+			obs_source_t *t = obs_get_source_by_name(str.c_str());
 			if (t) {
 				obs_source_remove(t);
 				obs_source_release(t);
 			}
 		};
 
-		auto redo_fn = [this](const std::string &data) {
+		auto redo_fn = [this](const std::string &str) {
 			OBSSceneAutoRelease scene =
-				obs_scene_create(data.c_str());
+				obs_scene_create(str.c_str());
 			obs_source_t *source = obs_scene_get_source(scene);
 			SetCurrentScene(source, true);
 		};
@@ -7404,10 +7406,10 @@ void OBSBasic::AutoRemux(QString input, bool no_show)
 		output += "mp4";
 	}
 
-	OBSRemux *remux = new OBSRemux(QT_TO_UTF8(path), this, true);
+	OBSRemux *new_remux = new OBSRemux(QT_TO_UTF8(path), this, true);
 	if (!no_show)
-		remux->show();
-	remux->AutoRemux(input, output);
+		new_remux->show();
+	new_remux->AutoRemux(input, output);
 }
 
 void OBSBasic::StartRecording()
@@ -7884,10 +7886,10 @@ void OBSBasic::on_streamButton_clicked()
 			return;
 		}
 
-		Auth *auth = GetAuth();
+		Auth *cur_auth = GetAuth();
 
 		auto action =
-			(auth && auth->external())
+			(cur_auth && cur_auth->external())
 				? StreamSettingsAction::ContinueStream
 				: UIValidation::StreamSettingsConfirmation(
 					  this, service);
@@ -7913,8 +7915,8 @@ void OBSBasic::on_streamButton_clicked()
 				obs_service_get_settings(service);
 			bwtest = obs_data_get_bool(settings, "bwtest");
 			// Disable confirmation if this is going to open broadcast setup
-			if (auth && auth->broadcastFlow() && !broadcastReady &&
-			    !broadcastActive)
+			if (cur_auth && cur_auth->broadcastFlow() &&
+			    !broadcastReady && !broadcastActive)
 				confirm = false;
 		}
 
@@ -8089,13 +8091,13 @@ void OBSBasic::on_preview_customContextMenuRequested()
 void OBSBasic::ProgramViewContextMenuRequested()
 {
 	QMenu popup(this);
-	QPointer<QMenu> studioProgramProjector;
+	QPointer<QMenu> new_projector;
 
-	studioProgramProjector = new QMenu(QTStr("StudioProgramProjector"));
-	AddProjectorMenuMonitors(studioProgramProjector, this,
+	new_projector = new QMenu(QTStr("StudioProgramProjector"));
+	AddProjectorMenuMonitors(new_projector, this,
 				 SLOT(OpenStudioProgramProjector()));
 
-	popup.addMenu(studioProgramProjector);
+	popup.addMenu(new_projector);
 
 	QAction *studioProgramWindow =
 		popup.addAction(QTStr("StudioProgramWindow"), this,
@@ -8339,11 +8341,11 @@ void OBSBasic::on_actionPasteTransform_triggered()
 {
 	OBSDataAutoRelease wrapper =
 		obs_scene_save_transform_states(GetCurrentScene(), false);
-	auto func = [](obs_scene_t *, obs_sceneitem_t *item, void *data) {
+	auto func = [](obs_scene_t *, obs_sceneitem_t *item, void *func_data) {
 		if (!obs_sceneitem_selected(item))
 			return true;
 
-		OBSBasic *main = reinterpret_cast<OBSBasic *>(data);
+		OBSBasic *main = reinterpret_cast<OBSBasic *>(func_data);
 
 		obs_sceneitem_defer_update_begin(item);
 		obs_sceneitem_set_info(item, &main->copiedTransformInfo);

@@ -595,7 +595,7 @@ static bool init_encoder_base(struct nvenc_data *enc, obs_data_t *settings,
 	enc->bframes = bf;
 
 	/* lookahead */
-	const bool use_profile_lookahead = config->rcParams.enableLookahead;
+	const bool use_profile_lookahead = (config->rcParams.enableLookahead != 0);
 	lookahead = nv_get_cap(enc, NV_ENC_CAPS_SUPPORT_LOOKAHEAD) &&
 		    (lookahead || use_profile_lookahead);
 	if (lookahead) {
@@ -622,7 +622,7 @@ static bool init_encoder_base(struct nvenc_data *enc, obs_data_t *settings,
 		if (lkd_bound >= 0) {
 			config->rcParams.enableLookahead = 1;
 			config->rcParams.lookaheadDepth =
-				max(enc->rc_lookahead, lkd_bound);
+				(uint16_t)max(enc->rc_lookahead, lkd_bound);
 			config->rcParams.disableIadapt = 0;
 			config->rcParams.disableBadapt = 0;
 		} else {
@@ -895,7 +895,6 @@ static bool init_encoder_hevc(struct nvenc_data *enc, obs_data_t *settings,
 static bool init_encoder_av1(struct nvenc_data *enc, obs_data_t *settings,
 			     int bf, bool compatibility)
 {
-	const char *rc = obs_data_get_string(settings, "rate_control");
 	int keyint_sec = (int)obs_data_get_int(settings, "keyint_sec");
 	bool lossless;
 
@@ -903,7 +902,6 @@ static bool init_encoder_av1(struct nvenc_data *enc, obs_data_t *settings,
 		return false;
 	}
 
-	NV_ENC_INITIALIZE_PARAMS *params = &enc->params;
 	NV_ENC_CONFIG *config = &enc->config;
 	NV_ENC_CONFIG_AV1 *av1_config = &config->encodeCodecConfig.av1Config;
 
@@ -1041,7 +1039,8 @@ static bool init_encoder(struct nvenc_data *enc, enum codec_type codec,
 		switch (voi->colorspace) {
 		case VIDEO_CS_2100_PQ:
 		case VIDEO_CS_2100_HLG:
-			NV_FAIL(obs_module_text("NVENC.8bitUnsupportedHdr"), NULL);
+			NV_FAIL(obs_module_text("NVENC.8bitUnsupportedHdr"),
+				NULL);
 			return false;
 		}
 	}
@@ -1194,8 +1193,6 @@ static void nvenc_destroy(void *data)
 	struct nvenc_data *enc = data;
 
 	if (enc->encode_started) {
-		size_t next_bitstream = enc->next_bitstream;
-
 		uint32_t struct_ver = enc->codec == CODEC_AV1
 					      ? NV_ENC_PIC_PARAMS_VER
 					      : NV_ENC_PIC_PARAMS_COMPAT_VER;
@@ -1368,7 +1365,6 @@ static bool nvenc_encode_tex(void *data, uint32_t handle, int64_t pts,
 			     bool *received_packet)
 {
 	struct nvenc_data *enc = data;
-	ID3D11Device *device = enc->device;
 	ID3D11DeviceContext *context = enc->context;
 	ID3D11Texture2D *input_tex;
 	ID3D11Texture2D *output_tex;

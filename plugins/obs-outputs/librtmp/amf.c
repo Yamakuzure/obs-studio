@@ -483,16 +483,13 @@ AMF3ReadString(const char *data, AVal *str)
         str->av_len = 0;
         return len;
     }
-    else
-    {
-        uint32_t nSize = (ref >> 1);
 
-        str->av_val = (char *)data;
-        str->av_len = nSize;
+    uint32_t nSize = (ref >> 1);
 
-        return len + nSize;
-    }
-    return len;
+    str->av_val = (char *)data;
+    str->av_len = nSize;
+
+    return len + nSize;
 }
 
 int
@@ -694,7 +691,7 @@ AMFProp_Decode(AMFObjectProperty *prop, const char *pBuffer, int nSize,
     }
     case AMF_OBJECT:
     {
-        int nRes = AMF_Decode(&prop->p_vu.p_object, pBuffer, nSize, TRUE);
+        nRes = AMF_Decode(&prop->p_vu.p_object, pBuffer, nSize, TRUE);
         if (nRes == -1)
             return -1;
         nSize -= nRes;
@@ -784,7 +781,7 @@ AMFProp_Decode(AMFObjectProperty *prop, const char *pBuffer, int nSize,
     }
     case AMF_AVMPLUS:
     {
-        int nRes = AMF3_Decode(&prop->p_vu.p_object, pBuffer, nSize, TRUE);
+        nRes = AMF3_Decode(&prop->p_vu.p_object, pBuffer, nSize, TRUE);
         if (nRes == -1)
             return -1;
         nSize -= nRes;
@@ -1161,7 +1158,7 @@ AMF3_Decode(AMFObject *obj, const char *pBuffer, int nSize, int bAMFData)
             }
             if (cd.cd_dynamic)
             {
-                int len = 0;
+                len = 0;
 
                 do
                 {

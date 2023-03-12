@@ -107,7 +107,7 @@ private:
 	QWidget *lastWidget = nullptr;
 	bool deferUpdate;
 
-	QWidget *NewWidget(obs_property_t *prop, QWidget *widget,
+	QWidget *NewWidget(obs_property_t *prop, QWidget *new_widget,
 			   const char *signal);
 
 	QWidget *AddCheckbox(obs_property_t *prop);

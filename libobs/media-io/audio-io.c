@@ -120,8 +120,8 @@ static inline void do_audio_output(struct audio_output *audio, size_t mix_idx,
 		float(*buf)[AUDIO_OUTPUT_FRAMES] =
 			input->conversion.allow_clipping ? mix->buffer_unclamped
 							 : mix->buffer;
-		for (size_t i = 0; i < audio->planes; i++)
-			data.data[i] = (uint8_t *)buf[i];
+		for (size_t j = 0; j < audio->planes; j++)
+			data.data[j] = (uint8_t *)buf[j];
 
 		data.frames = frames;
 		data.timestamp = timestamp;
@@ -299,9 +299,10 @@ static inline bool audio_input_init(struct audio_input *input,
 	return true;
 }
 
-WARN_UNUSED_RESULT bool audio_output_connect(audio_t *audio, size_t mi,
-			  const struct audio_convert_info *conversion,
-			  audio_output_callback_t callback, void *param)
+WARN_UNUSED_RESULT bool
+audio_output_connect(audio_t *audio, size_t mi,
+		     const struct audio_convert_info *conversion,
+		     audio_output_callback_t callback, void *param)
 {
 	bool success = false;
 

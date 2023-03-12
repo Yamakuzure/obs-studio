@@ -81,7 +81,7 @@ UINT gs_vertex_buffer::MakeBufferList(gs_vertex_shader *shader,
 }
 
 void gs_vertex_buffer::InitBuffer(const size_t elementSize,
-				  const size_t numVerts, void *array,
+				  const size_t numVerts_, void *array,
 				  ID3D11Buffer **buffer)
 {
 	D3D11_BUFFER_DESC bd;
@@ -94,7 +94,7 @@ void gs_vertex_buffer::InitBuffer(const size_t elementSize,
 	bd.Usage = dynamic ? D3D11_USAGE_DYNAMIC : D3D11_USAGE_DEFAULT;
 	bd.CPUAccessFlags = dynamic ? D3D11_CPU_ACCESS_WRITE : 0;
 	bd.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-	bd.ByteWidth = UINT(elementSize * numVerts);
+	bd.ByteWidth = UINT(elementSize * numVerts_);
 	srd.pSysMem = array;
 
 	hr = device->device->CreateBuffer(&bd, &srd, buffer);

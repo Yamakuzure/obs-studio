@@ -51,7 +51,7 @@ private slots:
 	void OpenFullScreenProjector();
 	void ResizeToContent();
 	void OpenWindowedProjector();
-	void AlwaysOnTopToggled(bool alwaysOnTop);
+	void AlwaysOnTopToggled(bool newAlwaysOnTop);
 	void ScreenRemoved(QScreen *screen_);
 
 public:
@@ -68,5 +68,5 @@ public:
 
 	bool IsAlwaysOnTop() const;
 	bool IsAlwaysOnTopOverridden() const;
-	void SetIsAlwaysOnTop(bool isAlwaysOnTop, bool isOverridden);
+	void SetIsAlwaysOnTop(bool newAlwaysOnTop, bool isOverridden);
 };

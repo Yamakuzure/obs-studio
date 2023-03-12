@@ -26,6 +26,9 @@
 #include <wscapi.h>
 #include <iwscapi.h>
 
+#ifdef _MSC_VER
+#pragma warning(disable : 4152) /* casting func ptr to void */
+#endif
 static uint32_t win_ver = 0;
 static uint32_t win_build = 0;
 

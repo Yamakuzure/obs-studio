@@ -7,8 +7,12 @@
 #include "../../../libobs/util/windows/obfuscate.h"
 #include "../inject-library.h"
 
-#if defined(_MSC_VER) && !defined(inline)
+#if defined(_MSC_VER)
+#if !defined(inline)
 #define inline __inline
+#endif // !inline
+/* conversion from data/function pointer */
+#pragma warning(disable : 4152)
 #endif
 
 static void load_debug_privilege(void)

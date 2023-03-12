@@ -110,8 +110,8 @@ CaptionsDialog::CaptionsDialog(QWidget *parent)
 	ui->source->addItem(QStringLiteral(""));
 	ui->source->setCurrentIndex(0);
 	obs_enum_sources(
-		[](void *data, obs_source_t *source) {
-			return (*static_cast<cb_t *>(data))(source);
+		[](void *data_, obs_source_t *source) {
+			return (*static_cast<cb_t *>(data_))(source);
 		},
 		&cb);
 	ui->source->blockSignals(false);
@@ -137,7 +137,7 @@ CaptionsDialog::CaptionsDialog(QWidget *parent)
 	bool set_language = false;
 
 	ui->language->blockSignals(true);
-	for (int idx = 0; idx < (int)locales.size(); idx++) {
+	for (idx = 0; idx < (int)locales.size(); idx++) {
 		locale_info &locale = locales[idx];
 
 		ui->language->addItem(locale.name->array, (int)locale.id);
@@ -263,8 +263,8 @@ void obs_captions::start()
 		for (size_t i = 0; i < len; i++)
 			lang_name[i] = (char)wname[i];
 
-		OBSSource s = OBSGetStrongRef(source);
-		if (!s) {
+		OBSSource src = OBSGetStrongRef(source);
+		if (!src) {
 			warn("Source invalid");
 			return;
 		}
@@ -274,9 +274,8 @@ void obs_captions::start()
 				pair->second.create(caption_text, lang_name);
 			handler.reset(h);
 
-			OBSSource s = OBSGetStrongRef(source);
-			obs_source_add_audio_capture_callback(s, audio_capture,
-							      nullptr);
+			obs_source_add_audio_capture_callback(
+				src, audio_capture, nullptr);
 
 		} catch (std::string text) {
 			QWidget *window =

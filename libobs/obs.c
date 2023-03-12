@@ -23,6 +23,11 @@
 #include "obs.h"
 #include "obs-internal.h"
 
+#ifdef _MSC_VER
+/* conversion from data/function pointer */
+#pragma warning(disable : 4152)
+#endif
+
 struct obs_core *obs = NULL;
 
 static THREAD_LOCAL bool is_ui_thread = false;

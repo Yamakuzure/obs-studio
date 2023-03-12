@@ -20,6 +20,10 @@
 #include "../util/platform.h"
 #include "graphics-internal.h"
 
+#ifdef _MSC_VER
+#pragma warning(disable : 4152) /* casting func ptr to void */
+#endif
+
 #define GRAPHICS_IMPORT(func)                                     \
 	do {                                                      \
 		exports->func = os_dlsym(module, #func);          \

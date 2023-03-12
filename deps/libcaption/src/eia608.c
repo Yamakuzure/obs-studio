@@ -97,9 +97,9 @@ uint16_t eia608_control_command(eia608_control_t cmd, int cc)
     uint16_t f = (cc & 0x02) ? 0x0100 : 0x0000;
 
     if (eia608_tab_offset_0 == (eia608_control_t)(cmd & 0xFFC0)) {
-        return (eia608_control_t)eia608_parity(cmd | c);
+        return (uint16_t)((eia608_control_t)eia608_parity((uint16_t)cmd | c));
     } else {
-        return (eia608_control_t)eia608_parity(cmd | c | f);
+        return (uint16_t)((eia608_control_t)eia608_parity((uint16_t)cmd | c | f));
     }
 }
 ////////////////////////////////////////////////////////////////////////////////

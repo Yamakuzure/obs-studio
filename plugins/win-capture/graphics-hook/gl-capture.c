@@ -861,10 +861,10 @@ bool hook_gl(void)
 
 	/* "life is feudal: your own" somehow uses both opengl and directx at
 	 * the same time, so blacklist it from capturing opengl */
-	const char *process_name = get_process_name();
-	if (_strcmpi(process_name, "yo_cm_client.exe") == 0 ||
-	    _strcmpi(process_name, "cm_client.exe") == 0) {
-		hlog("Ignoring opengl for game: %s", process_name);
+	const char *proc_name = get_process_name();
+	if (_strcmpi(proc_name, "yo_cm_client.exe") == 0 ||
+	    _strcmpi(proc_name, "cm_client.exe") == 0) {
+		hlog("Ignoring opengl for game: %s", proc_name);
 		return true;
 	}
 

@@ -12,6 +12,10 @@ MODULE_EXPORT const char *obs_module_description(void)
 	return "VLC playlist source";
 }
 
+#ifdef _MSC_VER
+#pragma warning(disable : 4152) /* casting func ptr to void */
+#endif
+
 /* libvlc core */
 LIBVLC_NEW libvlc_new_;
 LIBVLC_RELEASE libvlc_release_;

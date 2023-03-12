@@ -82,8 +82,6 @@ static size_t _copy_to_rbsp(uint8_t* destData, size_t destSize, const uint8_t* s
         sorcData += toCopy + 1;
         sorcSize -= toCopy + 1;
     }
-
-    return 0;
 }
 ////////////////////////////////////////////////////////////////////////////////
 static inline size_t _find_emulated(uint8_t* data, size_t size)
@@ -285,7 +283,7 @@ size_t sei_render(sei_t* sei, uint8_t* data)
             payloadType -= 255;
         }
 
-        (*data) = payloadType;
+        (*data) = (uint8_t)payloadType;
         ++data;
         ++size;
 
@@ -296,7 +294,7 @@ size_t sei_render(sei_t* sei, uint8_t* data)
             payloadSize -= 255;
         }
 
-        (*data) = payloadSize;
+        (*data) = (uint8_t)payloadSize;
         ++data;
         ++size;
 

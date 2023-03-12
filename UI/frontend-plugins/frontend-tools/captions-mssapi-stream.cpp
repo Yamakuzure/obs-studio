@@ -342,18 +342,18 @@ STDMETHODIMP CaptionStream::GetBufferInfo(SPAUDIOBUFFERINFO *buf_info_)
 	return S_OK;
 }
 
-STDMETHODIMP CaptionStream::GetDefaultFormat(GUID *format,
+STDMETHODIMP CaptionStream::GetDefaultFormat(GUID *default_format,
 					     WAVEFORMATEX **co_mem_wfex_out)
 {
-	debugfunc("format, co_mem_wfex_out");
+	debugfunc("default_format, co_mem_wfex_out");
 
-	if (!format || !co_mem_wfex_out)
+	if (!default_format || !co_mem_wfex_out)
 		return E_POINTER;
 
-	void *wfex = CoTaskMemAlloc(sizeof(format));
-	memcpy(wfex, &format, sizeof(format));
+	void *wfex = CoTaskMemAlloc(sizeof(default_format));
+	memcpy(wfex, &default_format, sizeof(default_format));
 
-	*format = SPDFID_WaveFormatEx;
+	*default_format = SPDFID_WaveFormatEx;
 	*co_mem_wfex_out = (WAVEFORMATEX *)wfex;
 	return S_OK;
 }

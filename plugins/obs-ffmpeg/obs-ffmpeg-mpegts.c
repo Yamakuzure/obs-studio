@@ -451,7 +451,7 @@ static inline int open_output_file(struct ffmpeg_output *stream,
 	 * These options will be passed to protocol by avio_open2 through dict.
 	 * The invalid options will be left in dict. */
 	if (!rist && !srt) {
-		if ((ret = av_dict_parse_string(&dict,
+		if (0 != (ret = av_dict_parse_string(&dict,
 						data->config.protocol_settings,
 						"=", " ", 0))) {
 			ffmpeg_mpegts_log_error(
@@ -468,7 +468,7 @@ static inline int open_output_file(struct ffmpeg_output *stream,
 			struct dstr str = {0};
 
 			AVDictionaryEntry *entry = NULL;
-			while ((entry = av_dict_get(dict, "", entry,
+			while (NULL != (entry = av_dict_get(dict, "", entry,
 						    AV_DICT_IGNORE_SUFFIX)))
 				dstr_catf(&str, "\n\t%s=%s", entry->key,
 					  entry->value);
@@ -520,7 +520,7 @@ static inline int open_output_file(struct ffmpeg_output *stream,
 			struct dstr str = {0};
 
 			AVDictionaryEntry *entry = NULL;
-			while ((entry = av_dict_get(dict, "", entry,
+			while (NULL != (entry = av_dict_get(dict, "", entry,
 						    AV_DICT_IGNORE_SUFFIX)))
 				dstr_catf(&str, "\n\t%s=%s", entry->key,
 					  entry->value);
@@ -1188,7 +1188,7 @@ static bool write_header(struct ffmpeg_output *stream, struct ffmpeg_data *data)
 	AVDictionary *dict = NULL;
 	int ret;
 	/* get mpegts muxer settings (can be used with rist, srt, rtp, etc ... */
-	if ((ret = av_dict_parse_string(&dict, data->config.muxer_settings, "=",
+	if (0 != (ret = av_dict_parse_string(&dict, data->config.muxer_settings, "=",
 					" ", 0))) {
 		ffmpeg_mpegts_log_error(
 			LOG_WARNING, data,
@@ -1203,7 +1203,7 @@ static bool write_header(struct ffmpeg_output *stream, struct ffmpeg_data *data)
 		struct dstr str = {0};
 
 		AVDictionaryEntry *entry = NULL;
-		while ((entry = av_dict_get(dict, "", entry,
+		while (NULL != (entry = av_dict_get(dict, "", entry,
 					    AV_DICT_IGNORE_SUFFIX)))
 			dstr_catf(&str, "\n\t%s=%s", entry->key, entry->value);
 
@@ -1226,7 +1226,7 @@ static bool write_header(struct ffmpeg_output *stream, struct ffmpeg_data *data)
 		struct dstr str = {0};
 
 		AVDictionaryEntry *entry = NULL;
-		while ((entry = av_dict_get(dict, "", entry,
+		while (NULL != (entry = av_dict_get(dict, "", entry,
 					    AV_DICT_IGNORE_SUFFIX)))
 			dstr_catf(&str, "\n\t%s=%s", entry->key, entry->value);
 

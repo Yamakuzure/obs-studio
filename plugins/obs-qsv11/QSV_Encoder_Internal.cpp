@@ -530,8 +530,8 @@ mfxStatus QSV_Encoder_Internal::GetVideoParam(enum qsv_codec codec)
 	opt.Header.BufferId = MFX_EXTBUFF_CODING_OPTION_SPSPPS;
 	opt.Header.BufferSz = sizeof(mfxExtCodingOptionSPSPPS);
 
-	std::vector<mfxExtBuffer *> extendedBuffers;
-	extendedBuffers.reserve(2);
+	std::vector<mfxExtBuffer *> extBuffers;
+	extBuffers.reserve(2);
 
 	opt.SPSBuffer = m_SPSBuffer;
 	opt.PPSBuffer = m_PPSBuffer;
@@ -545,13 +545,13 @@ mfxStatus QSV_Encoder_Internal::GetVideoParam(enum qsv_codec codec)
 		opt_vps.VPSBuffer = m_VPSBuffer;
 		opt_vps.VPSBufSize = 1024;
 
-		extendedBuffers.push_back((mfxExtBuffer *)&opt_vps);
+		extBuffers.push_back((mfxExtBuffer *)&opt_vps);
 	}
 
-	extendedBuffers.push_back((mfxExtBuffer *)&opt);
+	extBuffers.push_back((mfxExtBuffer *)&opt);
 
-	m_parameter.ExtParam = extendedBuffers.data();
-	m_parameter.NumExtParam = (mfxU16)extendedBuffers.size();
+	m_parameter.ExtParam = extBuffers.data();
+	m_parameter.NumExtParam = (mfxU16)extBuffers.size();
 
 	mfxStatus sts = m_pmfxENC->GetVideoParam(&m_parameter);
 	MSDK_CHECK_RESULT(sts, MFX_ERR_NONE, sts);

@@ -434,8 +434,8 @@ static inline bool open_output_file(struct ffmpeg_data *data)
 	int ret;
 
 	AVDictionary *dict = NULL;
-	if ((ret = av_dict_parse_string(&dict, data->config.muxer_settings, "=",
-					" ", 0))) {
+	if (0 != (ret = av_dict_parse_string(&dict, data->config.muxer_settings,
+					     "=", " ", 0))) {
 		ffmpeg_log_error(LOG_WARNING, data,
 				 "Failed to parse muxer settings: %s\n%s",
 				 av_err2str(ret), data->config.muxer_settings);
@@ -448,8 +448,8 @@ static inline bool open_output_file(struct ffmpeg_data *data)
 		struct dstr str = {0};
 
 		AVDictionaryEntry *entry = NULL;
-		while ((entry = av_dict_get(dict, "", entry,
-					    AV_DICT_IGNORE_SUFFIX)))
+		while (NULL != (entry = av_dict_get(dict, "", entry,
+						 AV_DICT_IGNORE_SUFFIX)))
 			dstr_catf(&str, "\n\t%s=%s", entry->key, entry->value);
 
 		blog(LOG_INFO, "Using muxer settings: %s", str.array);
@@ -479,8 +479,8 @@ static inline bool open_output_file(struct ffmpeg_data *data)
 		struct dstr str = {0};
 
 		AVDictionaryEntry *entry = NULL;
-		while ((entry = av_dict_get(dict, "", entry,
-					    AV_DICT_IGNORE_SUFFIX)))
+		while (NULL != (entry = av_dict_get(dict, "", entry,
+						 AV_DICT_IGNORE_SUFFIX)))
 			dstr_catf(&str, "\n\t%s=%s", entry->key, entry->value);
 
 		blog(LOG_INFO, "Invalid muxer settings: %s", str.array);
@@ -986,7 +986,8 @@ static void receive_audio(void *param, size_t mix_idx, struct audio_data *frame)
 		circlebuf_push_back(&data->excess_frames[track_order][i],
 				    in.data[i], in.frames * data->audio_size);
 
-	while (cb_get_size(data->excess_frames[track_order][0]) >= frame_size_bytes) {
+	while (cb_get_size(data->excess_frames[track_order][0]) >=
+	       frame_size_bytes) {
 		for (size_t i = 0; i < data->audio_planes; i++)
 			circlebuf_pop_front(
 				&data->excess_frames[track_order][i],
