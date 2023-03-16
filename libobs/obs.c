@@ -1872,6 +1872,7 @@ void obs_set_output_source(uint32_t channel, obs_source_t *source)
 	struct obs_view *view = &obs->data.main_view;
 	struct calldata params = {0};
 
+	debug_log("locking channels_mutex ...");
 	pthread_mutex_lock(&view->channels_mutex);
 
 	source = obs_source_get_ref(source);
@@ -1887,6 +1888,7 @@ void obs_set_output_source(uint32_t channel, obs_source_t *source)
 
 	view->channels[channel] = source;
 
+	debug_log("unlocking channels_mutex ...");
 	pthread_mutex_unlock(&view->channels_mutex);
 
 	if (source)

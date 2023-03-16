@@ -1203,6 +1203,7 @@ static void *replay_buffer_mux_thread(void *data)
 	struct ffmpeg_muxer *stream = data;
 	bool error = false;
 
+	debug_log("call start_pipe()");
 	start_pipe(stream, stream->path.array);
 
 	if (!stream->pipe) {
@@ -1219,6 +1220,8 @@ static void *replay_buffer_mux_thread(void *data)
 		goto error;
 	}
 
+	debug_log("call write_packet() on %zd packets",
+		  stream->mux_packets.num);
 	for (size_t i = 0; i < stream->mux_packets.num; i++) {
 		struct encoder_packet *pkt = &stream->mux_packets.array[i];
 		if (!write_packet(stream, pkt)) {
