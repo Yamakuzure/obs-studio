@@ -370,8 +370,7 @@ obs_source_create_internal(const char *id, const char *name, const char *uuid,
 		 *
 		 * XXX: Fix design flaws with filters */
 		if (info->type == OBS_SOURCE_TYPE_FILTER)
-		private
-		= true;
+		private = true;
 	}
 
 	source->mute_unmute_key = OBS_INVALID_HOTKEY_PAIR_ID;
@@ -680,10 +679,14 @@ void obs_source_destroy(struct obs_source *source)
 				 (os_task_t)obs_source_destroy_defer, source);
 }
 
-#define PTHREAD_MUTEX_DESTROY_SAFE(m) { \
-	pthread_mutex_lock(&(m));       \
-	pthread_mutex_unlock(&(m));     \
-	pthread_mutex_destroy(&(m));  } do {} while(0)
+#define PTHREAD_MUTEX_DESTROY_SAFE(m)        \
+	{                                    \
+		pthread_mutex_lock(&(m));    \
+		pthread_mutex_unlock(&(m));  \
+		pthread_mutex_destroy(&(m)); \
+	}                                    \
+	do {                                 \
+	} while (0)
 
 static void obs_source_destroy_defer(struct obs_source *source)
 {
@@ -1358,8 +1361,9 @@ static void reset_audio_data(obs_source_t *source, uint64_t os_time)
 {
 	for (size_t i = 0; i < MAX_AUDIO_CHANNELS; i++) {
 		if (cb_get_size(source->audio_input_buf[i]))
-			circlebuf_pop_front(&source->audio_input_buf[i], NULL,
-					    cb_get_size(source->audio_input_buf[i]));
+			circlebuf_pop_front(
+				&source->audio_input_buf[i], NULL,
+				cb_get_size(source->audio_input_buf[i]));
 	}
 
 	source->last_audio_input_buf_size = 0;
@@ -5208,7 +5212,7 @@ static void source_signal_push_to_delay(obs_source_t *source,
 
 	calldata_init_fixed(&data, stack, sizeof(stack));
 	calldata_set_ptr(&data, "source", source);
-	calldata_set_int(&data, "delay", delay);
+	calldata_set_int(&data, "delay", (int64_t)(delay));
 
 	signal_handler_signal(source->context.signals, signal, &data);
 }

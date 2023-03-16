@@ -131,7 +131,8 @@ void obs_output_signal_delay(obs_output_t *output, const char *signal)
 
 	calldata_init_fixed(&params, stack, sizeof(stack));
 	calldata_set_ptr(&params, "output", output);
-	calldata_set_int(&params, "sec", output->active_delay_ns / 1000000000);
+	calldata_set_int(&params, "sec",
+			 (int64_t)(output->active_delay_ns / 1000000000));
 	signal_handler_signal(output->context.signals, signal, &params);
 }
 
