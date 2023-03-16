@@ -1,3 +1,4 @@
+#include <util/base.h>
 #include <util/threading.h>
 #include <opts-parser.h>
 #include <obs-module.h>

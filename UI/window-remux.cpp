@@ -15,6 +15,8 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ******************************************************************************/
 
+#include <util/base.h>
+
 #include "window-remux.hpp"
 
 #include "obs-app.hpp"
