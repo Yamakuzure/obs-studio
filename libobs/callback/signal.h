@@ -78,6 +78,35 @@ EXPORT void signal_handler_remove_current(void);
 EXPORT void signal_handler_signal(signal_handler_t *handler, const char *signal,
 				  calldata_t *params);
 
+#if defined(_DEBUG) && !defined(IS_SIGNAL_C_IMPL)
+#define signal_handler_connect(HANDLER_, SIGNAL_, CALLBACK_, DATA_)          \
+	{                                                                    \
+		debug_log("connecting signal '%s'",                          \
+			  (SIGNAL_ ? SIGNAL_ : "NULL"));                     \
+		signal_handler_connect(HANDLER_, SIGNAL_, CALLBACK_, DATA_); \
+	}
+#define signal_handler_connect_ref(HANDLER_, SIGNAL_, CALLBACK_, DATA_)  \
+	{                                                                \
+		debug_log("connecting signal reference '%s'",            \
+			  (SIGNAL_ ? SIGNAL_ : "NULL"));                 \
+		signal_handler_connect_ref(HANDLER_, SIGNAL_, CALLBACK_, \
+					   DATA_);                       \
+	}
+#define signal_handler_disconnect(HANDLER_, SIGNAL_, CALLBACK_, DATA_)  \
+	{                                                               \
+		debug_log("disconnecting signal '%s'",                  \
+			  (SIGNAL_ ? SIGNAL_ : "NULL"));                \
+		signal_handler_disconnect(HANDLER_, SIGNAL_, CALLBACK_, \
+					  DATA_);                       \
+	}
+#define signal_handler_signal(HANDLER_, SIGNAL_, PARAMS_)          \
+	{                                                          \
+		debug_log("sending signal '%s'",                   \
+			  (SIGNAL_ ? SIGNAL_ : "NULL"));           \
+		signal_handler_signal(HANDLER_, SIGNAL_, PARAMS_); \
+	}
+#endif // _DEBUG
+
 #ifdef __cplusplus
 }
 #endif

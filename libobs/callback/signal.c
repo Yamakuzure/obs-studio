@@ -17,6 +17,7 @@
 #include "../util/darray.h"
 #include "../util/threading.h"
 
+#define IS_SIGNAL_C_IMPL 1
 #include "decl.h"
 #include "signal.h"
 
@@ -292,6 +293,8 @@ static THREAD_LOCAL struct global_callback_info *current_global_cb = NULL;
 
 void signal_handler_remove_current(void)
 {
+	debug_log("Called with %p current and %p global callback",
+		  current_signal_cb, current_global_cb);
 	if (current_signal_cb)
 		current_signal_cb->remove = true;
 	else if (current_global_cb)
@@ -304,7 +307,8 @@ void signal_handler_signal(signal_handler_t *handler, const char *signal,
 	struct signal_info *sig = getsignal_locked(handler, signal);
 	long remove_refs = 0;
 
-	if (!sig)
+	if (!((sig && (sig->callbacks.num > 0)) ||
+	      (handler && (handler->global_callbacks.num > 0))))
 		return;
 
 	debug_log(
