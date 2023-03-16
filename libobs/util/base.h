@@ -96,6 +96,99 @@ EXPORT char const *obs_internal_location_info(char const *path, size_t line,
 						 __func__),          \
 		      ##__VA_ARGS__)
 #define debug_log(FMT_, ...) blog(LOG_DEBUG, "[debug] " FMT_, ##__VA_ARGS__)
+//--- let's make mutex handling transparent ---
+#if defined(PTHREAD_H) || defined(_PTHREAD_H)
+#if defined(__GNUC__)
+// === Very good, we can use GNU extensions like braced groups in assignments.
+#define pthread_mutex_init(MUTEX_, MUTEXATTR_)                     \
+	({                                                         \
+		debug_log("[MUTEX] Initialize '%s'", #MUTEX_);     \
+		int ret_ = pthread_mutex_init(MUTEX_, MUTEXATTR_); \
+		ret_;                                              \
+	})
+#define pthread_mutex_destroy(MUTEX_)                       \
+	({                                                  \
+		debug_log("[MUTEX] Destroy '%s'", #MUTEX_); \
+		int ret_ = pthread_mutex_destroy(MUTEX_);   \
+		ret_;                                       \
+	})
+#define pthread_mutex_trylock(MUTEX_)                           \
+	({                                                      \
+		debug_log("[MUTEX] Try To Lock '%s'", #MUTEX_); \
+		int ret_ = pthread_mutex_trylock(MUTEX_);       \
+		ret_;                                           \
+	})
+#define pthread_mutex_lock(MUTEX_)                       \
+	({                                               \
+		debug_log("[MUTEX] Lock '%s'", #MUTEX_); \
+		int ret_ = pthread_mutex_lock(MUTEX_);   \
+		ret_;                                    \
+	})
+#define pthread_mutex_unlock(MUTEX_)                       \
+	({                                                 \
+		debug_log("[MUTEX] Unlock '%s'", #MUTEX_); \
+		int ret_ = pthread_mutex_unlock(MUTEX_);   \
+		ret_;                                      \
+	})
+#else // __GNUC__
+// === Without GNU extensions we need a more complex path...
+#define debug_log_there(FILE_, LINE_, FUNC_, FMT_, ...)                \
+	blog_internal(LOG_DEBUG, "[debug] %s: " FMT_,                  \
+		      obs_internal_location_info(FILE_, LINE_, FUNC_), \
+		      ##__VA_ARGS__)
+static int pthread_mutex_init_debug_(char const *path, size_t line,
+				     char const *func, char const *what,
+				     pthread_mutex_t *mutex,
+				     const pthread_mutexattr_t *attr)
+{
+	debug_log_there(path, line, func, "[MUTEX] Initialize '%s'", what);
+	return pthread_mutex_init(mutex, attr);
+}
+#define pthread_mutex_init(MUTEX_, MUTEXATTR_)                           \
+	pthread_mutex_init_debug_(__FILE__, __LINE__, __func__, #MUTEX_, \
+				  MUTEX_, MUTEXATTR_)
+static int pthread_mutex_destroy_debug_(char const *path, size_t line,
+					char const *func, char const *what,
+					pthread_mutex_t *mutex)
+{
+	debug_log_there(path, line, func, "[MUTEX] Destroy '%s'", what);
+	return pthread_mutex_destroy(mutex);
+}
+#define pthread_mutex_destroy(MUTEX_)                                       \
+	pthread_mutex_destroy_debug_(__FILE__, __LINE__, __func__, #MUTEX_, \
+				     MUTEX_)
+static int pthread_mutex_trylock_debug_(char const *path, size_t line,
+					char const *func, char const *what,
+					pthread_mutex_t *mutex)
+{
+	debug_log_there(path, line, func, "[MUTEX] Try To Lock '%s'", what);
+	return pthread_mutex_trylock(mutex);
+}
+#define pthread_mutex_trylock(MUTEX_)                                       \
+	pthread_mutex_trylock_debug_(__FILE__, __LINE__, __func__, #MUTEX_, \
+				     MUTEX_)
+static int pthread_mutex_lock_debug_(char const *path, size_t line,
+				     char const *func, char const *what,
+				     pthread_mutex_t *mutex)
+{
+	debug_log_there(path, line, func, "[MUTEX] Lock '%s'", what);
+	return pthread_mutex_lock(mutex);
+}
+#define pthread_mutex_lock(MUTEX_) \
+	pthread_mutex_lock_debug_(__FILE__, __LINE__, __func__, #MUTEX_, MUTEX_)
+static int pthread_mutex_unlock_debug_(char const *path, size_t line,
+				       char const *func, char const *what,
+				       pthread_mutex_t *mutex)
+{
+	debug_log_there(path, line, func, "[MUTEX] Try To Lock '%s'", what);
+	return pthread_mutex_unlock(mutex);
+}
+#define pthread_mutex_unlock(MUTEX_)                                       \
+	pthread_mutex_unlock_debug_(__FILE__, __LINE__, __func__, #MUTEX_, \
+				    MUTEX_)
+#endif // __GNUC__
+#endif // PTHREAD_H || _PTHREAD_H
+//---------------------------------------------
 #else
 #define blog(L_LEVEL_, FMT_, ...) blog_internal(L_LEVEL_, FMT_, ##__VA_ARGS__)
 #define debug_log(FMT_, ...) \

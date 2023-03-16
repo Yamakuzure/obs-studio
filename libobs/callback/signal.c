@@ -317,7 +317,6 @@ void signal_handler_signal(signal_handler_t *handler, const char *signal,
 
 	// Note: As long as darray::num is atomic, we can check it prior locking
 	if (sig->callbacks.num > 0) {
-		debug_log("locking sig->mutex ...");
 		pthread_mutex_lock(&sig->mutex);
 		sig->signalling = true;
 
@@ -351,12 +350,10 @@ void signal_handler_signal(signal_handler_t *handler, const char *signal,
 		}
 
 		sig->signalling = false;
-		debug_log("unlocking sig->mutex ...");
 		pthread_mutex_unlock(&sig->mutex);
 	}
 
 	if (handler->global_callbacks.num > 0) {
-		debug_log("locking handler->global_callbacks_mutex ...");
 		pthread_mutex_lock(&handler->global_callbacks_mutex);
 
 		debug_log(
@@ -396,7 +393,6 @@ void signal_handler_signal(signal_handler_t *handler, const char *signal,
 				da_erase(handler->global_callbacks, i - 1);
 		}
 
-		debug_log("unlocking handler->global_callbacks_mutex ...");
 		pthread_mutex_unlock(&handler->global_callbacks_mutex);
 	}
 

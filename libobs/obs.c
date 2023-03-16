@@ -1872,7 +1872,6 @@ void obs_set_output_source(uint32_t channel, obs_source_t *source)
 	struct obs_view *view = &obs->data.main_view;
 	struct calldata params = {0};
 
-	debug_log("locking channels_mutex ...");
 	pthread_mutex_lock(&view->channels_mutex);
 
 	source = obs_source_get_ref(source);
@@ -1888,7 +1887,6 @@ void obs_set_output_source(uint32_t channel, obs_source_t *source)
 
 	view->channels[channel] = source;
 
-	debug_log("unlocking channels_mutex ...");
 	pthread_mutex_unlock(&view->channels_mutex);
 
 	if (source)
@@ -3233,8 +3231,6 @@ WARN_UNUSED_RESULT bool start_gpu_encode(obs_encoder_t *encoder)
 	debug_log("call obs_enter_graphics() (video is: %p)", video);
 	obs_enter_graphics();
 
-	debug_log("Locking gpu_encoder_mutex (Num: %zu)",
-		  video->gpu_encoders.num);
 	pthread_mutex_lock(&video->gpu_encoder_mutex);
 
 	if (!video->gpu_encoders.num) {
@@ -3249,7 +3245,6 @@ WARN_UNUSED_RESULT bool start_gpu_encode(obs_encoder_t *encoder)
 		free_gpu_encoding(video);
 	}
 
-	debug_log("Unlocking gpu_encoder_mutex");
 	pthread_mutex_unlock(&video->gpu_encoder_mutex);
 	debug_log("call obs_leave_graphics() (video is: %p)", video);
 	obs_leave_graphics();

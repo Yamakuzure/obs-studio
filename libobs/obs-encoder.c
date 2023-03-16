@@ -591,7 +591,6 @@ static inline WARN_UNUSED_RESULT bool obs_encoder_start_internal(
 		return false;
 	}
 
-	debug_log("Locking encoder %s callbacks_mutex", enc_name);
 	pthread_mutex_lock(&encoder->callbacks_mutex);
 
 	first = (encoder->callbacks.num == 0);
@@ -608,7 +607,6 @@ static inline WARN_UNUSED_RESULT bool obs_encoder_start_internal(
 #endif // _DEBUG
 	}
 
-	debug_log("Unlocking encoder %s callbacks_mutex", enc_name);
 	pthread_mutex_unlock(&encoder->callbacks_mutex);
 
 	if (first) {
@@ -642,12 +640,8 @@ WARN_UNUSED_RESULT bool obs_encoder_start(obs_encoder_t *encoder,
 		return false;
 	}
 
-	debug_log("Locking encoder %s init_mutex",
-		  encoder->info.get_name(NULL));
 	pthread_mutex_lock(&encoder->init_mutex);
 	success = obs_encoder_start_internal(encoder, new_packet, param);
-	debug_log("Unlocking encoder %s init_mutex",
-		  encoder->info.get_name(NULL));
 	pthread_mutex_unlock(&encoder->init_mutex);
 
 	debug_log("starting encoder %s %s", encoder->info.get_name(NULL), success ? "succeeded." : "FAILED!");
@@ -1010,7 +1004,6 @@ void full_stop(struct obs_encoder *encoder)
 #if defined(_DEBUG)
 		char const *enc_name = encoder->info.get_name(NULL);
 #endif // _DEBUG
-		debug_log("Locking encoder %s outputs_mutex", enc_name);
 		pthread_mutex_lock(&encoder->outputs_mutex);
 		debug_log("Stopping encoder %s with %zu outputs ", enc_name,
 			  encoder->outputs.num);
@@ -1020,25 +1013,18 @@ void full_stop(struct obs_encoder *encoder)
 			struct obs_output *output = encoder->outputs.array[i];
 			obs_output_force_stop(output);
 
-			debug_log("Locking encoder %s interleaved_mutex",
-				  enc_name);
 			pthread_mutex_lock(&output->interleaved_mutex);
 			debug_log(
 				"Sending encoder %s a NULL interleaved packet",
 				enc_name);
 			output->info.encoded_packet(output->context.data, NULL);
-			debug_log("Unlocking encoder %s interleaved_mutex!",
-				  enc_name);
 			pthread_mutex_unlock(&output->interleaved_mutex);
 		}
-		debug_log("Unlocking encoder %s outputs_mutex!", enc_name);
 		pthread_mutex_unlock(&encoder->outputs_mutex);
 
-		debug_log("Locking encoder %s callbacks_mutex", enc_name);
 		pthread_mutex_lock(&encoder->callbacks_mutex);
 		debug_log("Freeing encoder %s callbacks", enc_name);
 		da_free(encoder->callbacks);
-		debug_log("Unlocking encoder %s callbacks_mutex!", enc_name);
 		pthread_mutex_unlock(&encoder->callbacks_mutex);
 
 		debug_log("Removing encoder %s connections", enc_name);
