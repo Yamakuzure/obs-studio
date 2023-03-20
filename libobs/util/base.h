@@ -189,7 +189,7 @@ static int pthread_mutex_unlock_debug_(char const *path, size_t line,
 				       char const *func, char const *what,
 				       pthread_mutex_t *mutex)
 {
-	debug_log_there(path, line, func, "[MUTEX] Try To Lock '%s': %zu", what,
+	debug_log_there(path, line, func, "[MUTEX] Unlock '%s': %zu", what,
 			CURRENT_THREAD_ID);
 	return pthread_mutex_unlock(mutex);
 }
