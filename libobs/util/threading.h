@@ -98,6 +98,16 @@ EXPORT void os_set_thread_name(const char *name);
 #define THREAD_LOCAL __thread
 #endif
 
+// --- use this to ensure that a mutex is not locked when destroyed ---
+#define PTHREAD_MUTEX_DESTROY_SAFE(m)        \
+	{                                    \
+		pthread_mutex_lock(&(m));    \
+		pthread_mutex_unlock(&(m));  \
+		pthread_mutex_destroy(&(m)); \
+	}                                    \
+	do {                                 \
+	} while (0)
+
 #ifdef __cplusplus
 }
 #endif

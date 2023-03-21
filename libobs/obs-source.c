@@ -679,15 +679,6 @@ void obs_source_destroy(struct obs_source *source)
 				 (os_task_t)obs_source_destroy_defer, source);
 }
 
-#define PTHREAD_MUTEX_DESTROY_SAFE(m)        \
-	{                                    \
-		pthread_mutex_lock(&(m));    \
-		pthread_mutex_unlock(&(m));  \
-		pthread_mutex_destroy(&(m)); \
-	}                                    \
-	do {                                 \
-	} while (0)
-
 static void obs_source_destroy_defer(struct obs_source *source)
 {
 	size_t i;

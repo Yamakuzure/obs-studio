@@ -25,12 +25,10 @@
 #include <libavformat/avformat.h>
 
 #if defined(_DEBUG)
-#ifdef _WIN32
-static __declspec(thread) volatile bool stream_is_active = false;
-#else
+#ifndef _WIN32
 #include <threads.h>
-static thread_local volatile bool stream_is_active = false;
-#endif // _WIN32
+#endif // !_WIN32
+static THREAD_LOCAL volatile bool stream_is_active = false;
 #endif // _DEBUG
 
 #define do_log(level, format, ...)                  \

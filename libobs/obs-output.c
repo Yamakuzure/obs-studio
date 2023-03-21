@@ -31,14 +31,11 @@
 #define RECONNECT_RETRY_BASE_EXP 1.5f
 
 #if defined(_DEBUG)
-#ifdef _WIN32
-static __declspec(thread) volatile bool interleave_stall_reported = false;
-static __declspec(thread) volatile bool output_is_active = false;
-#else
+#ifndef _WIN32
 #include <threads.h>
-static thread_local volatile bool interleave_stall_reported = false;
-static thread_local volatile bool output_is_active = false;
-#endif // _WIN32
+#endif // !_WIN32
+static THREAD_LOCAL volatile bool interleave_stall_reported = false;
+static THREAD_LOCAL volatile bool output_is_active = false;
 #endif // _DEBUG
 
 static inline bool active(const struct obs_output *output)
