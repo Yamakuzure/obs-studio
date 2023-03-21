@@ -151,7 +151,8 @@ static int pthread_mutex_init_debug_(char const *path, size_t line,
 				     pthread_mutex_t *mutex,
 				     const pthread_mutexattr_t *attr)
 {
-	debug_log_there(path, line, func, "[MUTEX] Initialize '%s'", what);
+	debug_log_there(path, line, func, "[MUTEX] Initialize '%s': %zu", what,
+			CURRENT_THREAD_ID);
 	return pthread_mutex_init(mutex, attr);
 }
 #define pthread_mutex_init(MUTEX_, MUTEXATTR_)                           \
