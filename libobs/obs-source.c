@@ -5861,12 +5861,13 @@ void obs_source_set_audio_active(obs_source_t *source, bool active)
 	if (os_atomic_set_bool(&source->audio_active, active) == active)
 		return;
 
-	if (active)
+	if (active) {
 		obs_source_dosignal(source, "source_audio_activate",
 				    "audio_activate");
-	else
+	} else {
 		obs_source_dosignal(source, "source_audio_deactivate",
 				    "audio_deactivate");
+	}
 }
 
 bool obs_source_audio_active(const obs_source_t *source)
@@ -5899,10 +5900,11 @@ void obs_source_media_play_pause(obs_source_t *source, bool pause)
 
 	source->info.media_play_pause(source->context.data, pause);
 
-	if (pause)
+	if (pause) {
 		obs_source_dosignal(source, NULL, "media_pause");
-	else
+	} else {
 		obs_source_dosignal(source, NULL, "media_play");
+	}
 }
 
 void obs_source_media_restart(obs_source_t *source)

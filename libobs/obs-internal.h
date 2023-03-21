@@ -920,6 +920,16 @@ static inline void obs_source_dosignal(struct obs_source *source,
 				      &data);
 }
 
+#if defined(_DEBUG)
+#define obs_source_dosignal(OBS_SOURCE_, OBS_SIGNAL_, SIGNAL_SRC_)          \
+	{                                                                   \
+		debug_log("handling signal '%s'@'%s'",                      \
+			  (OBS_SIGNAL_ ? OBS_SIGNAL_ : "NULL"),             \
+			  (SIGNAL_SRC_ ? SIGNAL_SRC_ : "NULL"));            \
+		obs_source_dosignal(OBS_SOURCE_, OBS_SIGNAL_, SIGNAL_SRC_); \
+	}
+#endif // _DEBUG
+
 /* maximum timestamp variance in nanoseconds */
 #define MAX_TS_VAR 2000000000ULL
 
