@@ -139,7 +139,7 @@ EXPORT char const *obs_internal_location_info(char const *path, size_t line,
 #else // __GNUC__
 // === Without GNU extensions we need a more complex path...
 #define debug_log_there(FILE_, LINE_, FUNC_, FMT_, ...)                \
-	blog_internal(LOG_DEBUG, "[debug] %s: " FMT_,                  \
+	blog_internal(LOG_DEBUG, "%s: [debug] " FMT_,                  \
 		      obs_internal_location_info(FILE_, LINE_, FUNC_), \
 		      ##__VA_ARGS__)
 static int pthread_mutex_init_debug_(char const *path, size_t line,
