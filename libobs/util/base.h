@@ -98,7 +98,11 @@ EXPORT char const *obs_internal_location_info(char const *path, size_t line,
 #define debug_log(FMT_, ...) blog(LOG_DEBUG, "[debug] " FMT_, ##__VA_ARGS__)
 //--- let's make mutex handling transparent ---
 #if defined(PTHREAD_H) || defined(_PTHREAD_H)
+#if defined(PTHREAD_H)
+#define CURRENT_THREAD_ID ((size_t)(pthread_self().p))
+#else
 #define CURRENT_THREAD_ID ((size_t)(pthread_self()))
+#endif // PTHREAD_H vs _PTHREAD_H
 #if defined(__GNUC__)
 // === Very good, we can use GNU extensions like braced groups in assignments.
 #define pthread_mutex_init(MUTEX_, MUTEXATTR_)                     \
