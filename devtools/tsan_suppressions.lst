@@ -1,0 +1,39 @@
+# ThreadSanitizer suppressions file
+
+# Qt5 does a lot with memory pools, leading to numerous false positives
+race:dbusmenu-qt5
+race:Qt5Core
+race:Qt5DBus
+race:Qt5Gui
+race:Qt5XcbQpa
+
+# More uninstrumented libraries triggering data races we can not do anything about
+race:gio-2.0
+race:glib-2.0
+race:pulse
+race:pulsecommon-16.1
+
+# These have been seen trying to unlock mutexes from the wrong thread:
+mutex:GLX
+mutex:Qt5XcbQpa
+mutex:Qt5DBus
+mutex:xcb
+
+# These have been seen to look like they deadlock
+deadlock:dbus-1
+
+# These like to look like they're dead-locking on application exit:
+mutex:EGL_nvidia
+mutex:nvidia-glsi
+mutex:X11
+
+# These functions looks racy, although they are not (anymore).
+race:context_get_source_info_callback
+race:pstream_memblock_callback
+
+# These functions are uninstrumented and cause false positives:
+race:q_dbus_message_unref
+
+# When you ctrl-c a frozen obs, these emit tons of signal-unsafe errors
+signal:Qt5Core
+signal:Qt5Widgets
