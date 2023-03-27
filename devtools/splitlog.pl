@@ -95,11 +95,14 @@ sub inc_out_file {
 } ## end sub inc_out_file
 
 sub inc_out_stage {
+	my $have_start = 1;
 	if ( 1 != $outStage ) {
-		print "ERROR: Found recording stop without starting first!\n";
-		return 0;
+		print "Warning: Found recording stop without starting first!\n";
+		$have_start = 0;
 	}
 	for my $x ( qw{ a b c } ) {
+		( 0 == $have_start ) and
+		append_to_file( $outName . $x . ".txt", "==== STARTING RECORDING ====\n(...did not happen ...)\n\n" );
 		append_to_file( $outName . $x . ".txt", "==== STOPPING RECORDING ====" ) or return 0;
 	}
 	$outStage = 2;
