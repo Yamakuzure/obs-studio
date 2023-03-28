@@ -15,7 +15,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ******************************************************************************/
 
-#include <math.h>
+//#include <math.h>
 #include <inttypes.h>
 
 #include "../util/threading.h"
@@ -23,7 +23,7 @@
 #include "../util/circlebuf.h"
 #include "../util/platform.h"
 #include "../util/profiler.h"
-#include "../util/util_uint64.h"
+//#include "../util/util_uint64.h"
 
 #include "audio-io.h"
 #include "audio-resampler.h"
@@ -107,7 +107,7 @@ static bool resample_audio_output(struct audio_input *input,
 }
 
 static inline void do_audio_output(struct audio_output *audio, size_t mix_idx,
-				   uint64_t timestamp, uint32_t frames)
+				   uint64_t timestamp)
 {
 	struct audio_mix *mix = &audio->mixes[mix_idx];
 	struct audio_data data;
@@ -123,7 +123,7 @@ static inline void do_audio_output(struct audio_output *audio, size_t mix_idx,
 		for (size_t j = 0; j < audio->planes; j++)
 			data.data[j] = (uint8_t *)buf[j];
 
-		data.frames = frames;
+		data.frames = AUDIO_OUTPUT_FRAMES;
 		data.timestamp = timestamp;
 
 		if (resample_audio_output(input, &data))
@@ -206,7 +206,7 @@ static void input_and_output(struct audio_output *audio, uint64_t audio_time,
 
 	/* output */
 	for (size_t i = 0; i < MAX_AUDIO_MIXES; i++)
-		do_audio_output(audio, i, new_ts, AUDIO_OUTPUT_FRAMES);
+		do_audio_output(audio, i, new_ts);
 }
 
 static void *audio_thread(void *param)
@@ -227,6 +227,8 @@ static void *audio_thread(void *param)
 	const char *audio_thread_name =
 		profile_store_name(obs_get_profiler_name_store(),
 				   "audio_thread(%s)", audio->info.name);
+
+	debug_log("Starting '%s'...", audio_thread_name);
 
 	while (os_event_try(audio->stop_event) == EAGAIN) {
 		samples += AUDIO_OUTPUT_FRAMES;
@@ -249,6 +251,8 @@ static void *audio_thread(void *param)
 	if (handle)
 		AvRevertMmThreadCharacteristics(handle);
 #endif
+
+	debug_log("'%s' finished.", audio_thread_name);
 
 	return NULL;
 }
@@ -273,9 +277,12 @@ static size_t audio_get_input_idx(const audio_t *audio, size_t mix_idx,
 static inline bool audio_input_init(struct audio_input *input,
 				    struct audio_output *audio)
 {
+	debug_log("Initializing audio '%s'", audio->info.name);
 	if (input->conversion.format != audio->info.format ||
 	    input->conversion.samples_per_sec != audio->info.samples_per_sec ||
 	    input->conversion.speakers != audio->info.speakers) {
+		debug_log("Audio '%s' needs a resampler, initializing...",
+			  audio->info.name);
 		struct resample_info from = {
 			.format = audio->info.format,
 			.samples_per_sec = audio->info.samples_per_sec,
@@ -311,11 +318,14 @@ audio_output_connect(audio_t *audio, size_t mi,
 
 	pthread_mutex_lock(&audio->input_mutex);
 
-	if (audio_get_input_idx(audio, mi, callback, param) == DARRAY_INVALID) {
+	size_t idx = audio_get_input_idx(audio, mi, callback, param);
+	if (idx == DARRAY_INVALID) {
 		struct audio_mix *mix = &audio->mixes[mi];
 		struct audio_input input;
 		input.callback = callback;
 		input.param = param;
+
+		debug_log("Connecting audio '%s'", audio->info.name);
 
 		if (conversion) {
 			input.conversion = *conversion;
@@ -335,8 +345,17 @@ audio_output_connect(audio_t *audio, size_t mi,
 				audio->info.samples_per_sec;
 
 		success = audio_input_init(&input, audio);
-		if (success)
+		if (success) {
+			debug_log("Audio '%s' initialized with %zu inputs",
+				  audio->info.name, mix->inputs.num);
 			da_push_back(mix->inputs, &input);
+		} else {
+			debug_log("Connecting audio '%s' FAILED!",
+				  audio->info.name);
+		}
+	} else {
+		debug_log("Audio '%s' alsready connected as %zu",
+			  audio->info.name, idx);
 	}
 
 	pthread_mutex_unlock(&audio->input_mutex);
@@ -353,10 +372,13 @@ void audio_output_disconnect(audio_t *audio, size_t mix_idx,
 	pthread_mutex_lock(&audio->input_mutex);
 
 	size_t idx = audio_get_input_idx(audio, mix_idx, callback, param);
-	if (idx != DARRAY_INVALID) {
+	while (idx != DARRAY_INVALID) {
+		debug_log("Disconnecting audio '%s' index %zu",
+			  audio->info.name, idx);
 		struct audio_mix *mix = &audio->mixes[mix_idx];
 		audio_input_free(mix->inputs.array + idx);
 		da_erase(mix->inputs, idx);
+		idx = audio_get_input_idx(audio, mix_idx, callback, param);
 	}
 
 	pthread_mutex_unlock(&audio->input_mutex);
@@ -375,6 +397,8 @@ int audio_output_open(audio_t **audio, struct audio_output_info *info)
 
 	if (!valid_audio_params(info))
 		return AUDIO_OUTPUT_INVALIDPARAM;
+
+	debug_log("Opening audio '%s'...", info->name);
 
 	out = bzalloc(sizeof(struct audio_output));
 	if (!out)
@@ -401,10 +425,13 @@ int audio_output_open(audio_t **audio, struct audio_output_info *info)
 	return AUDIO_OUTPUT_SUCCESS;
 
 fail2:
+	debug_log("Failed to open audio '%s' at stage 2", info->name);
 	os_event_destroy(out->stop_event);
 fail1:
+	debug_log("Failed to open audio '%s' at stage 1", info->name);
 	pthread_mutex_destroy(&out->input_mutex);
 fail0:
+	debug_log("Failed to open audio '%s' at stage 0", info->name);
 	audio_output_close(out);
 	return AUDIO_OUTPUT_FAIL;
 }
@@ -416,8 +443,12 @@ void audio_output_close(audio_t *audio)
 	if (!audio)
 		return;
 
+	debug_log("Closing audio '%s' (%s)", audio->info.name,
+		  audio->initialized ? "initialized" : "NOT initialized");
+
 	if (audio->initialized) {
 		os_event_signal(audio->stop_event);
+		debug_log("Joining audio '%s' thread...", audio->info.name);
 		pthread_join(audio->thread, &thread_ret);
 		os_event_destroy(audio->stop_event);
 		pthread_mutex_destroy(&audio->input_mutex);

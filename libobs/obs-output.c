@@ -1794,11 +1794,13 @@ static void interleave_packets(void *data, struct encoder_packet *packet)
 	// Only report switches, or we'll flood the log!
 	if (active(output) != output_is_active) {
 		output_is_active = active(output);
-		debug_log("output is now %s",
+		debug_log("output '%s' is now %s", output->info.get_name(NULL),
 			  output_is_active ? "ACTIVE" : "inactive");
-		if (output_is_active)
-			debug_log("New receiver registered at: %p",
+		if (output_is_active) {
+			debug_log("'%s' registered new receiver at: %p",
+				  output->info.get_name(NULL),
 				  output->info.encoded_packet);
+		}
 	}
 #endif // _DEBUG
 
@@ -1863,11 +1865,13 @@ static void default_encoded_callback(void *param, struct encoder_packet *packet)
 	// Only report switches, or we'll flood the log!
 	if (active(output) != output_is_active) {
 		output_is_active = active(output);
-		debug_log("output is now %s",
+		debug_log("output '%s' is now %s", output->info.get_name(NULL),
 			  output_is_active ? "ACTIVE" : "inactive");
-		if (output_is_active)
-			debug_log("New receiver registered at: %p",
+		if (output_is_active) {
+			debug_log("'%s' registered new receiver at: %p",
+				  output->info.get_name(NULL),
 				  output->info.encoded_packet);
+		}
 	}
 #endif // _DEBUG
 

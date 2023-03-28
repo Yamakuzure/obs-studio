@@ -308,8 +308,14 @@ void signal_handler_signal(signal_handler_t *handler, const char *signal,
 	long remove_refs = 0;
 
 	if (!((sig && (sig->callbacks.num > 0)) ||
-	      (handler && (handler->global_callbacks.num > 0))))
+	      (handler && (handler->global_callbacks.num > 0)))) {
+		debug_log("Ignoring signal '%s', because %s and %s", signal,
+			  sig ? "the signal has no callbacks"
+			      : "the signal is NULL",
+			  handler ? "the handler has no global callbacks"
+				  : "the handler is NULL");
 		return;
+	}
 
 	debug_log(
 		"Handling signal '%s' with %zd local and %zd global callbacks",

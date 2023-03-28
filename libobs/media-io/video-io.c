@@ -15,16 +15,16 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ******************************************************************************/
 
-#include <assert.h>
+//#include <assert.h>
 #include <inttypes.h>
 #include "../util/bmem.h"
-#include "../util/platform.h"
+//#include "../util/platform.h"
 #include "../util/profiler.h"
 #include "../util/threading.h"
-#include "../util/darray.h"
+//#include "../util/darray.h"
 #include "../util/util_uint64.h"
 
-#include "format-conversion.h"
+//#include "format-conversion.h"
 #include "video-io.h"
 #include "video-frame.h"
 #include "video-scaler.h"
@@ -180,6 +180,8 @@ static void *video_thread(void *param)
 		profile_store_name(obs_get_profiler_name_store(),
 				   "video_thread(%s)", video->info.name);
 
+	debug_log("Starting '%s'...", video_thread_name);
+
 	while (os_sem_wait(video->update_semaphore) == 0) {
 		if (video->stop)
 			break;
@@ -195,6 +197,8 @@ static void *video_thread(void *param)
 		profile_reenable_thread();
 	}
 
+	debug_log("'%s' finished", video_thread_name);
+
 	return NULL;
 }
 
@@ -208,6 +212,8 @@ static inline bool valid_video_params(const struct video_output_info *info)
 
 static inline void init_cache(struct video_output *video)
 {
+	debug_log("Initializing video '%s' frame cache (size %zu/%d)",
+		  video->info.name, video->info.cache_size, MAX_CACHE_SIZE);
 	if (video->info.cache_size > MAX_CACHE_SIZE)
 		video->info.cache_size = MAX_CACHE_SIZE;
 
@@ -224,10 +230,12 @@ static inline void init_cache(struct video_output *video)
 
 int video_output_open(video_t **video, struct video_output_info *info)
 {
-	struct video_output *out;
+	struct video_output *out = NULL;
 
 	if (!valid_video_params(info))
 		return VIDEO_OUTPUT_INVALIDPARAM;
+
+	debug_log("Opening video '%s'...", info->name);
 
 	out = bzalloc(sizeof(struct video_output));
 	if (!out)
@@ -252,13 +260,20 @@ int video_output_open(video_t **video, struct video_output_info *info)
 	return VIDEO_OUTPUT_SUCCESS;
 
 fail3:
+	debug_log("Failed to open video '%s' at stage 3", info->name);
 	os_sem_destroy(out->update_semaphore);
 fail2:
+	debug_log("Failed to open video '%s' at stage 2", info->name);
 	pthread_mutex_destroy(&out->input_mutex);
 fail1:
+	debug_log("Failed to open video '%s' at stage 1", info->name);
 	pthread_mutex_destroy(&out->data_mutex);
 fail0:
-	bfree(out);
+	debug_log("Failed to open video '%s' at stage 0", info->name);
+	if (out) {
+		video_output_close(out);
+		bfree(out);
+	}
 	return VIDEO_OUTPUT_FAIL;
 }
 
@@ -266,6 +281,8 @@ void video_output_close(video_t *video)
 {
 	if (!video)
 		return;
+
+	debug_log("Closing video '%s' ...", video->info.name);
 
 	video_output_stop(video);
 
@@ -330,12 +347,15 @@ static bool match_space(enum video_colorspace a, enum video_colorspace b)
 static inline bool video_input_init(struct video_input *input,
 				    struct video_output *video)
 {
+	debug_log("Initializing video '%s'", video->info.name);
 	if (input->conversion.width != video->info.width ||
 	    input->conversion.height != video->info.height ||
 	    input->conversion.format != video->info.format ||
 	    !match_range(input->conversion.range, video->info.range) ||
 	    !match_space(input->conversion.colorspace,
 			 video->info.colorspace)) {
+		debug_log("Video '%s' needs a scaler, initializing...",
+			  video->info.name);
 		struct video_scale_info from = {.format = video->info.format,
 						.width = video->info.width,
 						.height = video->info.height,
@@ -373,9 +393,10 @@ static inline void reset_frames(video_t *video)
 	os_atomic_set_long(&video->total_frames, 0);
 }
 
-WARN_UNUSED_RESULT bool video_output_connect(
-	video_t *video, const struct video_scale_info *conversion,
-	void (*callback)(void *param, struct video_data *frame), void *param)
+WARN_UNUSED_RESULT bool
+video_output_connect(video_t *video, const struct video_scale_info *conversion,
+		     void (*callback)(void *param, struct video_data *frame),
+		     void *param)
 {
 	bool success = false;
 
@@ -384,9 +405,12 @@ WARN_UNUSED_RESULT bool video_output_connect(
 
 	pthread_mutex_lock(&video->input_mutex);
 
-	if (video_get_input_idx(video, callback, param) == DARRAY_INVALID) {
+	size_t idx = video_get_input_idx(video, callback, param);
+	if (idx == DARRAY_INVALID) {
 		struct video_input input;
 		memset(&input, 0, sizeof(input));
+
+		debug_log("Connecting video '%s'", video->info.name);
 
 		input.callback = callback;
 		input.param = param;
@@ -408,6 +432,11 @@ WARN_UNUSED_RESULT bool video_output_connect(
 
 		success = video_input_init(&input, video);
 		if (success) {
+			debug_log("Video '%s' initialized with %zu inputs"
+				  " (Raw is %s)",
+				  video->info.name, video->inputs.num,
+				  video->raw_active ? "ALREADY ACTIVE!"
+						    : "inactive");
 			if (video->inputs.num == 0) {
 				if (!os_atomic_load_long(&video->gpu_refs)) {
 					reset_frames(video);
@@ -415,7 +444,13 @@ WARN_UNUSED_RESULT bool video_output_connect(
 				os_atomic_set_bool(&video->raw_active, true);
 			}
 			da_push_back(video->inputs, &input);
+		} else {
+			debug_log("Connecting video '%s' FAILED!",
+				  video->info.name);
 		}
+	} else {
+		debug_log("Video '%s' alsready connected as %zu",
+			  video->info.name, idx);
 	}
 
 	pthread_mutex_unlock(&video->input_mutex);
@@ -451,16 +486,21 @@ void video_output_disconnect(video_t *video,
 	pthread_mutex_lock(&video->input_mutex);
 
 	size_t idx = video_get_input_idx(video, callback, param);
-	if (idx != DARRAY_INVALID) {
+	while (idx != DARRAY_INVALID) {
+		debug_log("Disconnecting video '%s' index %zu",
+			  video->info.name, idx);
 		video_input_free(video->inputs.array + idx);
 		da_erase(video->inputs, idx);
 
 		if (video->inputs.num == 0) {
+			debug_log("video '%s' has no inputs any more",
+				  video->info.name);
 			os_atomic_set_bool(&video->raw_active, false);
 			if (!os_atomic_load_long(&video->gpu_refs)) {
 				log_skipped(video);
 			}
 		}
+		idx = video_get_input_idx(video, callback, param);
 	}
 
 	pthread_mutex_unlock(&video->input_mutex);
@@ -540,13 +580,19 @@ void video_output_stop(video_t *video)
 	if (!video)
 		return;
 
+	debug_log("Stopping video '%s' (%s, %s)", video->info.name,
+		  video->stop ? "not stopped" : "already stopped",
+		  video->initialized ? "initialized" : "NOT initialized");
+
 	if (!video->stop)
 		video->stop = true;
 
 	if (video->initialized) {
 		video->initialized = false;
 		os_sem_post(video->update_semaphore);
+		debug_log("Joining video '%s' thread...", video->info.name);
 		pthread_join(video->thread, &thread_ret);
+		debug_log("video '%s' thread joined", video->info.name);
 	}
 }
 
