@@ -882,7 +882,7 @@ Functions used by outputs
 
 ---------------------
 
-.. function:: bool obs_output_can_begin_data_capture(const obs_output_t *output, uint32_t flags)
+.. function:: bool obs_output_can_begin_data_capture(obs_output_t *output, uint32_t flags)
 
    Determines whether video/audio capture (encoded or raw) is able to
    start.  Call this before initializing any output data to ensure that

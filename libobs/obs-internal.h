@@ -1079,7 +1079,7 @@ struct obs_output {
 	bool received_video;
 	bool received_audio;
 	volatile bool data_active;
-	volatile bool end_data_capture_thread_active;
+	a_bool_t have_end_data_capture_thread;
 	int64_t video_offset;
 	int64_t audio_offsets[MAX_OUTPUT_AUDIO_ENCODERS];
 	int64_t highest_audio_ts;

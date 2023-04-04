@@ -2250,7 +2250,7 @@ obs_output_set_audio_conversion(obs_output_t *output,
 				const struct audio_convert_info *conversion);
 
 /** Returns whether data capture can begin with the specified flags */
-EXPORT bool obs_output_can_begin_data_capture(const obs_output_t *output,
+EXPORT bool obs_output_can_begin_data_capture(obs_output_t *output,
 					      uint32_t flags);
 
 /** Initializes encoders (if any) */

@@ -2,12 +2,21 @@
 // Created by Sven Eden on 02.03.23.
 //
 
-// Clear old macro substitution
+// Clear old macro substitutions
+#if defined(a_bool_t)
+#undef a_bool_t
+#endif // a_bool_t
 #if defined(a_size_t)
 #undef a_size_t
 #endif // a_size_t
 
 #if defined(__cplusplus)
+
+#if !defined(HAVE_ATOMIC_BOOL_T_DEFINED)
+#include <atomic>
+typedef std::atomic_bool a_bool_t;
+#define HAVE_ATOMIC_BOOL_T_DEFINED
+#endif // HAVE_ATOMIC_BOOL_T_DEFINED
 
 #if !defined(HAVE_ATOMIC_SIZE_T_DEFINED) && !defined(USE_NON_ATOMIC_SIZE_T)
 #include <atomic>
@@ -27,6 +36,12 @@ typedef std::atomic_size_t a_size_t;
 #endif // USE_NON_ATOMIC_SIZE_T
 
 #else // __cplusplus
+
+#if !defined(HAVE_ATOMIC_BOOL_T_DEFINED)
+#include <stdatomic.h>
+typedef atomic_bool a_bool_t;
+#define HAVE_ATOMIC_BOOL_T_DEFINED
+#endif // HAVE_ATOMIC_BOOL_T_DEFINED
 
 #if !defined(HAVE_ATOMIC_SIZE_T_DEFINED)
 #include <stdatomic.h>

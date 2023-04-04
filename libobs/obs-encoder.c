@@ -619,15 +619,17 @@ static inline WARN_UNUSED_RESULT bool obs_encoder_start_internal(
 		success = add_connection(encoder);
 	}
 
-	debug_log("starting encoder %s (internal) %s", encoder->info.get_name(NULL), success ? "succeeded." : "FAILED!");
+	debug_log("starting encoder %s (internal) %s",
+		  encoder->info.get_name(NULL),
+		  success ? "succeeded." : "FAILED!");
 
 	return success;
 }
 
-WARN_UNUSED_RESULT bool obs_encoder_start(obs_encoder_t *encoder,
-		       void (*new_packet)(void *param,
-					  struct encoder_packet *packet),
-		       void *param)
+WARN_UNUSED_RESULT bool obs_encoder_start(
+	obs_encoder_t *encoder,
+	void (*new_packet)(void *param, struct encoder_packet *packet),
+	void *param)
 {
 	bool success = true;
 
@@ -644,7 +646,8 @@ WARN_UNUSED_RESULT bool obs_encoder_start(obs_encoder_t *encoder,
 	success = obs_encoder_start_internal(encoder, new_packet, param);
 	pthread_mutex_unlock(&encoder->init_mutex);
 
-	debug_log("starting encoder %s %s", encoder->info.get_name(NULL), success ? "succeeded." : "FAILED!");
+	debug_log("starting encoder %s %s", encoder->info.get_name(NULL),
+		  success ? "succeeded." : "FAILED!");
 
 	return success;
 }

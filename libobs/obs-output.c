@@ -63,11 +63,6 @@ static inline bool delay_capturing(const struct obs_output *output)
 	return os_atomic_load_bool(&output->delay_capturing);
 }
 
-static inline bool data_capture_ending(const struct obs_output *output)
-{
-	return os_atomic_load_bool(&output->end_data_capture_thread_active);
-}
-
 const struct obs_output_info *find_output(const char *id)
 {
 	size_t i;
@@ -209,8 +204,10 @@ void obs_output_destroy(obs_output_t *output)
 			obs_output_actual_stop(output, true, 0);
 		}
 		os_event_wait(output->stopping_event);
-		if (data_capture_ending(output))
+		if (output->have_end_data_capture_thread) {
 			pthread_join(output->end_data_capture_thread, NULL);
+			output->have_end_data_capture_thread = false;
+		}
 
 		if (output->service)
 			output->service->output = NULL;
@@ -2118,10 +2115,10 @@ WARN_UNUSED_RESULT static bool hook_data_capture(struct obs_output *output,
 		if (has_video) {
 			debug_log("call start_raw_video() on output %s",
 				  out_name);
-			success = start_raw_video(output->video,
-						  obs_output_get_video_conversion(output),
-						  default_raw_video_callback,
-						  output);
+			success = start_raw_video(
+				output->video,
+				obs_output_get_video_conversion(output),
+				default_raw_video_callback, output);
 		}
 		if (has_audio && success) {
 			debug_log("call start_raw_audio() on output %s",
@@ -2187,8 +2184,7 @@ static inline void convert_flags(const struct obs_output *output,
 	*has_service = (flags & OBS_OUTPUT_SERVICE) != 0;
 }
 
-bool obs_output_can_begin_data_capture(const obs_output_t *output,
-				       uint32_t flags)
+bool obs_output_can_begin_data_capture(obs_output_t *output, uint32_t flags)
 {
 	bool encoded, has_video, has_audio, has_service;
 
@@ -2200,8 +2196,10 @@ bool obs_output_can_begin_data_capture(const obs_output_t *output,
 	if (active(output))
 		return false;
 
-	if (data_capture_ending(output))
+	if (output->have_end_data_capture_thread) {
 		pthread_join(output->end_data_capture_thread, NULL);
+		output->have_end_data_capture_thread = false;
+	}
 
 	convert_flags(output, flags, &encoded, &has_video, &has_audio,
 		      &has_service);
@@ -2461,7 +2459,6 @@ static void *end_data_capture_thread(void *data)
 	do_output_signal(output, "deactivate");
 	os_atomic_set_bool(&output->active, false);
 	os_event_signal(output->stopping_event);
-	os_atomic_set_bool(&output->end_data_capture_thread_active, false);
 
 	return NULL;
 }
@@ -2499,10 +2496,12 @@ static void obs_output_end_data_capture_internal(obs_output_t *output,
 	if (output->video)
 		log_frame_info(output);
 
-	if (data_capture_ending(output))
+	if (output->have_end_data_capture_thread) {
 		pthread_join(output->end_data_capture_thread, NULL);
+		output->have_end_data_capture_thread = false;
+	}
 
-	os_atomic_set_bool(&output->end_data_capture_thread_active, true);
+	output->have_end_data_capture_thread = true;
 	ret = pthread_create(&output->end_data_capture_thread, NULL,
 			     end_data_capture_thread, output);
 	if (ret != 0) {
