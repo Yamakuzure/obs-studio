@@ -420,7 +420,7 @@ struct obs_core_data {
 
 	volatile bool valid;
 
-	DARRAY(char *) protocols;
+	DARRAY(char *, protocols);
 };
 
 /* user hotkeys */

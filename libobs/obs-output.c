@@ -2002,9 +2002,8 @@ start_audio_encoders(struct obs_output *output,
 		     encoded_callback_t encoded_callback)
 {
 	bool success = true;
-	size_t num_mixes = num_audio_mixes(output);
 
-	for (size_t i = 0; success && (i < num_mixes); i++) {
+	for (size_t i = 0; success && (i < MAX_OUTPUT_AUDIO_ENCODERS); i++) {
 		if (output->audio_encoders[i]) {
 			debug_log("call obs_encoder_start() on output %s"
 				  " audio idx %zu",

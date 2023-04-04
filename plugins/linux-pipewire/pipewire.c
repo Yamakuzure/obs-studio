@@ -1046,7 +1046,11 @@ uint32_t obs_pipewire_get_width(obs_pipewire *obs_pw)
 	case SPA_META_TRANSFORMATION_270:
 		return has_crop ? obs_pw->crop.height
 				: obs_pw->format.info.raw.size.height;
+	default:
+		break;
 	}
+
+	return 0;
 }
 
 uint32_t obs_pipewire_get_height(obs_pipewire *obs_pw)
@@ -1071,7 +1075,10 @@ uint32_t obs_pipewire_get_height(obs_pipewire *obs_pw)
 	case SPA_META_TRANSFORMATION_270:
 		return has_crop ? obs_pw->crop.width
 				: obs_pw->format.info.raw.size.width;
+	default:
+		break;
 	}
+	return 0;
 }
 
 void obs_pipewire_video_render(obs_pipewire *obs_pw, gs_effect_t *effect)

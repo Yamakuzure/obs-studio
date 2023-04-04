@@ -7,7 +7,7 @@
 
 OBSBasicVCamConfig::OBSBasicVCamConfig(const VCamConfig &_config,
 				       QWidget *parent)
-	: config(_config), QDialog(parent), ui(new Ui::OBSBasicVCamConfig)
+	: QDialog(parent), config(_config), ui(new Ui::OBSBasicVCamConfig)
 {
 	setWindowFlags(windowFlags() & ~Qt::WindowContextHelpButtonHint);
 
