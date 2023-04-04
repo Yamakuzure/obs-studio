@@ -843,8 +843,10 @@ static enum gs_color_space mix_spaces(enum gs_color_space a,
 enum gs_color_space
 obs_transition_video_get_color_space(obs_source_t *transition)
 {
+	lock_transition(transition);
 	obs_source_t *source0 = transition->transition_sources[0];
 	obs_source_t *source1 = transition->transition_sources[1];
+	unlock_transition(transition);
 
 	const enum gs_color_space preferred_spaces[] = {
 		GS_CS_SRGB,
