@@ -356,9 +356,9 @@ static void *nvafx_initialize(void *data)
 			       "The number of channels is not 1 in the sdk any more ==> update code");
 			goto failure;
 		}
-		err = NvAFX_GetU32(
-			ng->handle[0], NVAFX_PARAM_NUM_INPUT_SAMPLES_PER_FRAME,
-			&ng->num_samples_per_frame);
+		err = NvAFX_GetU32(ng->handle[0],
+				   NVAFX_PARAM_NUM_INPUT_SAMPLES_PER_FRAME,
+				   &ng->num_samples_per_frame);
 		if (err != NVAFX_STATUS_SUCCESS) {
 			do_log(LOG_ERROR,
 			       "NvAFX_GetU32() failed to get the number of samples per frame, error %i",

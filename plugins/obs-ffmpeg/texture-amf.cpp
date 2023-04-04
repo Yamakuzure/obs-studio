@@ -441,7 +441,7 @@ static inline void refresh_throughput_caps(amf_base *enc, const char *&preset)
 	res = enc->amf_encoder->GetCaps(&cur_caps);
 	if (res == AMF_OK) {
 		cur_caps->GetProperty(get_opt_name(CAP_MAX_THROUGHPUT),
-				  &enc->max_throughput);
+				      &enc->max_throughput);
 	}
 }
 
@@ -1363,9 +1363,9 @@ static void amf_avc_create_internal(amf_base *enc, obs_data_t *settings)
 	res = enc->amf_encoder->GetCaps(&cur_caps);
 	if (res == AMF_OK) {
 		cur_caps->GetProperty(AMF_VIDEO_ENCODER_CAP_BFRAMES,
-				  &enc->bframes_supported);
+				      &enc->bframes_supported);
 		cur_caps->GetProperty(AMF_VIDEO_ENCODER_CAP_MAX_THROUGHPUT,
-				  &enc->max_throughput);
+				      &enc->max_throughput);
 	}
 
 	const char *preset = obs_data_get_string(settings, "preset");
@@ -1687,7 +1687,7 @@ static void amf_hevc_create_internal(amf_base *enc, obs_data_t *settings)
 	res = enc->amf_encoder->GetCaps(&cur_caps);
 	if (res == AMF_OK) {
 		cur_caps->GetProperty(AMF_VIDEO_ENCODER_HEVC_CAP_MAX_THROUGHPUT,
-				  &enc->max_throughput);
+				      &enc->max_throughput);
 	}
 
 	const bool is10bit = enc->amf_format == AMF_SURFACE_P010;
@@ -1733,7 +1733,8 @@ static void amf_hevc_create_internal(amf_base *enc, obs_data_t *settings)
 		md->maxMasteringLuminance =
 			amf_make_lum(hdr_nominal_peak_level);
 		md->maxContentLightLevel = (amf_uint16)hdr_nominal_peak_level;
-		md->maxFrameAverageLightLevel = (amf_uint16)hdr_nominal_peak_level;
+		md->maxFrameAverageLightLevel =
+			(amf_uint16)hdr_nominal_peak_level;
 		set_hevc_property(enc, INPUT_HDR_METADATA, buf);
 	}
 
@@ -2014,7 +2015,7 @@ static void amf_av1_create_internal(amf_base *enc, obs_data_t *settings)
 	AMF_RESULT res = enc->amf_encoder->GetCaps(&cur_caps);
 	if (res == AMF_OK) {
 		cur_caps->GetProperty(AMF_VIDEO_ENCODER_AV1_CAP_MAX_THROUGHPUT,
-				  &enc->max_throughput);
+				      &enc->max_throughput);
 	}
 
 	const bool is10bit = enc->amf_format == AMF_SURFACE_P010;

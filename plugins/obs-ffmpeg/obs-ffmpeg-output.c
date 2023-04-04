@@ -449,7 +449,7 @@ static inline bool open_output_file(struct ffmpeg_data *data)
 
 		AVDictionaryEntry *entry = NULL;
 		while (NULL != (entry = av_dict_get(dict, "", entry,
-						 AV_DICT_IGNORE_SUFFIX)))
+						    AV_DICT_IGNORE_SUFFIX)))
 			dstr_catf(&str, "\n\t%s=%s", entry->key, entry->value);
 
 		blog(LOG_INFO, "Using muxer settings: %s", str.array);
@@ -480,7 +480,7 @@ static inline bool open_output_file(struct ffmpeg_data *data)
 
 		AVDictionaryEntry *entry = NULL;
 		while (NULL != (entry = av_dict_get(dict, "", entry,
-						 AV_DICT_IGNORE_SUFFIX)))
+						    AV_DICT_IGNORE_SUFFIX)))
 			dstr_catf(&str, "\n\t%s=%s", entry->key, entry->value);
 
 		blog(LOG_INFO, "Invalid muxer settings: %s", str.array);

@@ -525,8 +525,8 @@ void TextSource::CalculateTextSizes(const StringFormat &format,
 	bounding_box.Height = temp_box.Height;
 }
 
-void TextSource::RenderOutlineText(Graphics &graphics_, const GraphicsPath &path,
-				   const Brush &brush)
+void TextSource::RenderOutlineText(Graphics &graphics_,
+				   const GraphicsPath &path, const Brush &brush)
 {
 	DWORD outline_rgba = calc_color(outline_color, outline_opacity);
 	Status stat;

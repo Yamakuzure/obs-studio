@@ -640,8 +640,10 @@ static void update_params(struct obs_qsv *obsqsv, obs_data_t *settings)
 			hdr_nominal_peak_level * 10000;
 		obsqsv->params.MinDisplayMasteringLuminance = 0;
 
-		obsqsv->params.MaxContentLightLevel = (mfxU16)hdr_nominal_peak_level;
-		obsqsv->params.MaxPicAverageLightLevel = (mfxU16)hdr_nominal_peak_level;
+		obsqsv->params.MaxContentLightLevel =
+			(mfxU16)hdr_nominal_peak_level;
+		obsqsv->params.MaxPicAverageLightLevel =
+			(mfxU16)hdr_nominal_peak_level;
 	}
 
 	/* internal convenience parameter, overrides rate control param
