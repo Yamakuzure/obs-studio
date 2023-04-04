@@ -138,8 +138,9 @@ static inline bool video_output_cur_frame(struct video_output *video)
 		struct video_input *input = video->inputs.array + i;
 		struct video_data frame = frame_info->frame;
 
-		if (scale_video_output(input, &frame))
+		if (scale_video_output(input, &frame)) {
 			input->callback(input->param, &frame);
+		}
 	}
 
 	pthread_mutex_unlock(&video->input_mutex);
