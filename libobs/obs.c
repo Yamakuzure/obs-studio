@@ -840,9 +840,10 @@ static void obs_free_render_textures(struct obs_core_video_mix *video)
 void obs_free_video_mix(struct obs_core_video_mix *video)
 {
 	if (video->video) {
-		pthread_mutex_unlock(&obs->video.mixes_mutex);
-		video_output_close(video->video);
+		video_t *vid_to_close = video->video;
 		video->video = NULL;
+		pthread_mutex_unlock(&obs->video.mixes_mutex);
+		video_output_close(vid_to_close);
 		pthread_mutex_lock(&obs->video.mixes_mutex);
 
 		obs_free_render_textures(video);

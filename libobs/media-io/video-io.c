@@ -70,6 +70,7 @@ struct video_output {
 	volatile long total_frames;
 
 	atomic_bool initialized;
+	atomic_bool have_thread;
 
 	pthread_mutex_t input_mutex;
 	DARRAY(struct video_input, inputs);
@@ -196,6 +197,9 @@ static void *video_thread(void *param)
 		profile_end(video_thread_name);
 
 		profile_reenable_thread();
+
+		if (video->stop)
+			break;
 	}
 
 	debug_log("'%s' finished", video_thread_name);
@@ -252,8 +256,11 @@ int video_output_open(video_t **video, struct video_output_info *info)
 		goto fail1;
 	if (os_sem_init(&out->update_semaphore, 0) != 0)
 		goto fail2;
-	if (pthread_create(&out->thread, NULL, video_thread, out) != 0)
-		goto fail3;
+	if (!out->have_thread) {
+		if (pthread_create(&out->thread, NULL, video_thread, out) != 0)
+			goto fail3;
+		out->have_thread = true;
+	}
 
 	init_cache(out);
 
@@ -588,11 +595,15 @@ void video_output_stop(video_t *video)
 	if (!video->stop)
 		video->stop = true;
 
-	if (video->initialized) {
+	if (video->initialized)
 		video->initialized = false;
-		os_sem_post(video->update_semaphore);
+
+	os_sem_post(video->update_semaphore);
+
+	if (video->have_thread) {
 		debug_log("Joining video '%s' thread...", video->info.name);
 		pthread_join(video->thread, &thread_ret);
+		video->have_thread = false;
 		debug_log("video '%s' thread joined", video->info.name);
 	}
 }
