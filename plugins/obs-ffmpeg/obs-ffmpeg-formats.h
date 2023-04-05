@@ -124,7 +124,4 @@ convert_ffmpeg_sample_format(enum AVSampleFormat format)
 	default:
 		return AUDIO_FORMAT_16BIT;
 	}
-
-	/* shouldn't get here */
-	return AUDIO_FORMAT_16BIT;
 }

@@ -33,7 +33,7 @@ target_link_libraries(obslua PRIVATE OBS::scripting OBS::cstrcache OBS::libobs L
                                      $<$<BOOL:ENABLE_UI>:OBS::frontend-api>)
 
 if(OS_WINDOWS)
-  target_compile_options(obslua PRIVATE /wd4054 /wd4197 /wd4244 /wd4267)
+  target_compile_options(obslua PRIVATE /wd4054 /wd4189 /wd4197 /wd4244 /wd4267)
 elseif(OS_MACOS)
   set_property(TARGET obslua PROPERTY XCODE_ATTRIBUTE_STRIP_STYLE non-global)
 elseif(OS_LINUX OR OS_FREEBSD)

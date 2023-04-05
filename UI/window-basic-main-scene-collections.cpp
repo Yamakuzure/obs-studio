@@ -419,10 +419,10 @@ void OBSBasic::on_actionExportSceneCollection_triggered()
 		vector<OBSData> sourceItems;
 		obs_data_array_enum(
 			sources,
-			[](obs_data_t *data, void *pVec) -> void {
+			[](obs_data_t *mydata, void *pVec) -> void {
 				auto &sourceItems =
 					*static_cast<vector<OBSData> *>(pVec);
-				sourceItems.push_back(data);
+				sourceItems.push_back(mydata);
 			},
 			&sourceItems);
 

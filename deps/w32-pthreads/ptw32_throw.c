@@ -114,7 +114,7 @@ ptw32_throw (DWORD exception)
 #endif
 
 #if ! (defined(__MINGW64__) || defined(__MINGW32__)) || defined (__MSVCRT__) || defined (__DMC__)
-      _endthreadex ((unsigned int)exitCode);
+      _endthreadex ((unsigned int)((size_t)(exitCode)));
 #else
       _endthread ();
 #endif

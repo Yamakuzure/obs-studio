@@ -399,58 +399,58 @@ void flv_packet_metadata(enum video_id_t codec_id, uint8_t **output,
 
 	// metadata data array
 	{
-		struct serializer s;
-		array_output_serializer_init(&s, &metadata);
+		struct serializer t;
+		array_output_serializer_init(&t, &metadata);
 
-		s_w8(&s, DATA_TYPE_STRING);
-		s_wstring(&s, "colorInfo");
-		s_w8(&s, DATA_TYPE_OBJECT);
+		s_w8(&t, DATA_TYPE_STRING);
+		s_wstring(&t, "colorInfo");
+		s_w8(&t, DATA_TYPE_OBJECT);
 		{
 			// colorConfig:
-			s_wstring(&s, "colorConfig");
-			s_w8(&s, DATA_TYPE_OBJECT);
+			s_wstring(&t, "colorConfig");
+			s_w8(&t, DATA_TYPE_OBJECT);
 			{
-				s_wstring(&s, "bitDepth");
-				s_w8(&s, DATA_TYPE_NUMBER);
-				s_wbd(&s, bits_per_raw_sample);
+				s_wstring(&t, "bitDepth");
+				s_w8(&t, DATA_TYPE_NUMBER);
+				s_wbd(&t, bits_per_raw_sample);
 
-				s_wstring(&s, "colorPrimaries");
-				s_w8(&s, DATA_TYPE_NUMBER);
-				s_wbd(&s, color_primaries);
+				s_wstring(&t, "colorPrimaries");
+				s_w8(&t, DATA_TYPE_NUMBER);
+				s_wbd(&t, color_primaries);
 
-				s_wstring(&s, "transferCharacteristics");
-				s_w8(&s, DATA_TYPE_NUMBER);
-				s_wbd(&s, color_trc);
+				s_wstring(&t, "transferCharacteristics");
+				s_w8(&t, DATA_TYPE_NUMBER);
+				s_wbd(&t, color_trc);
 
-				s_wstring(&s, "matrixCoefficients");
-				s_w8(&s, DATA_TYPE_NUMBER);
-				s_wbd(&s, color_space);
+				s_wstring(&t, "matrixCoefficients");
+				s_w8(&t, DATA_TYPE_NUMBER);
+				s_wbd(&t, color_space);
 			}
-			s_w8(&s, 0);
-			s_w8(&s, 0);
-			s_w8(&s, DATA_TYPE_OBJECT_END);
+			s_w8(&t, 0);
+			s_w8(&t, 0);
+			s_w8(&t, DATA_TYPE_OBJECT_END);
 
 			if (max_luminance != 0) {
 				// hdrMdcv
-				s_wstring(&s, "hdrMdcv");
-				s_w8(&s, DATA_TYPE_OBJECT);
+				s_wstring(&t, "hdrMdcv");
+				s_w8(&t, DATA_TYPE_OBJECT);
 				{
-					s_wstring(&s, "maxLuminance");
-					s_w8(&s, DATA_TYPE_NUMBER);
-					s_wbd(&s, max_luminance);
+					s_wstring(&t, "maxLuminance");
+					s_w8(&t, DATA_TYPE_NUMBER);
+					s_wbd(&t, max_luminance);
 
-					s_wstring(&s, "minLuminance");
-					s_w8(&s, DATA_TYPE_NUMBER);
-					s_wbd(&s, min_luminance);
+					s_wstring(&t, "minLuminance");
+					s_w8(&t, DATA_TYPE_NUMBER);
+					s_wbd(&t, min_luminance);
 				}
-				s_w8(&s, 0);
-				s_w8(&s, 0);
-				s_w8(&s, DATA_TYPE_OBJECT_END);
+				s_w8(&t, 0);
+				s_w8(&t, 0);
+				s_w8(&t, DATA_TYPE_OBJECT_END);
 			}
 		}
-		s_w8(&s, 0);
-		s_w8(&s, 0);
-		s_w8(&s, DATA_TYPE_OBJECT_END);
+		s_w8(&t, 0);
+		s_w8(&t, 0);
+		s_w8(&t, DATA_TYPE_OBJECT_END);
 	}
 
 	// packet head

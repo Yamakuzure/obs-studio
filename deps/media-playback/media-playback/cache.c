@@ -136,7 +136,7 @@ static void seek_to(mp_cache_t *c, int64_t pos)
 	}
 
 	if (c->has_video) {
-		struct obs_source_frame *v;
+		struct obs_source_frame *v = NULL;
 
 		for (size_t i = 0; i < c->video_frames.num; i++) {
 			v = &c->video_frames.array[i];
@@ -157,7 +157,7 @@ static void seek_to(mp_cache_t *c, int64_t pos)
 		}
 	}
 	if (c->has_audio) {
-		struct obs_source_audio *a;
+		struct obs_source_audio *a = NULL;
 		for (size_t i = 0; i < c->audio_segments.num; i++) {
 			a = &c->audio_segments.array[i];
 			new_a_idx = i;

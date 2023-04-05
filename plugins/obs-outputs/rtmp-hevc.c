@@ -277,14 +277,14 @@ static int hvcc_array_add_nal_unit(uint8_t *nal_buf, uint32_t nal_size,
 				   uint8_t nal_type, int ps_array_completeness,
 				   HVCCNALUnitArray *array)
 {
-	s_wb16(&array->nalUnit, nal_size);
+	s_wb16(&array->nalUnit, (uint16_t)nal_size);
 	s_write(&array->nalUnit, nal_buf, nal_size);
 	array->NAL_unit_type = nal_type;
 	array->numNalus++;
 
 	if (nal_type == OBS_HEVC_NAL_VPS || nal_type == OBS_HEVC_NAL_SPS ||
 	    nal_type == OBS_HEVC_NAL_PPS)
-		array->array_completeness = ps_array_completeness;
+		array->array_completeness = (uint8_t)ps_array_completeness;
 
 	return 0;
 }
@@ -292,7 +292,7 @@ static int hvcc_array_add_nal_unit(uint8_t *nal_buf, uint32_t nal_size,
 static void nal_unit_parse_header(HevcGetBitContext *gb, uint8_t *nal_type)
 {
 	skip_bits(gb, 1); // forbidden_zero_bit
-	*nal_type = get_bits(gb, 6);
+	*nal_type = (uint8_t)get_bits(gb, 6);
 	get_bits(gb, 9);
 }
 
@@ -324,17 +324,17 @@ static void hvcc_parse_ptl(HevcGetBitContext *gb,
 	uint8_t sub_layer_profile_present_flag[7]; // max sublayers
 	uint8_t sub_layer_level_present_flag[7];   // max sublayers
 
-	general_ptl.profile_space = get_bits(gb, 2);
-	general_ptl.tier_flag = get_bits(gb, 1);
-	general_ptl.profile_idc = get_bits(gb, 5);
+	general_ptl.profile_space = (uint8_t)get_bits(gb, 2);
+	general_ptl.tier_flag = (uint8_t)get_bits(gb, 1);
+	general_ptl.profile_idc = (uint8_t)get_bits(gb, 5);
 	general_ptl.profile_compatibility_flags = get_bits_long(gb, 32);
 	general_ptl.constraint_indicator_flags = get_bits64(gb, 48);
-	general_ptl.level_idc = get_bits(gb, 8);
+	general_ptl.level_idc = (uint8_t)get_bits(gb, 8);
 	hvcc_update_ptl(hvcc, &general_ptl);
 
 	for (i = 0; i < max_sub_layers_minus1; i++) {
-		sub_layer_profile_present_flag[i] = get_bits(gb, 1);
-		sub_layer_level_present_flag[i] = get_bits(gb, 1);
+		sub_layer_profile_present_flag[i] = (uint8_t)get_bits(gb, 1);
+		sub_layer_level_present_flag[i] = (uint8_t)get_bits(gb, 1);
 	}
 
 	// skip the rest
@@ -361,7 +361,8 @@ static int hvcc_parse_vps(HevcGetBitContext *gb,
 	skip_bits(gb, 12);
 	vps_max_sub_layers_minus1 = get_bits(gb, 3);
 	hvcc->numTemporalLayers =
-		max_u8(hvcc->numTemporalLayers, vps_max_sub_layers_minus1 + 1);
+		max_u8(hvcc->numTemporalLayers,
+		       (uint8_t)(vps_max_sub_layers_minus1 + 1));
 	skip_bits(gb, 17);
 	hvcc_parse_ptl(gb, hvcc, vps_max_sub_layers_minus1);
 	return 0;
@@ -407,9 +408,10 @@ parse_rps(HevcGetBitContext *gb, unsigned int rps_idx, unsigned int num_rps,
 
 		for (i = 0; i <= num_delta_pocs[rps_idx - 1]; i++) {
 			uint8_t use_delta_flag = 0;
-			uint8_t used_by_curr_pic_flag = get_bits(gb, 1);
+			uint8_t used_by_curr_pic_flag =
+				(uint8_t)get_bits(gb, 1);
 			if (!used_by_curr_pic_flag)
-				use_delta_flag = get_bits(gb, 1);
+				use_delta_flag = (uint8_t)get_bits(gb, 1);
 
 			if (used_by_curr_pic_flag || use_delta_flag)
 				num_delta_pocs[rps_idx]++;
@@ -468,12 +470,13 @@ static int skip_hrd_parameters(HevcGetBitContext *gb,
 	uint8_t vcl_hrd_parameters_present_flag = 0;
 
 	if (cprms_present_flag) {
-		nal_hrd_parameters_present_flag = get_bits(gb, 1);
-		vcl_hrd_parameters_present_flag = get_bits(gb, 1);
+		nal_hrd_parameters_present_flag = (uint8_t)get_bits(gb, 1);
+		vcl_hrd_parameters_present_flag = (uint8_t)get_bits(gb, 1);
 
 		if (nal_hrd_parameters_present_flag ||
 		    vcl_hrd_parameters_present_flag) {
-			sub_pic_hrd_params_present_flag = get_bits(gb, 1);
+			sub_pic_hrd_params_present_flag =
+				(uint8_t)get_bits(gb, 1);
 
 			if (sub_pic_hrd_params_present_flag)
 				get_bits(gb, 19);
@@ -490,15 +493,16 @@ static int skip_hrd_parameters(HevcGetBitContext *gb,
 		unsigned int cpb_cnt_minus1 = 0;
 		uint8_t low_delay_hrd_flag = 0;
 		uint8_t fixed_pic_rate_within_cvs_flag = 0;
-		uint8_t fixed_pic_rate_general_flag = get_bits(gb, 1);
+		uint8_t fixed_pic_rate_general_flag = (uint8_t)get_bits(gb, 1);
 
 		if (!fixed_pic_rate_general_flag)
-			fixed_pic_rate_within_cvs_flag = get_bits(gb, 1);
+			fixed_pic_rate_within_cvs_flag =
+				(uint8_t)get_bits(gb, 1);
 
 		if (fixed_pic_rate_within_cvs_flag)
 			get_ue_golomb_long(gb);
 		else
-			low_delay_hrd_flag = get_bits(gb, 1);
+			low_delay_hrd_flag = (uint8_t)get_bits(gb, 1);
 
 		if (!low_delay_hrd_flag) {
 			cpb_cnt_minus1 = get_ue_golomb_long(gb);
@@ -574,7 +578,7 @@ static void hvcc_parse_vui(HevcGetBitContext *gb,
 		min_spatial_segmentation_idc = get_ue_golomb_long(gb);
 		hvcc->min_spatial_segmentation_idc =
 			min_u16(hvcc->min_spatial_segmentation_idc,
-				min_spatial_segmentation_idc);
+				(uint16_t)min_spatial_segmentation_idc);
 
 		get_ue_golomb_long(gb); // max_bytes_per_pic_denom
 		get_ue_golomb_long(gb); // max_bits_per_min_cu_denom
@@ -595,15 +599,16 @@ static int hvcc_parse_sps(HevcGetBitContext *gb,
 	sps_max_sub_layers_minus1 = get_bits(gb, 3);
 
 	hvcc->numTemporalLayers =
-		max_u8(hvcc->numTemporalLayers, sps_max_sub_layers_minus1 + 1);
+		max_u8(hvcc->numTemporalLayers,
+		       (uint8_t)(sps_max_sub_layers_minus1 + 1));
 
-	hvcc->temporalIdNested = get_bits(gb, 1);
+	hvcc->temporalIdNested = (uint8_t)get_bits(gb, 1);
 
 	hvcc_parse_ptl(gb, hvcc, sps_max_sub_layers_minus1);
 
 	get_ue_golomb_long(gb); // sps_seq_parameter_set_id
 
-	hvcc->chromaFormat = get_ue_golomb_long(gb);
+	hvcc->chromaFormat = (uint8_t)get_ue_golomb_long(gb);
 
 	if (hvcc->chromaFormat == 3)
 		get_bits(gb, 1); // separate_colour_plane_flag
@@ -618,8 +623,8 @@ static int hvcc_parse_sps(HevcGetBitContext *gb,
 		get_ue_golomb_long(gb); // conf_win_bottom_offset
 	}
 
-	hvcc->bitDepthLumaMinus8 = get_ue_golomb_long(gb);
-	hvcc->bitDepthChromaMinus8 = get_ue_golomb_long(gb);
+	hvcc->bitDepthLumaMinus8 = (uint8_t)get_ue_golomb_long(gb);
+	hvcc->bitDepthChromaMinus8 = (uint8_t)get_ue_golomb_long(gb);
 	log2_max_pic_order_cnt_lsb_minus4 = get_ue_golomb_long(gb);
 
 	/* sps_sub_layer_ordering_info_present_flag */
@@ -712,8 +717,8 @@ static int hvcc_parse_pps(HevcGetBitContext *gb,
 
 	get_bits(gb, 4);
 
-	tiles_enabled_flag = get_bits(gb, 1);
-	entropy_coding_sync_enabled_flag = get_bits(gb, 1);
+	tiles_enabled_flag = (uint8_t)get_bits(gb, 1);
+	entropy_coding_sync_enabled_flag = (uint8_t)get_bits(gb, 1);
 
 	if (entropy_coding_sync_enabled_flag && tiles_enabled_flag)
 		hvcc->parallelismType = 0; // mixed-type parallel decoding

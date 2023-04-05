@@ -258,7 +258,7 @@ void DeckLinkDeviceInstance::HandleVideoFrame(
 			}
 		}
 	}
-	currentFrame.trc = trc;
+	currentFrame.trc = (uint8_t)trc;
 
 	obs_source_output_video2(
 		static_cast<DeckLinkInput *>(decklink)->GetSource(),

@@ -151,7 +151,7 @@ try {
 		zstdCtx, &newData[0], newData.size(), patchData.data(),
 		patchData.size(), oldData.data(), oldData.size());
 
-	if (result != newsize || ZSTD_isError(result))
+	if ((int64_t)result != newsize || ZSTD_isError(result))
 		throw int(-9);
 
 	/* --------------------------------- *

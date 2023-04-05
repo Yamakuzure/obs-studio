@@ -630,7 +630,6 @@ queue<string> hashQueue;
 
 void HasherThread()
 {
-	bool hasherThreadFailure = false;
 	unique_lock<mutex> ulock(updateMutex, defer_lock);
 
 	while (true) {
@@ -710,8 +709,8 @@ static bool NonCorePackageInstalled(const char *name)
 #define UPDATE_URL L"https://cdn-fastly.obsproject.com/update_studio"
 
 static bool AddPackageUpdateFiles(const Json &root, size_t idx,
-				  const wchar_t *tempPath,
-				  const wchar_t *branch)
+				  const wchar_t *tempPath_,
+				  const wchar_t *branch_)
 {
 	const Json &package = root[idx];
 	const Json &name = package["name"];
@@ -787,10 +786,10 @@ static bool AddPackageUpdateFiles(const Json &root, size_t idx,
 		}
 
 		StringCbPrintf(sourceURL, sizeof(sourceURL), L"%s/%s/%s/%s",
-			       UPDATE_URL, branch, wPackageName,
+			       UPDATE_URL, branch_, wPackageName,
 			       updateFileName);
 		StringCbPrintf(tempFilePath, sizeof(tempFilePath), L"%s\\%s",
-			       tempPath, updateHashStr);
+			       tempPath_, updateHashStr);
 
 		/* Check file hash */
 
@@ -1386,15 +1385,15 @@ static bool Update(wchar_t *cmdLine)
 	/* ------------------------------------- *
 	 * Init crypt stuff                      */
 
-	CryptProvider hProvider;
-	if (!CryptAcquireContext(&hProvider, nullptr, MS_ENH_RSA_AES_PROV,
+	CryptProvider hProvider_;
+	if (!CryptAcquireContext(&hProvider_, nullptr, MS_ENH_RSA_AES_PROV,
 				 PROV_RSA_AES, CRYPT_VERIFYCONTEXT)) {
 		SetDlgItemTextW(hwndMain, IDC_STATUS,
 				L"Update failed: CryptAcquireContext failure");
 		return false;
 	}
 
-	::hProvider = hProvider;
+	::hProvider = hProvider_;
 
 	/* ------------------------------------- */
 
@@ -1737,9 +1736,6 @@ static bool Update(wchar_t *cmdLine)
 
 	/* ------------------------------------- *
 	 * Install updates                       */
-
-	int updatesInstalled = 0;
-	int lastPosition = 0;
 
 	SendDlgItemMessage(hwndMain, IDC_PROGRESS, PBM_SETPOS, 0, 0);
 

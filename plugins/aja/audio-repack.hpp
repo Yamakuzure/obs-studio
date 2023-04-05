@@ -9,7 +9,7 @@ public:
 	inline AudioRepacker(audio_repack_mode_t repack_mode,
 			     int bits_per_sample)
 	{
-		audio_repack_init(&arepack, repack_mode, bits_per_sample);
+		audio_repack_init(&arepack, repack_mode, (uint8_t)bits_per_sample);
 	}
 	inline ~AudioRepacker() { audio_repack_free(&arepack); }
 

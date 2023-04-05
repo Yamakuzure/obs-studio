@@ -156,6 +156,7 @@ static void PopulateBitrateLists()
 
 		blog(LOG_DEBUG, "Fallback encoder bitrates:%s",
 		     ss.str().c_str());
+		ss.clear();
 
 		const char *id = nullptr;
 		for (size_t i = 0; obs_enum_encoder_types(i, &id); i++) {
@@ -176,7 +177,6 @@ static void PopulateBitrateLists()
 				     "bitrates",
 				     id);
 
-			ostringstream ss;
 			for (auto &bitrate : encoderBitrates[encoder])
 				ss << "\n	" << setw(3) << bitrate
 				   << " kbit/s";

@@ -23,6 +23,11 @@
 #include "detours.h"
 #include "obs.h"
 
+#ifdef _MSC_VER
+// data to function pointer is not allowed under ANSI C
+#pragma warning(disable : 4152)
+#endif
+
 // Undocumented NT structs / function definitions !
 typedef enum _SECTION_INHERIT { ViewShare = 1, ViewUnmap = 2 } SECTION_INHERIT;
 

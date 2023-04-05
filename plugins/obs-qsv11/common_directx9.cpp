@@ -7,6 +7,11 @@
 #include <map>
 #include <atlbase.h>
 
+#ifdef _MSC_VER
+// The following D3DFMT macros are no part of D3DFORMAT
+#pragma warning(disable : 4063)
+#endif
+
 #define D3DFMT_NV12 (D3DFORMAT) MAKEFOURCC('N', 'V', '1', '2')
 #define D3DFMT_YV12 (D3DFORMAT) MAKEFOURCC('Y', 'V', '1', '2')
 #define D3DFMT_P010 (D3DFORMAT) MAKEFOURCC('P', '0', '1', '0')

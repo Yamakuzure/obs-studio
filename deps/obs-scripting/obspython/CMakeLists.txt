@@ -47,7 +47,7 @@ target_link_libraries(obspython PRIVATE OBS::scripting OBS::cstrcache OBS::libob
 
 if(OS_WINDOWS)
   target_link_libraries(obspython PRIVATE Python::Python)
-  target_compile_options(obspython PRIVATE /wd4100 /wd4197)
+  target_compile_options(obspython PRIVATE /wd4100 /wd4197 /wd4701)
 elseif(OS_MACOS)
   get_target_property(_python_include_directory Python::Python INTERFACE_INCLUDE_DIRECTORIES)
   target_include_directories(obspython PRIVATE ${_python_include_directory})

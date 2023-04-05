@@ -1695,7 +1695,7 @@ void OBSBasicSettings::ResetEncoders(bool streamOnly)
 	}
 
 	if (!lastVideoEnc.isEmpty()) {
-		int idx = ui->simpleOutStrEncoder->findData(lastVideoEnc);
+		idx = ui->simpleOutStrEncoder->findData(lastVideoEnc);
 		if (idx == -1) {
 			lastVideoEnc = get_simple_fallback(lastVideoEnc);
 			ui->simpleOutStrEncoder->setProperty("changed",
@@ -1709,7 +1709,7 @@ void OBSBasicSettings::ResetEncoders(bool streamOnly)
 	}
 
 	if (!lastAudioEnc.isEmpty()) {
-		int idx = ui->simpleOutStrAEncoder->findData(lastAudioEnc);
+		idx = ui->simpleOutStrAEncoder->findData(lastAudioEnc);
 		if (idx == -1) {
 			lastAudioEnc = (lastAudioEnc == "opus") ? "aac"
 								: "opus";
