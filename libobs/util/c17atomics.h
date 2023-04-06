@@ -21,6 +21,7 @@ typedef std::atomic_bool a_bool_t;
 #if !defined(HAVE_ATOMIC_SIZE_T_DEFINED) && !defined(USE_NON_ATOMIC_SIZE_T)
 #include <atomic>
 typedef std::atomic_size_t a_size_t;
+using std::atomic_init;
 #define HAVE_ATOMIC_SIZE_T_DEFINED
 #endif // HAVE_ATOMIC_SIZE_T_DEFINED
 
@@ -33,6 +34,7 @@ typedef std::atomic_size_t a_size_t;
  * with that, too.
  */
 #define a_size_t volatile size_t
+#define atomic_init(verb_, val_) *(verb_)=(val_)
 #endif // USE_NON_ATOMIC_SIZE_T
 
 #else // __cplusplus

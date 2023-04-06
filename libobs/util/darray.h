@@ -59,16 +59,14 @@ struct darray {
 static inline void darray_init(struct darray *dst)
 {
 	dst->array = nullptr;
-	dst->num = 0;
-	dst->capacity = 0;
+	atomic_init(&dst->num, 0);
+	atomic_init(&dst->capacity, 0);
 }
 
 static inline void darray_free(struct darray *dst)
 {
 	bfree(dst->array);
-	dst->array = nullptr;
-	dst->num = 0;
-	dst->capacity = 0;
+	darray_init(dst);
 }
 
 static inline size_t darray_alloc_size(const size_t element_size,
