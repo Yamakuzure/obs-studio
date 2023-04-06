@@ -83,7 +83,7 @@ static inline void mix_audio(struct audio_output_data *mixes,
 static bool ignore_audio(obs_source_t *source, size_t channels,
 			 size_t sample_rate, uint64_t start_ts)
 {
-	size_t num_floats = cb_get_size(source->audio_input_buf[0]) / sizeof(float);
+	size_t num_floats = source->audio_input_buf[0].size / sizeof(float);
 	const char *name = obs_source_get_name(source);
 
 	if (!source->audio_ts && num_floats) {
@@ -93,7 +93,7 @@ static bool ignore_audio(obs_source_t *source, size_t channels,
 #endif
 		for (size_t ch = 0; ch < channels; ch++)
 			circlebuf_pop_front(&source->audio_input_buf[ch], NULL,
-					    cb_get_size(source->audio_input_buf[0]));
+					    source->audio_input_buf[0].size);
 		source->last_audio_input_buf_size = 0;
 		return false;
 	}
@@ -157,7 +157,7 @@ static bool discard_if_stopped(obs_source_t *source, size_t channels)
 	size_t size;
 
 	last_size = source->last_audio_input_buf_size;
-	size = cb_get_size(source->audio_input_buf[0]);
+	size = source->audio_input_buf[0].size;
 
 	if (!size)
 		return false;
@@ -176,7 +176,7 @@ static bool discard_if_stopped(obs_source_t *source, size_t channels)
 
 		for (size_t ch = 0; ch < channels; ch++)
 			circlebuf_pop_front(&source->audio_input_buf[ch], NULL,
-					    cb_get_size(source->audio_input_buf[ch]));
+					    source->audio_input_buf[ch].size);
 
 		source->pending_stop = false;
 		source->audio_ts = 0;
@@ -225,7 +225,7 @@ static inline void discard_audio(struct obs_core_audio *audio,
 
 	if (source->audio_ts < (ts->start - 1)) {
 		if (source->audio_pending &&
-		    cb_get_size(source->audio_input_buf[0]) < MAX_AUDIO_SIZE &&
+		    source->audio_input_buf[0].size < MAX_AUDIO_SIZE &&
 		    discard_if_stopped(source, channels))
 			return;
 
@@ -266,7 +266,7 @@ static inline void discard_audio(struct obs_core_audio *audio,
 
 	size = total_floats * sizeof(float);
 
-	if (cb_get_size(source->audio_input_buf[0]) < size) {
+	if (source->audio_input_buf[0].size < size) {
 		if (discard_if_stopped(source, channels))
 			return;
 
@@ -443,7 +443,7 @@ static bool audio_buffer_insufficient(struct obs_source *source,
 
 	size = total_floats * sizeof(float);
 
-	if (cb_get_size(source->audio_input_buf[0]) < size) {
+	if (source->audio_input_buf[0].size < size) {
 		source->audio_pending = true;
 		return true;
 	}
@@ -505,12 +505,12 @@ static inline void execute_audio_tasks(void)
 
 	while (tasks_remaining) {
 		pthread_mutex_lock(&audio->task_mutex);
-		if (cb_get_size(audio->tasks)) {
+		if (audio->tasks.size) {
 			struct obs_task_info info;
 			circlebuf_pop_front(&audio->tasks, &info, sizeof(info));
 			info.task(info.param);
 		}
-		tasks_remaining = cb_get_size(audio->tasks) != 0;
+		tasks_remaining = audio->tasks.size != 0;
 		pthread_mutex_unlock(&audio->task_mutex);
 	}
 }

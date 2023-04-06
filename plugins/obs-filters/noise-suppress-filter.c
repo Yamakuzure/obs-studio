@@ -1041,7 +1041,7 @@ struct ng_audio_info {
 
 static inline void clear_circlebuf(struct circlebuf *buf)
 {
-	circlebuf_pop_front(buf, NULL, cb_get_size_p(buf));
+	circlebuf_pop_front(buf, NULL, buf->size);
 }
 
 static void reset_data(struct noise_suppress_data *ng)
@@ -1102,7 +1102,7 @@ noise_suppress_filter_audio(void *data, struct obs_audio_data *audio)
 
 	/* -----------------------------------------------
 	 * pop/process each 10ms segments, push back to output circlebuf */
-	while (cb_get_size(ng->input_buffers[0]) >= segment_size)
+	while (ng->input_buffers[0].size >= segment_size)
 		process(ng);
 
 	/* -----------------------------------------------
@@ -1112,7 +1112,7 @@ noise_suppress_filter_audio(void *data, struct obs_audio_data *audio)
 	circlebuf_peek_front(&ng->info_buffer, &info, sizeof(info));
 	out_size = info.frames * sizeof(float);
 
-	if (cb_get_size(ng->output_buffers[0]) < out_size)
+	if (ng->output_buffers[0].size < out_size)
 		return NULL;
 
 	/* -----------------------------------------------

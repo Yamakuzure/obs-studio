@@ -39,12 +39,6 @@ struct circlebuf {
 	size_t capacity;
 };
 
-#define cb_get_size(CB_s_) atomic_load(&((CB_s_).size))
-#define cb_get_size_p(CB_p_) atomic_load(&((CB_p_)->size))
-#define cb_set_size_p(CB_p_, SIZE_) atomic_store(&((CB_p_)->size), (SIZE_))
-#define cb_add_size_p(CB_p_, SIZE_) atomic_fetch_add(&((CB_p_)->size), (SIZE_))
-#define cb_sub_size_p(CB_p_, SIZE_) atomic_fetch_sub(&((CB_p_)->size), (SIZE_))
-
 static inline void circlebuf_init(struct circlebuf *cb)
 {
 #if defined(ATOMIC_LONG_LOCK_FREE) && (ATOMIC_LONG_LOCK_FREE == 2)
@@ -73,7 +67,7 @@ static inline void circlebuf_reorder_data(struct circlebuf *cb,
 	size_t difference;
 	uint8_t *data;
 
-	if (!cb_get_size_p(cb) || !cb->start_pos || cb->end_pos > cb->start_pos)
+	if (!cb->size || !cb->start_pos || cb->end_pos > cb->start_pos)
 		return;
 
 	difference = new_capacity - cb->capacity;
@@ -85,12 +79,12 @@ static inline void circlebuf_reorder_data(struct circlebuf *cb,
 static inline void circlebuf_ensure_capacity(struct circlebuf *cb)
 {
 	size_t new_capacity;
-	if (cb_get_size_p(cb) <= cb->capacity)
+	if (cb->size <= cb->capacity)
 		return;
 
 	new_capacity = cb->capacity * 2;
-	if (cb_get_size_p(cb) > new_capacity)
-		new_capacity = cb_get_size_p(cb);
+	if (cb->size > new_capacity)
+		new_capacity = cb->size;
 
 	cb->data = brealloc(cb->data, new_capacity);
 	circlebuf_reorder_data(cb, new_capacity);
@@ -109,13 +103,13 @@ static inline void circlebuf_reserve(struct circlebuf *cb, size_t capacity)
 
 static inline void circlebuf_upsize(struct circlebuf *cb, size_t size)
 {
-	size_t add_size = size - cb_get_size_p(cb);
+	size_t add_size = size - cb->size;
 	size_t new_end_pos = cb->end_pos + add_size;
 
-	if (size <= cb_get_size_p(cb))
+	if (size <= cb->size)
 		return;
 
-	cb_set_size_p(cb, size);
+	cb->size = size;
 	circlebuf_ensure_capacity(cb);
 
 	if (new_end_pos > cb->capacity) {
@@ -141,7 +135,7 @@ static inline void circlebuf_place(struct circlebuf *cb, size_t position,
 	size_t end_point = position + size;
 	size_t data_end_pos;
 
-	if (end_point > cb_get_size_p(cb))
+	if (end_point > cb->size)
 		circlebuf_upsize(cb, end_point);
 
 	position += cb->start_pos;
@@ -165,7 +159,7 @@ static inline void circlebuf_push_back(struct circlebuf *cb, const void *data,
 {
 	size_t new_end_pos = cb->end_pos + size;
 
-	cb_add_size_p(cb, size);
+	cb->size += size;
 	circlebuf_ensure_capacity(cb);
 
 	if (new_end_pos > cb->capacity) {
@@ -188,10 +182,10 @@ static inline void circlebuf_push_back(struct circlebuf *cb, const void *data,
 static inline void circlebuf_push_front(struct circlebuf *cb, const void *data,
 					size_t size)
 {
-	cb_add_size_p(cb, size);
+	cb->size += size;
 	circlebuf_ensure_capacity(cb);
 
-	if ((cb_get_size_p(cb) == size)) {
+	if (cb->size == size) {
 		cb->start_pos = 0;
 		cb->end_pos = size;
 		memcpy((uint8_t *)cb->data, data, size);
@@ -215,7 +209,7 @@ static inline void circlebuf_push_back_zero(struct circlebuf *cb, size_t size)
 {
 	size_t new_end_pos = cb->end_pos + size;
 
-	cb_add_size_p(cb, size);
+	cb->size += size;
 	circlebuf_ensure_capacity(cb);
 
 	if (new_end_pos > cb->capacity) {
@@ -236,10 +230,10 @@ static inline void circlebuf_push_back_zero(struct circlebuf *cb, size_t size)
 
 static inline void circlebuf_push_front_zero(struct circlebuf *cb, size_t size)
 {
-	cb_add_size_p(cb, size);
+	cb->size += size;
 	circlebuf_ensure_capacity(cb);
 
-	if (cb_get_size_p(cb) == size) {
+	if (cb->size == size) {
 		cb->start_pos = 0;
 		cb->end_pos = size;
 		memset((uint8_t *)cb->data, 0, size);
@@ -261,7 +255,7 @@ static inline void circlebuf_push_front_zero(struct circlebuf *cb, size_t size)
 static inline void circlebuf_peek_front(struct circlebuf *cb, void *data,
 					size_t size)
 {
-	assert(size <= cb_get_size_p(cb));
+	assert(size <= cb->size);
 
 	if (data) {
 		size_t start_size = cb->capacity - cb->start_pos;
@@ -280,7 +274,7 @@ static inline void circlebuf_peek_front(struct circlebuf *cb, void *data,
 static inline void circlebuf_peek_back(struct circlebuf *cb, void *data,
 				       size_t size)
 {
-	assert(size <= cb_get_size_p(cb));
+	assert(size <= cb->size);
 
 	if (data) {
 		size_t back_size = (cb->end_pos ? cb->end_pos : cb->capacity);
@@ -305,8 +299,8 @@ static inline void circlebuf_pop_front(struct circlebuf *cb, void *data,
 {
 	circlebuf_peek_front(cb, data, size);
 
-	cb_sub_size_p(cb, size);
-	if (!cb_get_size_p(cb)) {
+	cb->size -= size;
+	if (!cb->size) {
 		cb->start_pos = cb->end_pos = 0;
 		return;
 	}
@@ -321,8 +315,8 @@ static inline void circlebuf_pop_back(struct circlebuf *cb, void *data,
 {
 	circlebuf_peek_back(cb, data, size);
 
-	cb_sub_size_p(cb, size);
-	if (!cb_get_size_p(cb)) {
+	cb->size -= size;
+	if (!cb->size) {
 		cb->start_pos = cb->end_pos = 0;
 		return;
 	}
@@ -338,7 +332,7 @@ static inline void *circlebuf_data(struct circlebuf *cb, size_t idx)
 	uint8_t *ptr = (uint8_t *)cb->data;
 	size_t offset = cb->start_pos + idx;
 
-	if (idx >= cb_get_size_p(cb))
+	if (idx >= cb->size)
 		return NULL;
 
 	if (offset >= cb->capacity)

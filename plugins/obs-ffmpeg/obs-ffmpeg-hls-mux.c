@@ -77,7 +77,7 @@ static bool process_packet(struct ffmpeg_muxer *stream)
 
 	pthread_mutex_lock(&stream->write_mutex);
 
-	if (cb_get_size(stream->packets)) {
+	if (stream->packets.size) {
 		circlebuf_pop_front(&stream->packets, &packet, sizeof(packet));
 		has_packet = true;
 	}
@@ -205,7 +205,7 @@ static void drop_frames(struct ffmpeg_muxer *stream, int highest_priority)
 
 	circlebuf_reserve(&new_buf, sizeof(struct encoder_packet) * 8);
 
-	while (cb_get_size(stream->packets)) {
+	while (stream->packets.size) {
 		struct encoder_packet packet;
 		circlebuf_pop_front(&stream->packets, &packet, sizeof(packet));
 
@@ -231,7 +231,7 @@ static void drop_frames(struct ffmpeg_muxer *stream, int highest_priority)
 static bool find_first_video_packet(struct ffmpeg_muxer *stream,
 				    struct encoder_packet *first)
 {
-	size_t count = cb_get_size(stream->packets) / sizeof(*first);
+	size_t count = stream->packets.size / sizeof(*first);
 
 	for (size_t i = 0; i < count; i++) {
 		struct encoder_packet *cur =

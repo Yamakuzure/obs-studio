@@ -986,7 +986,7 @@ static void receive_audio(void *param, size_t mix_idx, struct audio_data *frame)
 		circlebuf_push_back(&data->excess_frames[track_order][i],
 				    in.data[i], in.frames * data->audio_size);
 
-	while (cb_get_size(data->excess_frames[track_order][0]) >=
+	while (data->excess_frames[track_order][0].size >=
 	       frame_size_bytes) {
 		for (size_t i = 0; i < data->audio_planes; i++)
 			circlebuf_pop_front(

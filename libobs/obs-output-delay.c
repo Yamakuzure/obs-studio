@@ -67,7 +67,7 @@ void obs_output_cleanup_delay(obs_output_t *output)
 {
 	struct delay_data dd;
 
-	while (cb_get_size(output->delay_data)) {
+	while (output->delay_data.size) {
 		circlebuf_pop_front(&output->delay_data, &dd, sizeof(dd));
 		if (dd.msg == DELAY_MSG_PACKET) {
 			obs_encoder_packet_release(&dd.packet);
@@ -91,7 +91,7 @@ static inline bool pop_packet(struct obs_output *output, uint64_t t)
 
 	pthread_mutex_lock(&output->delay_mutex);
 
-	if (cb_get_size(output->delay_data)) {
+	if (output->delay_data.size) {
 		circlebuf_peek_front(&output->delay_data, &dd, sizeof(dd));
 		elapsed_time = (t - dd.ts);
 

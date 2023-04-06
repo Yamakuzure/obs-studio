@@ -31,7 +31,7 @@ static const char *gpu_delay_filter_get_name(void *unused)
 static void free_textures(struct gpu_delay_filter_data *f)
 {
 	obs_enter_graphics();
-	while (cb_get_size(f->frames)) {
+	while (f->frames.size) {
 		struct frame frame;
 		circlebuf_pop_front(&f->frames, &frame, sizeof(frame));
 		gs_texrender_destroy(frame.render);
@@ -42,7 +42,7 @@ static void free_textures(struct gpu_delay_filter_data *f)
 
 static size_t num_frames(struct circlebuf *buf)
 {
-	return cb_get_size_p(buf) / sizeof(struct frame);
+	return buf->size / sizeof(struct frame);
 }
 
 static void update_interval(struct gpu_delay_filter_data *f,
@@ -272,7 +272,7 @@ static void gpu_delay_filter_render(void *data, gs_effect_t *effect)
 	obs_source_t *target = obs_filter_get_target(f->context);
 	obs_source_t *parent = obs_filter_get_parent(f->context);
 
-	if (!f->target_valid || !target || !parent || !cb_get_size(f->frames)) {
+	if (!f->target_valid || !target || !parent || !f->frames.size) {
 		obs_source_skip_video_filter(f->context);
 		return;
 	}
@@ -342,7 +342,7 @@ gpu_delay_filter_get_color_space(void *data, size_t count,
 	obs_source_t *target = obs_filter_get_target(f->context);
 	obs_source_t *parent = obs_filter_get_parent(f->context);
 
-	if (!f->target_valid || !target || !parent || !cb_get_size(f->frames)) {
+	if (!f->target_valid || !target || !parent || !f->frames.size) {
 		return (count > 0) ? preferred_spaces[0] : GS_CS_SRGB;
 	}
 

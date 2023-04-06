@@ -980,12 +980,12 @@ static void execute_graphics_tasks(void)
 
 	while (tasks_remaining) {
 		pthread_mutex_lock(&video->task_mutex);
-		if (cb_get_size(video->tasks)) {
+		if (video->tasks.size) {
 			struct obs_task_info info;
 			circlebuf_pop_front(&video->tasks, &info, sizeof(info));
 			info.task(info.param);
 		}
-		tasks_remaining = cb_get_size(video->tasks) != 0;
+		tasks_remaining = video->tasks.size != 0;
 		pthread_mutex_unlock(&video->task_mutex);
 	}
 }

@@ -140,7 +140,7 @@ static inline void free_packets(struct ftl_stream *stream)
 	if (num_packets)
 		info("Freeing %d remaining packets", (int)num_packets);
 
-	while (cb_get_size(stream->packets)) {
+	while (stream->packets.size) {
 		struct encoder_packet packet;
 		circlebuf_pop_front(&stream->packets, &packet, sizeof(packet));
 		obs_encoder_packet_release(&packet);
@@ -283,7 +283,7 @@ static inline bool get_next_packet(struct ftl_stream *stream,
 	bool new_packet = false;
 
 	pthread_mutex_lock(&stream->packets_mutex);
-	if (cb_get_size(stream->packets)) {
+	if (stream->packets.size) {
 		circlebuf_pop_front(&stream->packets, packet,
 				    sizeof(struct encoder_packet));
 		new_packet = true;
@@ -673,7 +673,7 @@ static inline bool add_packet(struct ftl_stream *stream,
 
 static inline size_t num_buffered_packets(struct ftl_stream *stream)
 {
-	return cb_get_size(stream->packets) / sizeof(struct encoder_packet);
+	return stream->packets.size / sizeof(struct encoder_packet);
 }
 
 static void drop_frames(struct ftl_stream *stream, const char *name,
@@ -692,7 +692,7 @@ static void drop_frames(struct ftl_stream *stream, const char *name,
 
 	circlebuf_reserve(&new_buf, sizeof(struct encoder_packet) * 8);
 
-	while (cb_get_size(stream->packets)) {
+	while (stream->packets.size) {
 		struct encoder_packet packet;
 		circlebuf_pop_front(&stream->packets, &packet, sizeof(packet));
 
@@ -725,7 +725,7 @@ static void drop_frames(struct ftl_stream *stream, const char *name,
 static bool find_first_video_packet(struct ftl_stream *stream,
 				    struct encoder_packet *first)
 {
-	size_t count = cb_get_size(stream->packets) / sizeof(*first);
+	size_t count = stream->packets.size / sizeof(*first);
 
 	for (size_t i = 0; i < count; i++) {
 		struct encoder_packet *cur =

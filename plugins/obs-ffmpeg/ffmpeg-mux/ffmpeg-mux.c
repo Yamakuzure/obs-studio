@@ -767,7 +767,7 @@ static void *ffmpeg_mux_io_thread(void *data)
 			// and fill up our local chunk. This may involve seeking
 			// if ffmpeg needs to, so take care of that as well.
 			for (;;) {
-				size_t available = cb_get_size(ffm->io.data);
+				size_t available = ffm->io.data.size;
 
 				// Buffer is empty (now) or was already empty (we got
 				// woken up to exit)
@@ -912,7 +912,7 @@ static int ffmpeg_mux_write_av_buffer(void *opaque, uint8_t *buf, int buf_size)
 
 		// Avoid unbounded growth of the circlebuf, cap to 256 MB
 		if (ffm->io.data.capacity >= 256 * 1048576 &&
-		    ffm->io.data.capacity - cb_get_size(ffm->io.data) <
+		    ffm->io.data.capacity - ffm->io.data.size <
 			    buf_size + sizeof(struct io_header)) {
 			// No space, wait for the I/O thread to make space
 			os_event_reset(ffm->io.buffer_space_available_event);

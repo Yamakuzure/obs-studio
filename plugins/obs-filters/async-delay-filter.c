@@ -43,7 +43,7 @@ static const char *async_delay_filter_name(void *unused)
 static void free_video_data(struct async_delay_data *filter,
 			    obs_source_t *parent)
 {
-	while (cb_get_size(filter->video_frames)) {
+	while (filter->video_frames.size) {
 		struct obs_source_frame *frame;
 
 		circlebuf_pop_front(&filter->video_frames, &frame,
@@ -61,7 +61,7 @@ static inline void free_audio_packet(struct obs_audio_data *audio)
 
 static void free_audio_data(struct async_delay_data *filter)
 {
-	while (cb_get_size(filter->audio_frames)) {
+	while (filter->audio_frames.size) {
 		struct obs_audio_data audio;
 
 		circlebuf_pop_front(&filter->audio_frames, &audio,
