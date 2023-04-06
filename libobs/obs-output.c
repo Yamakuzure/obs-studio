@@ -1801,8 +1801,13 @@ static void interleave_packets(void *data, struct encoder_packet *packet)
 	}
 #endif // _DEBUG
 
-	if (!active(output))
+	if (!active(output)) {
+		debug_log("Ignoring %s packet, output is NOT active!",
+			  (packet->type == OBS_ENCODER_AUDIO)   ? "audio"
+			  : (packet->type == OBS_ENCODER_VIDEO) ? "video"
+								: "unknown");
 		return;
+	}
 
 	if (packet->type == OBS_ENCODER_AUDIO)
 		packet->track_idx = get_track_index(output, packet);
@@ -1880,7 +1885,11 @@ static void default_encoded_callback(void *param, struct encoder_packet *packet)
 
 		if (packet->type == OBS_ENCODER_VIDEO)
 			output->total_frames++;
-	}
+	} else
+		debug_log("Ignoring %s packet, output is NOT active!",
+			  (packet->type == OBS_ENCODER_AUDIO)   ? "audio"
+			  : (packet->type == OBS_ENCODER_VIDEO) ? "video"
+								: "unknown");
 
 	if (output->active_delay_ns)
 		obs_encoder_packet_release(packet);
@@ -2079,8 +2088,10 @@ WARN_UNUSED_RESULT static bool hook_data_capture(struct obs_output *output,
 		encoded_callback = (has_video && has_audio)
 					   ? interleave_packets
 					   : default_encoded_callback;
-		debug_log("Output %s uses %s", out_name,
-			  (has_video && has_audio)
+
+		debug_log("encoded_callback = %s",
+			  (output->active_delay_ns) ? "process_delay"
+			  : (has_video && has_audio)
 				  ? "interleave_packets"
 				  : "default_encoded_callback");
 
@@ -2429,6 +2440,14 @@ static void *end_data_capture_thread(void *data)
 	convert_flags(output, 0, &encoded, &has_video, &has_audio,
 		      &has_service);
 
+	debug_log("Starting end_data_capture_thread with:\n"
+		  "\tencoded    : %s\n"
+		  "\thas_video  : %s\n"
+		  "\thas_audio  : %s\n"
+		  "\thas_service: %s\n",
+		  encoded ? "true" : "false", has_video ? "true" : "false",
+		  has_audio ? "true" : "false", has_service ? "true" : "false");
+
 	if (encoded) {
 		if (output->active_delay_ns)
 			encoded_callback = process_delay;
@@ -2437,28 +2456,42 @@ static void *end_data_capture_thread(void *data)
 						   ? interleave_packets
 						   : default_encoded_callback;
 
-		if (has_video)
+		if (has_video) {
+			debug_log("Stopping video encoder...");
 			obs_encoder_stop(output->video_encoder,
 					 encoded_callback, output);
-		if (has_audio)
+		}
+		if (has_audio) {
+			debug_log("Stopping audio encoder...");
 			stop_audio_encoders(output, encoded_callback);
+		}
 	} else {
-		if (has_video)
+		if (has_video) {
+			debug_log("Stopping raw video...");
 			stop_raw_video(output->video,
 				       default_raw_video_callback, output);
-		if (has_audio)
+		}
+		if (has_audio) {
+			debug_log("Stopping raw audio...");
 			stop_raw_audio(output);
+		}
 	}
 
-	if (has_service)
+	if (has_service) {
+		debug_log("Deactivating service...");
 		obs_service_deactivate(output->service, false);
+	}
 
-	if (output->active_delay_ns)
+	if (output->active_delay_ns) {
+		debug_log("Cleaning up delay...");
 		obs_output_cleanup_delay(output);
+	}
 
 	do_output_signal(output, "deactivate");
 	os_atomic_set_bool(&output->active, false);
 	os_event_signal(output->stopping_event);
+
+	debug_log("end_data_capture_thread finished");
 
 	return NULL;
 }

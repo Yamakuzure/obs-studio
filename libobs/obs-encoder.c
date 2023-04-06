@@ -607,6 +607,14 @@ static inline WARN_UNUSED_RESULT bool obs_encoder_start_internal(
 #endif // _DEBUG
 	}
 
+	debug_log("encoder '%s' start statistics:\n"
+		  "\tidx   : %zu\n"
+		  "\tfirst : %s\n"
+		  "\tpaused: %s\n"
+		  "\tcur_pts: %ld\n",
+		  enc_name, idx, first ? "true" : "false",
+		  encoder->paused ? "true" : "false", encoder->cur_pts);
+
 	pthread_mutex_unlock(&encoder->callbacks_mutex);
 
 	if (first) {
@@ -1017,9 +1025,7 @@ void full_stop(struct obs_encoder *encoder)
 			obs_output_force_stop(output);
 
 			pthread_mutex_lock(&output->interleaved_mutex);
-			debug_log(
-				"Sending encoder %s a NULL interleaved packet",
-				enc_name);
+			debug_log("Sending encoder %s a NULL packet", enc_name);
 			output->info.encoded_packet(output->context.data, NULL);
 			pthread_mutex_unlock(&output->interleaved_mutex);
 		}

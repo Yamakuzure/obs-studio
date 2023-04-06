@@ -509,27 +509,47 @@ static bool ffmpeg_mux_start(void *data)
 int deactivate(struct ffmpeg_muxer *stream, int code)
 {
 	int ret = -1;
+	char const *stream_path = dstr_is_empty(&stream->printable_path)
+					  ? stream->path.array
+					  : stream->printable_path.array;
+
+	debug_log("Stats on call with code %d:\n"
+		  "\tstream is hls       : %s\n"
+		  "\tmux thread joinable : %s\n"
+		  "\tstream active       : %s\n"
+		  "\tsent headers        : %s\n"
+		  "\tstream stopping     : %s",
+		  code, stream->is_hls ? "true" : "false",
+		  stream->mux_thread_joinable ? "true" : "false",
+		  active(stream) ? "true" : "false",
+		  stream->sent_headers ? "true" : "false",
+		  stream->stopping ? "true" : "false");
 
 	if (stream->is_hls) {
+		debug_log("Deactivating '%s' %s joining mux_thread",
+			  stream_path,
+			  stream->mux_thread_joinable ? "and" : "but not");
 		if (stream->mux_thread_joinable) {
 			os_event_signal(stream->stop_event);
 			os_sem_post(stream->write_sem);
+			debug_log("joining stream->mux_thread...");
 			pthread_join(stream->mux_thread, NULL);
+			debug_log("stream->mux_thread joined");
 			stream->mux_thread_joinable = false;
 		}
 	}
 
 	if (active(stream)) {
+		debug_log("Stream '%s' active, destroying stream->pipe",
+			  stream_path);
 		ret = os_process_pipe_destroy(stream->pipe);
 		stream->pipe = NULL;
 
 		os_atomic_set_bool(&stream->active, false);
 
-		info("Output of file '%s' stopped",
-		     dstr_is_empty(&stream->printable_path)
-			     ? stream->path.array
-			     : stream->printable_path.array);
-	}
+		info("Output of file '%s' stopped", stream_path);
+	} else
+		debug_log("Stream '%s' is not active!", stream_path);
 
 	os_atomic_set_bool(&stream->sent_headers, false);
 
@@ -560,6 +580,11 @@ void ffmpeg_mux_stop(void *data, uint64_t ts)
 {
 	struct ffmpeg_muxer *stream = data;
 
+	debug_log(
+		"Called %s stopping stream/capturing (Capturing: %s, ts: %lu)",
+		(capturing(stream) || ts == 0) ? "and" : "but NOT",
+		capturing(stream) ? "true" : "false", ts);
+
 	if (capturing(stream) || ts == 0) {
 		stream->stop_ts = (int64_t)ts / 1000LL;
 		os_atomic_set_bool(&stream->stopping, true);
@@ -582,7 +607,8 @@ static void signal_failure(struct ffmpeg_muxer *stream)
 		error[len] = 0;
 		warn("ffmpeg-mux: %s", error);
 		obs_output_set_last_error(stream->output, error);
-	}
+	} else
+		debug_log("deactivating stream (no pipe error)");
 
 	ret = deactivate(stream, 0);
 
@@ -871,6 +897,7 @@ static void ffmpeg_mux_data(void *data, struct encoder_packet *packet)
 				"no packet, but at least call send_headers()");
 			send_headers(stream);
 		}
+		debug_log("Deactiving stream due to encoder error...");
 		deactivate(stream, OBS_OUTPUT_ENCODE_ERROR);
 		return;
 	}
@@ -914,6 +941,13 @@ static void ffmpeg_mux_data(void *data, struct encoder_packet *packet)
 	}
 
 	if (stopping(stream)) {
+		debug_log("Stopping %s deactivating stream (%ld %s %ld)",
+			  (packet->sys_dts_usec >= stream->stop_ts) ? "and"
+								    : "but NOT",
+			  packet->sys_dts_usec,
+			  (packet->sys_dts_usec >= stream->stop_ts) ? ">="
+								    : "<",
+			  stream->stop_ts);
 		if (packet->sys_dts_usec >= stream->stop_ts) {
 			deactivate(stream, 0);
 			return;

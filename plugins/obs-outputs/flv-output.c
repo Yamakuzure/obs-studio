@@ -154,6 +154,21 @@ static bool flv_output_start(void *data)
 	obs_data_t *settings;
 	const char *path;
 
+	debug_log("Stats on call:\n"
+		  "\tcapture can begin   : %s\n"
+		  "\tencoders initialized: %s\n"
+		  "\tgot first video     : %s\n"
+		  "\tsent headers        : %s\n"
+		  "\tstream stopping     : %s",
+		  obs_output_can_begin_data_capture(stream->output, 0)
+			  ? "true"
+			  : "false",
+		  obs_output_initialize_encoders(stream->output, 0) ? "true"
+								    : "false",
+		  stream->got_first_video ? "true" : "false",
+		  stream->sent_headers ? "true" : "false",
+		  stream->stopping ? "true" : "false");
+
 	if (!obs_output_can_begin_data_capture(stream->output, 0))
 		return false;
 	if (!obs_output_initialize_encoders(stream->output, 0))
@@ -186,6 +201,7 @@ static bool flv_output_start(void *data)
 static void flv_output_stop(void *data, uint64_t ts)
 {
 	struct flv_output *stream = data;
+	debug_log("Setting stream to stop...");
 	stream->stop_ts = ts / 1000;
 	os_atomic_set_bool(&stream->stopping, true);
 }

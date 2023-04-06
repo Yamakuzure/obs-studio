@@ -28,6 +28,7 @@ void ffmpeg_hls_mux_destroy(void *data)
 	struct ffmpeg_muxer *stream = data;
 
 	if (stream) {
+		debug_log("Deactivating stream...");
 		deactivate(stream, 0);
 
 		pthread_mutex_destroy(&stream->write_mutex);
@@ -94,13 +95,25 @@ static void *write_thread(void *data)
 {
 	struct ffmpeg_muxer *stream = data;
 
+#ifdef _DEBUG
+	char const *stream_out = dstr_is_empty(&stream->printable_path)
+					 ? stream->path.array
+					 : stream->printable_path.array;
+#endif // _DEBUG
+
+	debug_log("write_thread for '%s' started", stream_out);
+
 	while (os_sem_wait(stream->write_sem) == 0) {
-		if (os_event_try(stream->stop_event) == 0)
+		if (os_event_try(stream->stop_event) == 0) {
+			debug_log("Stopping write_thread for '%s'", stream_out);
 			return NULL;
+		}
 
 		if (!process_packet(stream))
 			break;
 	}
+
+	debug_log("Breaking off failed write_thread for '%s'", stream_out);
 
 	obs_output_signal_stop(stream->output, OBS_OUTPUT_ERROR);
 	deactivate(stream, 0);
@@ -284,6 +297,7 @@ void ffmpeg_hls_mux_data(void *data, struct encoder_packet *packet)
 			debug_log("failed, but at least call send_headers()");
 			send_headers(stream);
 		}
+		debug_log("Deactiving stream due to encoder error...");
 		deactivate(stream, OBS_OUTPUT_ENCODE_ERROR);
 		return;
 	}
@@ -296,6 +310,13 @@ void ffmpeg_hls_mux_data(void *data, struct encoder_packet *packet)
 	}
 
 	if (stopping(stream)) {
+		debug_log("Stopping %s deactivating stream (%ld %s %ld)",
+			  (packet->sys_dts_usec >= stream->stop_ts) ? "and"
+								    : "but NOT",
+			  packet->sys_dts_usec,
+			  (packet->sys_dts_usec >= stream->stop_ts) ? ">="
+								    : "<",
+			  stream->stop_ts);
 		if (packet->sys_dts_usec >= stream->stop_ts) {
 			deactivate(stream, 0);
 			return;
