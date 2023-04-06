@@ -25,7 +25,15 @@
 
 #clion
 .idea/
-cmake-build-debug/
+cmake-build-*/
+install_?/
+
+#debug logs
+log*.txt
+split*.txt
+log*.csv
+log*.ods
+????-??-??*.txt
 
 #other stuff (windows stuff, qt moc stuff, etc)
 Release_MD/
@@ -104,5 +112,3 @@ tags
 /flatpak_app/
 /repo/
 /CI/flatpak/flatpak-github-action-modified-*
-cmake-build-*/
-install_?/
