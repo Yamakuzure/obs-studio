@@ -48,11 +48,11 @@ struct darray {
 	explicit darray() = default;
 	void *array{nullptr};
 	a_size_t num{0};
-	volatile size_t capacity{0};
+	a_size_t capacity{0};
 #else
 	void *array;
 	a_size_t num;
-	volatile size_t capacity;
+	a_size_t capacity;
 #endif // __cplusplus
 };
 
