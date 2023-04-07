@@ -15,6 +15,10 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ******************************************************************************/
 
+// deactivate mutex debugging unconditionally, the tick and timer mutexes are
+// otherwise flooding the logs while being totally harmless.
+#define NO_MUTEX_DEBUG_LOGGING 1
+
 #include "obs-scripting-lua.h"
 #include <util/platform.h>
 #include <util/base.h>
