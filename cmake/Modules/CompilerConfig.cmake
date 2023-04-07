@@ -7,12 +7,12 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-set(CMAKE_C_STANDARD 17)
-set(CMAKE_C_STANDARD_REQUIRED ON)
 # TODO/FIXME: Investigate disabling C extensions on Linux/POSIX
 if(OS_MACOS OR NOT OS_POSIX)
   set(CMAKE_C_EXTENSIONS OFF)
 endif()
+
+option(ENABLE_MUTEX_LOGGING "Write debug log entries on every lock/unlock" "$<$<CONFIG:DEBUG>:ON;OFF>")
 
 # Set compile options for MSVC
 if(OS_WINDOWS AND MSVC)
@@ -153,6 +153,15 @@ else()
   elseif(CMAKE_SANITIZE MATCHES "[Uu]ndefined")
     add_compile_options(-fsanitize=undefined -ggdb)
     add_link_options(-fsanitize=undefined -ggdb)
+  endif()
+endif()
+
+# Enable mutex debug logging
+if(ENABLE_MUTEX_LOGGING)
+  if(OS_WINDOWS AND MSVC)
+    add_compile_options(/DENABLE_MUTEX_LOGGING)
+  else()
+    add_compile_options(-DENABLE_MUTEX_LOGGING)
   endif()
 endif()
 

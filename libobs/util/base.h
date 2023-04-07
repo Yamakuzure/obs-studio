@@ -103,6 +103,7 @@ EXPORT char const *obs_internal_location_info(char const *path, size_t line,
 #else
 #define CURRENT_THREAD_ID ((size_t)(pthread_self()))
 #endif // PTHREAD_H vs _PTHREAD_H
+#if defined(ENABLE_MUTEX_LOGGING) && !defined(NO_MUTEX_DEBUG_LOGGING)
 #if defined(__GNUC__)
 // === Very good, we can use GNU extensions like braced groups in assignments.
 #define pthread_mutex_init(MUTEX_, MUTEXATTR_)                     \
@@ -202,6 +203,7 @@ static int pthread_mutex_unlock_debug_(char const *path, size_t line,
 	pthread_mutex_unlock_debug_(__FILE__, __LINE__, __func__, #MUTEX_, \
 				    MUTEX_)
 #endif // __GNUC__
+#endif // ENABLE_MUTEX_LOGGING && !NO_MUTEX_DEBUG_LOGGING
 #endif // PTHREAD_H || _PTHREAD_H
 //---------------------------------------------
 #else
