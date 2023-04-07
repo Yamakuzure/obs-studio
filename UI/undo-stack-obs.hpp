@@ -35,7 +35,10 @@ class undo_stack : public QObject {
 
 	QTimer repeat_reset_timer;
 
-	inline bool is_enabled() const { return !disable_refs && enabled; }
+	[[nodiscard]] inline bool is_enabled() const
+	{
+		return !disable_refs && enabled;
+	}
 
 	void enable_internal();
 	void disable_internal();
@@ -45,7 +48,7 @@ private slots:
 	void reset_repeatable_state();
 
 public:
-	undo_stack(ui_ptr ui);
+	explicit undo_stack(ui_ptr ui);
 
 	void enable();
 	void disable();

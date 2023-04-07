@@ -1,11 +1,13 @@
 #pragma once
 
+#include <util/c17atomics.h>
+
 #include "decklink-device-mode.hpp"
 
 #include <map>
 #include <string>
 #include <vector>
-#include <stdint.h>
+#include <cstdint>
 
 class DeckLinkDevice {
 	ComPtr<IDeckLink> device;
@@ -27,7 +29,7 @@ class DeckLinkDevice {
 	int64_t supportedAudioInputConnections = -1;
 	int64_t supportedAudioOutputConnections = -1;
 	int keyerMode = 0;
-	volatile long refCount = 1;
+	a_int64_t refCount = 1;
 
 public:
 	DeckLinkDevice(IDeckLink *device);

@@ -81,10 +81,12 @@
 #define PRAGMA_WARN_POP _Pragma("GCC diagnostic pop")
 #define PRAGMA_WARN_DEPRECATION \
 	_Pragma("GCC diagnostic warning \"-Wdeprecated-declarations\"")
-#define PRAGMA_IGNORE_DEPRECATION \
+#define PRAGMA_IGNORED_DEPRECATION \
 	_Pragma("GCC diagnostic ignored \"-Wdeprecated-declarations\"")
 #define PRAGMA_WARN_STRINGOP_OVERFLOW \
 	_Pragma("GCC diagnostic warning \"-Wstringop-overflow\"")
+#define PRAGMA_WARN_ARRAY_BOUNDS \
+	_Pragma("GCC diagnostic warning \"-Warray-bounds\"")
 #else
 #define PRAGMA_WARN_PUSH
 #define PRAGMA_WARN_POP

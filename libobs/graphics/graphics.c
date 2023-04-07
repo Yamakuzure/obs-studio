@@ -281,13 +281,13 @@ void gs_enter_context(graphics_t *graphics)
 		thread_graphics = graphics;
 	}
 
-	os_atomic_inc_long(&graphics->ref);
+	graphics->ref++;
 }
 
 void gs_leave_context(void)
 {
 	if (gs_valid("gs_leave_context")) {
-		if (!os_atomic_dec_long(&thread_graphics->ref)) {
+		if (0 == --thread_graphics->ref) {
 			graphics_t *graphics = thread_graphics;
 
 			graphics->exports.device_leave_context(

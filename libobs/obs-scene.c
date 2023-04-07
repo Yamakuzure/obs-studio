@@ -23,8 +23,7 @@
 #include "obs-internal.h"
 
 #ifdef _MSC_VER
-#pragma warning( \
-	disable : 4132) /* not initialized const object - needed here for forwarding */
+#pragma warning(disable : 4132) /* not initialized const object - needed here for forwarding */
 #endif
 const struct obs_source_info group_info;
 
@@ -281,7 +280,7 @@ static void scene_enum_sources(void *data, obs_source_enum_proc_t enum_callback,
 				 transition_active(item->hide_transition))
 				enum_callback(scene->source,
 					      item->hide_transition, param);
-			else if (os_atomic_load_long(&item->active_refs) > 0)
+			else if (item->active_refs > 0)
 				enum_callback(scene->source, item->source,
 					      param);
 		} else {
@@ -438,7 +437,7 @@ static void update_item_transform(struct obs_scene_item *item, bool update_tex)
 	struct calldata params;
 	uint8_t stack[128];
 
-	if (os_atomic_load_long(&item->defer_update) > 0)
+	if (item->defer_update > 0)
 		return;
 
 	width = obs_source_get_width(item->source);
@@ -510,7 +509,7 @@ static void update_item_transform(struct obs_scene_item *item, bool update_tex)
 	if (!update_tex)
 		return;
 
-	os_atomic_set_bool(&item->update_transform, false);
+	item->update_transform = false;
 }
 
 static inline bool source_size_changed(struct obs_scene_item *item)
@@ -856,9 +855,8 @@ update_transforms_and_prune_sources(obs_scene_t *scene,
 				    obs_sceneitem_t *group_sceneitem)
 {
 	struct obs_scene_item *item = scene->first_item;
-	bool rebuild_group =
-		group_sceneitem &&
-		os_atomic_load_bool(&group_sceneitem->update_group_resize);
+	bool rebuild_group = group_sceneitem &&
+			     group_sceneitem->update_group_resize;
 
 	while (item) {
 		if (obs_source_removed(item->source)) {
@@ -881,8 +879,7 @@ update_transforms_and_prune_sources(obs_scene_t *scene,
 			video_unlock(group_scene);
 		}
 
-		if (os_atomic_load_bool(&item->update_transform) ||
-		    source_size_changed(item)) {
+		if (item->update_transform || source_size_changed(item)) {
 
 			update_item_transform(item, true);
 			rebuild_group = true;
@@ -939,7 +936,7 @@ static void set_visibility(struct obs_scene_item *item, bool vis)
 
 	da_resize(item->audio_actions, 0);
 
-	if (os_atomic_load_long(&item->active_refs) > 0) {
+	if (item->active_refs > 0) {
 		if (!vis)
 			obs_source_remove_active_child(item->parent->source,
 						       item->source);
@@ -947,7 +944,7 @@ static void set_visibility(struct obs_scene_item *item, bool vis)
 		obs_source_add_active_child(item->parent->source, item->source);
 	}
 
-	os_atomic_set_long(&item->active_refs, vis ? 1 : 0);
+	item->active_refs = vis ? 1 : 0;
 	item->visible = vis;
 	item->user_visible = vis;
 
@@ -1327,7 +1324,7 @@ static void apply_scene_item_audio_actions(struct obs_scene_item *item,
 	pthread_mutex_unlock(&item->actions_mutex);
 
 	while (deref_count--) {
-		if (os_atomic_dec_long(&item->active_refs) == 0) {
+		if (0 == --item->active_refs) {
 			obs_source_remove_active_child(item->parent->source,
 						       item->source);
 		}
@@ -1693,7 +1690,7 @@ static inline void duplicate_item_data(struct obs_scene_item *dst,
 	obs_sceneitem_set_locked(dst, src->locked);
 
 	if (defer_texture_update) {
-		os_atomic_set_bool(&dst->update_transform, true);
+		dst->update_transform = true;
 	}
 
 	obs_data_apply(dst->private_settings, src->private_settings);
@@ -1952,10 +1949,10 @@ void obs_scene_enum_items(obs_scene_t *scene,
 
 static obs_sceneitem_t *sceneitem_get_ref(obs_sceneitem_t *si)
 {
-	long owners = os_atomic_load_long(&si->ref);
+	long owners = si->ref;
 	while (owners > 0) {
-		if (os_atomic_compare_exchange_long(&si->ref, &owners,
-						    owners + 1)) {
+		if (atomic_compare_exchange_weak(&si->ref, &owners,
+						 owners + 1)) {
 			return si;
 		}
 	}
@@ -2118,7 +2115,7 @@ static obs_sceneitem_t *obs_scene_add_internal(obs_scene_t *scene,
 	item->is_group = strcmp(source->info.id, group_info.id) == 0;
 	item->private_settings = obs_data_create();
 	item->toggle_visibility = OBS_INVALID_HOTKEY_PAIR_ID;
-	os_atomic_set_long(&item->active_refs, 1);
+	item->active_refs = 1;
 	vec2_set(&item->scale, 1.0f, 1.0f);
 	matrix4_identity(&item->draw_transform);
 	matrix4_identity(&item->box_transform);
@@ -2212,7 +2209,7 @@ static void obs_sceneitem_destroy(obs_sceneitem_t *item)
 void obs_sceneitem_addref(obs_sceneitem_t *item)
 {
 	if (item)
-		os_atomic_inc_long(&item->ref);
+		item->ref++;
 }
 
 void obs_sceneitem_release(obs_sceneitem_t *item)
@@ -2220,7 +2217,7 @@ void obs_sceneitem_release(obs_sceneitem_t *item)
 	if (!item)
 		return;
 
-	if (os_atomic_dec_long(&item->ref) == 0)
+	if (0 == --item->ref)
 		obs_sceneitem_destroy(item);
 }
 
@@ -2486,12 +2483,12 @@ bool obs_sceneitem_selected(const obs_sceneitem_t *item)
 	return item ? item->selected : false;
 }
 
-#define do_update_transform(item)                                          \
-	do {                                                               \
-		if (!item->parent || item->parent->is_group)               \
-			os_atomic_set_bool(&item->update_transform, true); \
-		else                                                       \
-			update_item_transform(item, false);                \
+#define do_update_transform(item)                            \
+	do {                                                 \
+		if (!item->parent || item->parent->is_group) \
+			item->update_transform = true;       \
+		else                                         \
+			update_item_transform(item, false);  \
 	} while (false)
 
 void obs_sceneitem_set_pos(obs_sceneitem_t *item, const struct vec2 *pos)
@@ -2803,10 +2800,10 @@ bool obs_sceneitem_set_visible(obs_sceneitem_t *item, bool visible)
 	item->user_visible = visible;
 
 	if (visible) {
-		if (os_atomic_inc_long(&item->active_refs) == 1) {
+		if (1 == ++item->active_refs) {
 			if (!obs_source_add_active_child(item->parent->source,
 							 item->source)) {
-				os_atomic_dec_long(&item->active_refs);
+				item->active_refs--;
 				return false;
 			}
 		}
@@ -2973,7 +2970,7 @@ void obs_sceneitem_set_crop(obs_sceneitem_t *item,
 	if (item->crop.bottom < 0)
 		item->crop.bottom = 0;
 
-	os_atomic_set_bool(&item->update_transform, true);
+	item->update_transform = true;
 }
 
 void obs_sceneitem_get_crop(const obs_sceneitem_t *item,
@@ -2995,7 +2992,7 @@ void obs_sceneitem_set_scale_filter(obs_sceneitem_t *item,
 
 	item->scale_filter = filter;
 
-	os_atomic_set_bool(&item->update_transform, true);
+	item->update_transform = true;
 }
 
 enum obs_scale_type obs_sceneitem_get_scale_filter(obs_sceneitem_t *item)
@@ -3030,7 +3027,7 @@ void obs_sceneitem_set_blending_mode(obs_sceneitem_t *item,
 
 	item->blend_type = type;
 
-	os_atomic_set_bool(&item->update_transform, true);
+	item->update_transform = true;
 }
 
 enum obs_blending_type obs_sceneitem_get_blending_mode(obs_sceneitem_t *item)
@@ -3045,7 +3042,7 @@ void obs_sceneitem_defer_update_begin(obs_sceneitem_t *item)
 	if (!obs_ptr_valid(item, "obs_sceneitem_defer_update_begin"))
 		return;
 
-	os_atomic_inc_long(&item->defer_update);
+	item->defer_update++;
 }
 
 void obs_sceneitem_defer_update_end(obs_sceneitem_t *item)
@@ -3053,7 +3050,7 @@ void obs_sceneitem_defer_update_end(obs_sceneitem_t *item)
 	if (!obs_ptr_valid(item, "obs_sceneitem_defer_update_end"))
 		return;
 
-	if (os_atomic_dec_long(&item->defer_update) == 0)
+	if (0 == --item->defer_update)
 		do_update_transform(item);
 }
 
@@ -3062,7 +3059,7 @@ void obs_sceneitem_defer_group_resize_begin(obs_sceneitem_t *item)
 	if (!obs_ptr_valid(item, "obs_sceneitem_defer_group_resize_begin"))
 		return;
 
-	os_atomic_inc_long(&item->defer_group_resize);
+	item->defer_group_resize++;
 }
 
 void obs_sceneitem_defer_group_resize_end(obs_sceneitem_t *item)
@@ -3070,8 +3067,8 @@ void obs_sceneitem_defer_group_resize_end(obs_sceneitem_t *item)
 	if (!obs_ptr_valid(item, "obs_sceneitem_defer_group_resize_end"))
 		return;
 
-	if (os_atomic_dec_long(&item->defer_group_resize) == 0)
-		os_atomic_set_bool(&item->update_group_resize, true);
+	if (0 == --item->defer_group_resize)
+		item->update_group_resize = true;
 }
 
 int64_t obs_sceneitem_get_id(const obs_sceneitem_t *item)
@@ -3237,7 +3234,7 @@ static void resize_group(obs_sceneitem_t *group)
 	struct vec2 maxv;
 	struct vec2 scale;
 
-	if (os_atomic_load_long(&group->defer_group_resize) > 0)
+	if (group->defer_group_resize > 0)
 		return;
 
 	if (!resize_scene_base(scene, &minv, &maxv, &scale))
@@ -3264,7 +3261,7 @@ static void resize_group(obs_sceneitem_t *group)
 		vec2_copy(&group->pos, &new_pos);
 	}
 
-	os_atomic_set_bool(&group->update_group_resize, false);
+	group->update_group_resize = false;
 
 	update_item_transform(group, false);
 }
@@ -3736,7 +3733,7 @@ void obs_sceneitem_force_update_transform(obs_sceneitem_t *item)
 	if (!item)
 		return;
 
-	if (os_atomic_set_bool(&item->update_transform, false))
+	if (atomic_exchange(&item->update_transform, false))
 		update_item_transform(item, false);
 }
 

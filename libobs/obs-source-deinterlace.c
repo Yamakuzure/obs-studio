@@ -267,7 +267,7 @@ void deinterlace_update_async_video(obs_source_t *source)
 	pthread_mutex_unlock(&source->async_mutex);
 
 	if (frame) {
-		os_atomic_inc_long(&frame->refs);
+		frame->refs++;
 
 		if (set_async_texture_size(source, frame)) {
 			update_async_textures(source, frame,

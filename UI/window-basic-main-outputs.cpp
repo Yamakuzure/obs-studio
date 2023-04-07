@@ -11,19 +11,19 @@ using namespace std;
 
 extern bool EncoderAvailable(const char *encoder);
 
-volatile bool streaming_active = false;
-volatile bool recording_active = false;
-volatile bool recording_paused = false;
-volatile bool replaybuf_active = false;
-volatile bool virtualcam_active = false;
+a_bool_t streaming_active = false;
+a_bool_t recording_active = false;
+a_bool_t recording_paused = false;
+a_bool_t replaybuf_active = false;
+a_bool_t virtualcam_active = false;
 
 #define FTL_PROTOCOL "ftl"
 #define RTMP_PROTOCOL "rtmp"
 
 static void OBSStreamStarting(void *data, calldata_t *params)
 {
-	BasicOutputHandler *output = static_cast<BasicOutputHandler *>(data);
-	obs_output_t *obj = (obs_output_t *)calldata_ptr(params, "output");
+	auto *output = static_cast<BasicOutputHandler *>(data);
+	auto *obj = (obs_output_t *)calldata_ptr(params, "output");
 
 	int sec = (int)obs_output_get_active_delay(obj);
 	if (sec == 0)
@@ -36,8 +36,8 @@ static void OBSStreamStarting(void *data, calldata_t *params)
 
 static void OBSStreamStopping(void *data, calldata_t *params)
 {
-	BasicOutputHandler *output = static_cast<BasicOutputHandler *>(data);
-	obs_output_t *obj = (obs_output_t *)calldata_ptr(params, "output");
+	auto *output = static_cast<BasicOutputHandler *>(data);
+	auto *obj = (obs_output_t *)calldata_ptr(params, "output");
 
 	int sec = (int)obs_output_get_active_delay(obj);
 	if (sec == 0)
@@ -49,15 +49,15 @@ static void OBSStreamStopping(void *data, calldata_t *params)
 
 static void OBSStartStreaming(void *data, calldata_t * /* params */)
 {
-	BasicOutputHandler *output = static_cast<BasicOutputHandler *>(data);
+	auto *output = static_cast<BasicOutputHandler *>(data);
 	output->streamingActive = true;
-	os_atomic_set_bool(&streaming_active, true);
+	streaming_active = true;
 	QMetaObject::invokeMethod(output->main, "StreamingStart");
 }
 
 static void OBSStopStreaming(void *data, calldata_t *params)
 {
-	BasicOutputHandler *output = static_cast<BasicOutputHandler *>(data);
+	auto *output = static_cast<BasicOutputHandler *>(data);
 	int code = (int)calldata_int(params, "code");
 	const char *last_error = calldata_string(params, "last_error");
 
@@ -65,7 +65,7 @@ static void OBSStopStreaming(void *data, calldata_t *params)
 
 	output->streamingActive = false;
 	output->delayActive = false;
-	os_atomic_set_bool(&streaming_active, false);
+	streaming_active = false;
 	QMetaObject::invokeMethod(output->main, "StreamingStop",
 				  Q_ARG(int, code),
 				  Q_ARG(QString, arg_last_error));
@@ -73,24 +73,24 @@ static void OBSStopStreaming(void *data, calldata_t *params)
 
 static void OBSStartRecording(void *data, calldata_t * /* params */)
 {
-	BasicOutputHandler *output = static_cast<BasicOutputHandler *>(data);
+	auto *output = static_cast<BasicOutputHandler *>(data);
 
 	output->recordingActive = true;
-	os_atomic_set_bool(&recording_active, true);
+	recording_active = true;
 	QMetaObject::invokeMethod(output->main, "RecordingStart");
 }
 
 static void OBSStopRecording(void *data, calldata_t *params)
 {
-	BasicOutputHandler *output = static_cast<BasicOutputHandler *>(data);
+	auto *output = static_cast<BasicOutputHandler *>(data);
 	int code = (int)calldata_int(params, "code");
 	const char *last_error = calldata_string(params, "last_error");
 
 	QString arg_last_error = QString::fromUtf8(last_error);
 
 	output->recordingActive = false;
-	os_atomic_set_bool(&recording_active, false);
-	os_atomic_set_bool(&recording_paused, false);
+	recording_active = false;
+	recording_paused = false;
 	QMetaObject::invokeMethod(output->main, "RecordingStop",
 				  Q_ARG(int, code),
 				  Q_ARG(QString, arg_last_error));
@@ -98,13 +98,13 @@ static void OBSStopRecording(void *data, calldata_t *params)
 
 static void OBSRecordStopping(void *data, calldata_t * /* params */)
 {
-	BasicOutputHandler *output = static_cast<BasicOutputHandler *>(data);
+	auto *output = static_cast<BasicOutputHandler *>(data);
 	QMetaObject::invokeMethod(output->main, "RecordStopping");
 }
 
 static void OBSRecordFileChanged(void *data, calldata_t *params)
 {
-	BasicOutputHandler *output = static_cast<BasicOutputHandler *>(data);
+	auto *output = static_cast<BasicOutputHandler *>(data);
 	const char *next_file = calldata_string(params, "next_file");
 
 	QString arg_last_file =
@@ -118,53 +118,53 @@ static void OBSRecordFileChanged(void *data, calldata_t *params)
 
 static void OBSStartReplayBuffer(void *data, calldata_t * /* params */)
 {
-	BasicOutputHandler *output = static_cast<BasicOutputHandler *>(data);
+	auto *output = static_cast<BasicOutputHandler *>(data);
 
 	output->replayBufferActive = true;
-	os_atomic_set_bool(&replaybuf_active, true);
+	replaybuf_active = true;
 	QMetaObject::invokeMethod(output->main, "ReplayBufferStart");
 }
 
 static void OBSStopReplayBuffer(void *data, calldata_t *params)
 {
-	BasicOutputHandler *output = static_cast<BasicOutputHandler *>(data);
+	auto *output = static_cast<BasicOutputHandler *>(data);
 	int code = (int)calldata_int(params, "code");
 
 	output->replayBufferActive = false;
-	os_atomic_set_bool(&replaybuf_active, false);
+	replaybuf_active = false;
 	QMetaObject::invokeMethod(output->main, "ReplayBufferStop",
 				  Q_ARG(int, code));
 }
 
 static void OBSReplayBufferStopping(void *data, calldata_t * /* params */)
 {
-	BasicOutputHandler *output = static_cast<BasicOutputHandler *>(data);
+	auto *output = static_cast<BasicOutputHandler *>(data);
 	QMetaObject::invokeMethod(output->main, "ReplayBufferStopping");
 }
 
 static void OBSReplayBufferSaved(void *data, calldata_t * /* params */)
 {
-	BasicOutputHandler *output = static_cast<BasicOutputHandler *>(data);
+	auto *output = static_cast<BasicOutputHandler *>(data);
 	QMetaObject::invokeMethod(output->main, "ReplayBufferSaved",
 				  Qt::QueuedConnection);
 }
 
 static void OBSStartVirtualCam(void *data, calldata_t * /* params */)
 {
-	BasicOutputHandler *output = static_cast<BasicOutputHandler *>(data);
+	auto *output = static_cast<BasicOutputHandler *>(data);
 
 	output->virtualCamActive = true;
-	os_atomic_set_bool(&virtualcam_active, true);
+	virtualcam_active = true;
 	QMetaObject::invokeMethod(output->main, "OnVirtualCamStart");
 }
 
 static void OBSStopVirtualCam(void *data, calldata_t *params)
 {
-	BasicOutputHandler *output = static_cast<BasicOutputHandler *>(data);
+	auto *output = static_cast<BasicOutputHandler *>(data);
 	int code = (int)calldata_int(params, "code");
 
 	output->virtualCamActive = false;
-	os_atomic_set_bool(&virtualcam_active, false);
+	virtualcam_active = false;
 	QMetaObject::invokeMethod(output->main, "OnVirtualCamStop",
 				  Q_ARG(int, code));
 
@@ -319,8 +319,7 @@ bool BasicOutputHandler::StartVirtualCam()
 
 	debug_log("calling obs_output_start() ...");
 	bool success = obs_output_start(virtualCam);
-	debug_log("obs_output_start() returned %s",
-		  success ? "true" : "false");
+	debug_log("obs_output_start() returned %s", success ? "true" : "false");
 	if (!success)
 		DestroyVirtualCamView();
 
@@ -391,8 +390,8 @@ void BasicOutputHandler::UpdateVirtualCamOutputSource()
 							   OBS_ALIGN_CENTER);
 
 			const struct vec2 size = {
-				(float)obs_source_get_width(source),
-				(float)obs_source_get_height(source),
+				{{(float)obs_source_get_width(source),
+				  (float)obs_source_get_height(source)}},
 			};
 			obs_sceneitem_set_bounds(vCamSourceSceneItem, &size);
 		}
@@ -438,7 +437,7 @@ struct SimpleOutput : BasicOutputHandler {
 	bool ffmpegOutput = false;
 	bool lowCPUx264 = false;
 
-	SimpleOutput(OBSBasic *main_);
+	explicit SimpleOutput(OBSBasic *main_);
 
 	int CalcCRF(int crf);
 
@@ -453,10 +452,10 @@ struct SimpleOutput : BasicOutputHandler {
 #endif
 	void UpdateRecordingSettings();
 	void UpdateRecordingAudioSettings();
-	virtual void Update() override;
+	void Update() override;
 
 	void SetupOutputs() override;
-	int GetAudioBitrate() const;
+	[[nodiscard]] int GetAudioBitrate() const;
 
 	void LoadRecordingPreset_Lossy(const char *encoder);
 	void LoadRecordingPreset_Lossless();
@@ -465,20 +464,20 @@ struct SimpleOutput : BasicOutputHandler {
 	void LoadStreamingPreset_Lossy(const char *encoder);
 
 	void UpdateRecording();
-	bool ConfigureRecording(bool useReplayBuffer);
+	bool ConfigureRecording(bool updateReplayBuffer);
 
 	void SetupVodTrack(obs_service_t *service);
 
-	virtual bool SetupStreaming(obs_service_t *service) override;
-	virtual bool StartStreaming(obs_service_t *service) override;
-	virtual bool StartRecording() override;
-	virtual bool StartReplayBuffer() override;
-	virtual void StopStreaming(bool force) override;
-	virtual void StopRecording(bool force) override;
-	virtual void StopReplayBuffer(bool force) override;
-	virtual bool StreamingActive() const override;
-	virtual bool RecordingActive() const override;
-	virtual bool ReplayBufferActive() const override;
+	bool SetupStreaming(obs_service_t *service) override;
+	bool StartStreaming(obs_service_t *service) override;
+	bool StartRecording() override;
+	bool StartReplayBuffer() override;
+	void StopStreaming(bool force) override;
+	void StopRecording(bool force) override;
+	void StopReplayBuffer(bool force) override;
+	[[nodiscard]] bool StreamingActive() const override;
+	[[nodiscard]] bool RecordingActive() const override;
+	[[nodiscard]] bool ReplayBufferActive() const override;
 };
 
 void SimpleOutput::LoadRecordingPreset_Lossless()
@@ -727,8 +726,8 @@ void SimpleOutput::Update()
 	OBSDataAutoRelease videoSettings = obs_data_create();
 	OBSDataAutoRelease audioSettings = obs_data_create();
 
-	int videoBitrate =
-		config_get_uint(main->Config(), "SimpleOutput", "VBitrate");
+	int videoBitrate = (int)config_get_uint(main->Config(), "SimpleOutput",
+						"VBitrate");
 	int audioBitrate = GetAudioBitrate();
 	bool advanced =
 		config_get_bool(main->Config(), "SimpleOutput", "UseAdvanced");
@@ -822,8 +821,8 @@ void SimpleOutput::UpdateRecordingAudioSettings()
 	obs_data_set_int(settings, "bitrate", 192);
 	obs_data_set_string(settings, "rate_control", "CBR");
 
-	int tracks =
-		config_get_int(main->Config(), "SimpleOutput", "RecTracks");
+	int tracks = (int)config_get_int(main->Config(), "SimpleOutput",
+					 "RecTracks");
 	const char *recFormat =
 		config_get_string(main->Config(), "SimpleOutput", "RecFormat2");
 	const char *quality =
@@ -845,10 +844,10 @@ void SimpleOutput::UpdateRecordingAudioSettings()
 
 int SimpleOutput::CalcCRF(int crf)
 {
-	int cx = config_get_uint(main->Config(), "Video", "OutputCX");
-	int cy = config_get_uint(main->Config(), "Video", "OutputCY");
-	double fCX = double(cx);
-	double fCY = double(cy);
+	int cx = (int)config_get_uint(main->Config(), "Video", "OutputCX");
+	int cy = (int)config_get_uint(main->Config(), "Video", "OutputCY");
+	auto fCX = double(cx);
+	auto fCY = double(cy);
 
 	if (lowCPUx264)
 		crf -= 2;
@@ -1012,8 +1011,8 @@ inline void SimpleOutput::SetupOutputs()
 	obs_encoder_set_video(videoStreaming, obs_get_video());
 	obs_encoder_set_audio(audioStreaming, obs_get_audio());
 	obs_encoder_set_audio(audioArchive, obs_get_audio());
-	int tracks =
-		config_get_int(main->Config(), "SimpleOutput", "RecTracks");
+	int tracks = (int)config_get_int(main->Config(), "SimpleOutput",
+					 "RecTracks");
 	const char *recFormat =
 		config_get_string(main->Config(), "SimpleOutput", "RecFormat2");
 	bool flv = strcmp(recFormat, "flv") == 0;
@@ -1145,7 +1144,7 @@ void SimpleOutput::SetupVodTrack(obs_service_t *service)
 
 	const char *id = obs_service_get_id(service);
 	if (strcmp(id, "rtmp_custom") == 0)
-		enable = enableForCustomServer ? enable : false;
+		enable = enableForCustomServer && enable;
 	else
 		enable = advanced && enable && ServiceSupportsVodTrack(name);
 
@@ -1159,12 +1158,13 @@ bool SimpleOutput::StartStreaming(obs_service_t *service)
 {
 	bool reconnect = config_get_bool(main->Config(), "Output", "Reconnect");
 	int retryDelay =
-		config_get_uint(main->Config(), "Output", "RetryDelay");
+		(int)config_get_uint(main->Config(), "Output", "RetryDelay");
 	int maxRetries =
-		config_get_uint(main->Config(), "Output", "MaxRetries");
+		(int)config_get_uint(main->Config(), "Output", "MaxRetries");
 	bool useDelay =
 		config_get_bool(main->Config(), "Output", "DelayEnable");
-	int delaySec = config_get_int(main->Config(), "Output", "DelaySec");
+	int delaySec =
+		(int)config_get_int(main->Config(), "Output", "DelaySec");
 	bool preserveDelay =
 		config_get_bool(main->Config(), "Output", "DelayPreserve");
 	const char *bindIP =
@@ -1224,8 +1224,8 @@ void SimpleOutput::UpdateRecording()
 	const char *recFormat =
 		config_get_string(main->Config(), "SimpleOutput", "RecFormat2");
 	bool flv = strcmp(recFormat, "flv") == 0;
-	int tracks =
-		config_get_int(main->Config(), "SimpleOutput", "RecTracks");
+	int tracks = (int)config_get_int(main->Config(), "SimpleOutput",
+					 "RecTracks");
 	int idx = 0;
 	int idx2 = 0;
 	const char *quality =
@@ -1296,12 +1296,12 @@ bool SimpleOutput::ConfigureRecording(bool updateReplayBuffer)
 						 "RecRBPrefix");
 	const char *rbSuffix = config_get_string(main->Config(), "SimpleOutput",
 						 "RecRBSuffix");
-	int rbTime =
-		config_get_int(main->Config(), "SimpleOutput", "RecRBTime");
-	int rbSize =
-		config_get_int(main->Config(), "SimpleOutput", "RecRBSize");
-	int tracks =
-		config_get_int(main->Config(), "SimpleOutput", "RecTracks");
+	int rbTime = (int)config_get_int(main->Config(), "SimpleOutput",
+					 "RecRBTime");
+	int rbSize = (int)config_get_int(main->Config(), "SimpleOutput",
+					 "RecRBSize");
+	int tracks = (int)config_get_int(main->Config(), "SimpleOutput",
+					 "RecTracks");
 
 	bool is_fragmented = strncmp(format, "fragmented", 10) == 0;
 
@@ -1450,12 +1450,12 @@ struct AdvancedOutput : BasicOutputHandler {
 	bool useStreamAudioEncoder;
 	bool usesBitrate = false;
 
-	AdvancedOutput(OBSBasic *main_);
+	explicit AdvancedOutput(OBSBasic *main_);
 
 	inline void UpdateStreamSettings();
 	inline void UpdateRecordingSettings();
 	inline void UpdateAudioSettings();
-	virtual void Update() override;
+	void Update() override;
 
 	inline void SetupVodTrack(obs_service_t *service);
 
@@ -1465,16 +1465,16 @@ struct AdvancedOutput : BasicOutputHandler {
 	void SetupOutputs() override;
 	int GetAudioBitrate(size_t i, const char *id) const;
 
-	virtual bool SetupStreaming(obs_service_t *service) override;
-	virtual bool StartStreaming(obs_service_t *service) override;
-	virtual bool StartRecording() override;
-	virtual bool StartReplayBuffer() override;
-	virtual void StopStreaming(bool force) override;
-	virtual void StopRecording(bool force) override;
-	virtual void StopReplayBuffer(bool force) override;
-	virtual bool StreamingActive() const override;
-	virtual bool RecordingActive() const override;
-	virtual bool ReplayBufferActive() const override;
+	bool SetupStreaming(obs_service_t *service) override;
+	bool StartStreaming(obs_service_t *service) override;
+	bool StartRecording() override;
+	bool StartReplayBuffer() override;
+	void StopStreaming(bool force) override;
+	void StopRecording(bool force) override;
+	void StopReplayBuffer(bool force) override;
+	[[nodiscard]] bool StreamingActive() const override;
+	[[nodiscard]] bool RecordingActive() const override;
+	[[nodiscard]] bool ReplayBufferActive() const override;
 };
 
 static OBSData GetDataFromJsonFile(const char *jsonFile)
@@ -1502,9 +1502,9 @@ static void ApplyEncoderDefaults(OBSData &settings,
 	OBSData dataRet = obs_encoder_get_defaults(encoder);
 	obs_data_release(dataRet);
 
-	if (!!settings)
+	if (settings != nullptr)
 		obs_data_apply(dataRet, settings);
-	settings = std::move(dataRet);
+	settings = dataRet;
 }
 
 #define ADV_ARCHIVE_NAME "adv_archive_audio"
@@ -1736,7 +1736,7 @@ static inline bool ServiceSupportsVodTrack(const char *service)
 {
 	static const char *vodTrackServices[] = {"Twitch"};
 
-	for (const char *vodTrackService : vodTrackServices) {
+	for (auto const vodTrackService : vodTrackServices) {
 		if (astrcmpi(vodTrackService, service) == 0)
 			return true;
 	}
@@ -1789,9 +1789,11 @@ inline void AdvancedOutput::SetupRecording()
 	bool flv = strcmp(recFormat, "flv") == 0;
 
 	if (flv)
-		tracks = config_get_int(main->Config(), "AdvOut", "FLVTrack");
+		tracks = (int)config_get_int(main->Config(), "AdvOut",
+					     "FLVTrack");
 	else
-		tracks = config_get_int(main->Config(), "AdvOut", "RecTracks");
+		tracks = (int)config_get_int(main->Config(), "AdvOut",
+					     "RecTracks");
 
 	OBSDataAutoRelease settings = obs_data_create();
 	unsigned int cx = 0;
@@ -1799,7 +1801,8 @@ inline void AdvancedOutput::SetupRecording()
 	int idx = 0;
 
 	if (tracks == 0)
-		tracks = config_get_int(main->Config(), "AdvOut", "TrackIndex");
+		tracks = (int)config_get_int(main->Config(), "AdvOut",
+					     "TrackIndex");
 
 	if (useStreamEncoder) {
 		obs_output_set_video_encoder(fileOutput, videoStreaming);
@@ -1843,7 +1846,7 @@ inline void AdvancedOutput::SetupRecording()
 	}
 
 	// Use fragmented MOV/MP4 if user has not already specified custom movflags
-	if (is_fragmented && (!mux || strstr(mux, "movflags") == NULL)) {
+	if (is_fragmented && (!mux || strstr(mux, "movflags") == nullptr)) {
 		string mux_frag =
 			"movflags=frag_keyframe+empty_moov+delay_moov";
 		if (mux) {
@@ -1869,8 +1872,10 @@ inline void AdvancedOutput::SetupRecording()
 inline void AdvancedOutput::SetupFFmpeg()
 {
 	const char *url = config_get_string(main->Config(), "AdvOut", "FFURL");
-	int vBitrate = config_get_int(main->Config(), "AdvOut", "FFVBitrate");
-	int gopSize = config_get_int(main->Config(), "AdvOut", "FFVGOPSize");
+	int vBitrate =
+		(int)config_get_int(main->Config(), "AdvOut", "FFVBitrate");
+	int gopSize =
+		(int)config_get_int(main->Config(), "AdvOut", "FFVGOPSize");
 	bool rescale = config_get_bool(main->Config(), "AdvOut", "FFRescale");
 	const char *rescaleRes =
 		config_get_string(main->Config(), "AdvOut", "FFRescaleRes");
@@ -1883,15 +1888,17 @@ inline void AdvancedOutput::SetupFFmpeg()
 	const char *vEncoder =
 		config_get_string(main->Config(), "AdvOut", "FFVEncoder");
 	int vEncoderId =
-		config_get_int(main->Config(), "AdvOut", "FFVEncoderId");
+		(int)config_get_int(main->Config(), "AdvOut", "FFVEncoderId");
 	const char *vEncCustom =
 		config_get_string(main->Config(), "AdvOut", "FFVCustom");
-	int aBitrate = config_get_int(main->Config(), "AdvOut", "FFABitrate");
-	int aMixes = config_get_int(main->Config(), "AdvOut", "FFAudioMixes");
+	int aBitrate =
+		(int)config_get_int(main->Config(), "AdvOut", "FFABitrate");
+	int aMixes =
+		(int)config_get_int(main->Config(), "AdvOut", "FFAudioMixes");
 	const char *aEncoder =
 		config_get_string(main->Config(), "AdvOut", "FFAEncoder");
 	int aEncoderId =
-		config_get_int(main->Config(), "AdvOut", "FFAEncoderId");
+		(int)config_get_int(main->Config(), "AdvOut", "FFAEncoderId");
 	const char *aEncCustom =
 		config_get_string(main->Config(), "AdvOut", "FFACustom");
 	OBSDataAutoRelease settings = obs_data_create();
@@ -1939,9 +1946,9 @@ inline void AdvancedOutput::UpdateAudioSettings()
 	bool enforceBitrate = !config_get_bool(main->Config(), "Stream1",
 					       "IgnoreRecommended");
 	int streamTrackIndex =
-		config_get_int(main->Config(), "AdvOut", "TrackIndex");
+		(int)config_get_int(main->Config(), "AdvOut", "TrackIndex");
 	int vodTrackIndex =
-		config_get_int(main->Config(), "AdvOut", "VodTrackIndex");
+		(int)config_get_int(main->Config(), "AdvOut", "VodTrackIndex");
 	const char *audioEncoder =
 		config_get_string(main->Config(), "AdvOut", "AudioEncoder");
 	const char *recAudioEncoder =
@@ -1997,8 +2004,8 @@ void AdvancedOutput::SetupOutputs()
 	obs_encoder_set_video(videoStreaming, obs_get_video());
 	if (videoRecording)
 		obs_encoder_set_video(videoRecording, obs_get_video());
-	for (size_t i = 0; i < MAX_AUDIO_MIXES; i++)
-		obs_encoder_set_audio(recordTrack[i], obs_get_audio());
+	for (auto &i : recordTrack)
+		obs_encoder_set_audio(i, obs_get_audio());
 	obs_encoder_set_audio(streamAudioEnc, obs_get_audio());
 	obs_encoder_set_audio(streamArchiveEnc, obs_get_audio());
 
@@ -2023,18 +2030,17 @@ int AdvancedOutput::GetAudioBitrate(size_t i, const char *id) const
 inline void AdvancedOutput::SetupVodTrack(obs_service_t *service)
 {
 	int streamTrack =
-		config_get_int(main->Config(), "AdvOut", "TrackIndex");
+		(int)config_get_int(main->Config(), "AdvOut", "TrackIndex");
 	bool vodTrackEnabled =
 		config_get_bool(main->Config(), "AdvOut", "VodTrackEnabled");
 	int vodTrackIndex =
-		config_get_int(main->Config(), "AdvOut", "VodTrackIndex");
+		(int)config_get_int(main->Config(), "AdvOut", "VodTrackIndex");
 	bool enableForCustomServer = config_get_bool(
 		GetGlobalConfig(), "General", "EnableCustomServerVodTrack");
 
 	const char *id = obs_service_get_id(service);
 	if (strcmp(id, "rtmp_custom") == 0) {
-		vodTrackEnabled = enableForCustomServer ? vodTrackEnabled
-							: false;
+		vodTrackEnabled = enableForCustomServer && vodTrackEnabled;
 	} else {
 		OBSDataAutoRelease settings = obs_service_get_settings(service);
 		const char *srv = obs_data_get_string(settings, "service");
@@ -2115,11 +2121,14 @@ bool AdvancedOutput::StartStreaming(obs_service_t *service)
 	obs_output_set_service(streamOutput, service);
 
 	bool reconnect = config_get_bool(main->Config(), "Output", "Reconnect");
-	int retryDelay = config_get_int(main->Config(), "Output", "RetryDelay");
-	int maxRetries = config_get_int(main->Config(), "Output", "MaxRetries");
+	int retryDelay =
+		(int)config_get_int(main->Config(), "Output", "RetryDelay");
+	int maxRetries =
+		(int)config_get_int(main->Config(), "Output", "MaxRetries");
 	bool useDelay =
 		config_get_bool(main->Config(), "Output", "DelayEnable");
-	int delaySec = config_get_int(main->Config(), "Output", "DelaySec");
+	int delaySec =
+		(int)config_get_int(main->Config(), "Output", "DelaySec");
 	bool preserveDelay =
 		config_get_bool(main->Config(), "Output", "DelayPreserve");
 	const char *bindIP =
@@ -2231,13 +2240,13 @@ bool AdvancedOutput::StartRecording()
 				main->Config(), "AdvOut", "RecSplitFileType");
 			splitFileTime =
 				(astrcmpi(splitFileType, "Time") == 0)
-					? config_get_int(main->Config(),
+					? (int)config_get_int(main->Config(),
 							 "AdvOut",
 							 "RecSplitFileTime")
 					: 0;
 			splitFileSize =
 				(astrcmpi(splitFileType, "Size") == 0)
-					? config_get_int(main->Config(),
+					? (int)config_get_int(main->Config(),
 							 "AdvOut",
 							 "RecSplitFileSize")
 					: 0;
@@ -2320,8 +2329,10 @@ bool AdvancedOutput::StartReplayBuffer()
 					     "RecRBPrefix");
 		rbSuffix = config_get_string(main->Config(), "SimpleOutput",
 					     "RecRBSuffix");
-		rbTime = config_get_int(main->Config(), "AdvOut", "RecRBTime");
-		rbSize = config_get_int(main->Config(), "AdvOut", "RecRBSize");
+		rbTime = (int)config_get_int(main->Config(), "AdvOut",
+					     "RecRBTime");
+		rbSize = (int)config_get_int(main->Config(), "AdvOut",
+					     "RecRBSize");
 
 		string f = GetFormatString(filenameFormat, rbPrefix, rbSuffix);
 		string ext = GetFormatExt(recFormat);

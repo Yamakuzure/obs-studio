@@ -19,12 +19,12 @@ DeckLinkDevice::~DeckLinkDevice(void)
 
 ULONG DeckLinkDevice::AddRef()
 {
-	return os_atomic_inc_long(&refCount);
+	return refCount++;
 }
 
 ULONG DeckLinkDevice::Release()
 {
-	long ret = os_atomic_dec_long(&refCount);
+	long ret = refCount--;
 	if (ret == 0)
 		delete this;
 	return ret;

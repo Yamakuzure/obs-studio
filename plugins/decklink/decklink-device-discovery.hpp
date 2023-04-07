@@ -19,7 +19,7 @@ struct DeviceChangeInfo {
 class DeckLinkDeviceDiscovery : public IDeckLinkDeviceNotificationCallback {
 protected:
 	ComPtr<IDeckLinkDiscovery> discovery;
-	long refCount = 1;
+	a_int64_t refCount = 1;
 	bool initialized = false;
 
 	std::recursive_mutex deviceMutex;

@@ -109,7 +109,7 @@ extern char system_path[MAX_PATH];
 extern char process_name[MAX_PATH];
 extern wchar_t keepalive_name[64];
 extern HWND dummy_window;
-extern volatile bool active;
+extern a_bool_t active;
 
 static inline const char *get_process_name(void)
 {

@@ -9,9 +9,9 @@
 
 static update_info_t *twitch_update_info = NULL;
 static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
-static bool ingests_refreshed = false;
-static bool ingests_refreshing = false;
-static bool ingests_loaded = false;
+static a_bool_t ingests_refreshed = false;
+static a_bool_t ingests_refreshing = false;
+static a_bool_t ingests_loaded = false;
 
 struct ingest {
 	char *name;
@@ -114,8 +114,8 @@ static bool twitch_ingest_update(void *param, struct file_download_data *data)
 	pthread_mutex_unlock(&mutex);
 
 	if (success) {
-		os_atomic_set_bool(&ingests_refreshed, true);
-		os_atomic_set_bool(&ingests_loaded, true);
+		ingests_refreshed = true;
+		ingests_loaded = true;
 	}
 
 	UNUSED_PARAMETER(param);
@@ -161,11 +161,11 @@ extern const char *get_module_name(void);
 
 void twitch_ingests_refresh(int seconds)
 {
-	if (os_atomic_load_bool(&ingests_refreshed))
+	if (ingests_refreshed)
 		return;
 
-	if (!os_atomic_load_bool(&ingests_refreshing)) {
-		os_atomic_set_bool(&ingests_refreshing, true);
+	if (!ingests_refreshing) {
+		ingests_refreshing = true;
 
 		twitch_update_info = update_info_create_single(
 			"[twitch ingest update] ", get_module_name(),
@@ -174,9 +174,9 @@ void twitch_ingests_refresh(int seconds)
 	}
 
 	/* wait five seconds max when loading ingests for the first time */
-	if (!os_atomic_load_bool(&ingests_loaded)) {
+	if (!ingests_loaded) {
 		for (int i = 0; i < seconds * 100; i++) {
-			if (os_atomic_load_bool(&ingests_refreshed)) {
+			if (ingests_refreshed) {
 				break;
 			}
 			os_sleep_ms(10);
@@ -204,7 +204,7 @@ void load_twitch_data(void)
 		pthread_mutex_unlock(&mutex);
 
 		if (success) {
-			os_atomic_set_bool(&ingests_loaded, true);
+			ingests_loaded = true;
 		}
 
 		bfree(data);

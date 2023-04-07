@@ -24,10 +24,6 @@
 #pragma warning(disable : 4152)
 #endif
 
-#define encoder_active(encoder) os_atomic_load_bool(&encoder->active)
-#define set_encoder_active(encoder, val) \
-	os_atomic_set_bool(&encoder->active, val)
-
 #define get_weak(encoder) ((obs_weak_encoder_t *)encoder->context.control)
 
 struct obs_encoder_info *find_encoder(const char *id)
@@ -142,7 +138,7 @@ obs_encoder_t *obs_audio_encoder_create(const char *id, const char *name,
 }
 
 static void receive_video(void *param, struct video_data *frame);
-static void receive_audio(void *param, size_t mix_idx, struct audio_data *data);
+static void receive_audio(void *param, size_t mix_idx, struct audio_data *in);
 
 static inline void get_audio_info(const struct obs_encoder *encoder,
 				  struct audio_convert_info *info)
@@ -221,7 +217,7 @@ static WARN_UNUSED_RESULT bool add_connection(struct obs_encoder *encoder)
 	debug_log("Connecting %s %s", encoder->info.get_name(NULL),
 		  success ? "succeeded" : "FAILED");
 
-	set_encoder_active(encoder, success);
+	encoder->active = success;
 
 	return success;
 }
@@ -246,7 +242,7 @@ static void remove_connection(struct obs_encoder *encoder, bool shutdown)
 	 * up again */
 	if (shutdown)
 		obs_encoder_shutdown(encoder);
-	set_encoder_active(encoder, false);
+	encoder->active = false;
 }
 
 static inline void free_audio_buffers(struct obs_encoder *encoder)
@@ -471,7 +467,7 @@ static inline bool obs_encoder_initialize_internal(obs_encoder_t *encoder)
 		return false;
 	}
 
-	if (encoder_active(encoder))
+	if (encoder->active)
 		return true;
 	if (encoder->initialized)
 		return true;
@@ -608,9 +604,9 @@ static inline WARN_UNUSED_RESULT bool obs_encoder_start_internal(
 	}
 
 	debug_log("encoder '%s' start statistics:\n"
-		  "\tidx   : %zu\n"
-		  "\tfirst : %s\n"
-		  "\tpaused: %s\n"
+		  "\tidx    : %zu\n"
+		  "\tfirst  : %s\n"
+		  "\tpaused : %s\n"
 		  "\tcur_pts: %ld\n",
 		  enc_name, idx, first ? "true" : "false",
 		  encoder->paused ? "true" : "false", encoder->cur_pts);
@@ -619,7 +615,7 @@ static inline WARN_UNUSED_RESULT bool obs_encoder_start_internal(
 
 	if (first) {
 		debug_log("Unpausing encoder %s", enc_name);
-		os_atomic_set_bool(&encoder->paused, false);
+		encoder->paused = false;
 		pause_reset(&encoder->pause);
 
 		debug_log("Adding encoder %s connection", enc_name);
@@ -748,7 +744,7 @@ void obs_encoder_set_scaled_size(obs_encoder_t *encoder, uint32_t width,
 		     obs_encoder_get_name(encoder));
 		return;
 	}
-	if (encoder_active(encoder)) {
+	if (encoder->active) {
 		blog(LOG_WARNING,
 		     "encoder '%s': Cannot set the scaled "
 		     "resolution while the encoder is active",
@@ -865,7 +861,7 @@ void obs_encoder_set_video(obs_encoder_t *encoder, video_t *video)
 		     obs_encoder_get_name(encoder));
 		return;
 	}
-	if (encoder_active(encoder)) {
+	if (encoder->active) {
 		blog(LOG_WARNING,
 		     "encoder '%s': Cannot apply a new video_t "
 		     "object while the encoder is active",
@@ -896,7 +892,7 @@ void obs_encoder_set_audio(obs_encoder_t *encoder, audio_t *audio)
 		     obs_encoder_get_name(encoder));
 		return;
 	}
-	if (encoder_active(encoder)) {
+	if (encoder->active) {
 		blog(LOG_WARNING,
 		     "encoder '%s': Cannot apply a new audio_t "
 		     "object while the encoder is active",
@@ -948,7 +944,7 @@ audio_t *obs_encoder_audio(const obs_encoder_t *encoder)
 bool obs_encoder_active(const obs_encoder_t *encoder)
 {
 	return obs_encoder_valid(encoder, "obs_encoder_active")
-		       ? encoder_active(encoder)
+		       ? encoder->active
 		       : false;
 }
 
@@ -1060,12 +1056,13 @@ void send_off_encoder_packet(obs_encoder_t *encoder, bool success,
 
 		/* we use system time here to ensure sync with other encoders,
 		 * you do not want to use relative timestamps here */
-		pkt->dts_usec = encoder->start_ts / 1000 +
-				packet_dts_usec(pkt) - encoder->offset_usec;
+		pkt->dts_usec =
+			(int64_t)(encoder->start_ts / 1000 +
+				  packet_dts_usec(pkt) - encoder->offset_usec);
 		pkt->sys_dts_usec = pkt->dts_usec;
 
 		pthread_mutex_lock(&encoder->pause.mutex);
-		pkt->sys_dts_usec += encoder->pause.ts_offset / 1000;
+		pkt->sys_dts_usec += (int64_t)(encoder->pause.ts_offset / 1000);
 		pthread_mutex_unlock(&encoder->pause.mutex);
 
 		pthread_mutex_lock(&encoder->callbacks_mutex);
@@ -1099,8 +1096,8 @@ bool do_encode(struct obs_encoder *encoder, struct encoder_frame *frame)
 				     encoder->context.settings);
 	}
 
-	pkt.timebase_num = encoder->timebase_num;
-	pkt.timebase_den = encoder->timebase_den;
+	pkt.timebase_num = (int32_t)encoder->timebase_num;
+	pkt.timebase_den = (int32_t)encoder->timebase_den;
 	pkt.encoder = encoder;
 
 	profile_start(encoder->profile_encoder_encode_name);
@@ -1308,7 +1305,7 @@ static bool send_audio_data(struct obs_encoder *encoder)
 	if (!do_encode(encoder, &enc_frame))
 		return false;
 
-	encoder->cur_pts += encoder->framesize;
+	encoder->cur_pts += (int64_t)encoder->framesize;
 	return true;
 }
 
@@ -1471,8 +1468,8 @@ void obs_encoder_packet_ref(struct encoder_packet *dst,
 		return;
 
 	if (src->data) {
-		long *p_refs = ((long *)src->data) - 1;
-		os_atomic_inc_long(p_refs);
+		a_int64_t *p_refs = ((a_int64_t *)src->data) - 1;
+		(*p_refs)++;
 	}
 
 	*dst = *src;
@@ -1485,7 +1482,7 @@ void obs_encoder_packet_release(struct encoder_packet *pkt)
 
 	if (pkt->data) {
 		long *p_refs = ((long *)pkt->data) - 1;
-		if (os_atomic_dec_long(p_refs) == 0)
+		if ((*p_refs)-- == 0)
 			bfree(p_refs);
 	}
 
@@ -1615,7 +1612,7 @@ uint32_t obs_encoder_get_caps(const obs_encoder_t *encoder)
 bool obs_encoder_paused(const obs_encoder_t *encoder)
 {
 	return obs_encoder_valid(encoder, "obs_encoder_paused")
-		       ? os_atomic_load_bool(&encoder->paused)
+		       ? encoder->paused
 		       : false;
 }
 

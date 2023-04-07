@@ -96,7 +96,7 @@ struct noise_suppress_data {
 	bool use_nvafx;
 	bool nvafx_enabled;
 	bool has_mono_src;
-	volatile bool reinit_done;
+	a_bool_t reinit_done;
 #ifdef LIBSPEEXDSP_ENABLED
 	/* Speex preprocessor state */
 	SpeexPreprocessState *spx_states[MAX_PREPROC_CHANNELS];
@@ -312,7 +312,7 @@ static bool nvafx_initialize_internal(void *data)
 				       err);
 				goto failure;
 			}
-			os_atomic_set_bool(&ng->reinit_done, true);
+			ng->reinit_done = true;
 		}
 	}
 	return true;
@@ -494,7 +494,7 @@ static void noise_suppress_update(void *data, obs_data_t *s)
 			ng->fx = bstrdup(method);
 			ng->intensity_ratio = intensity;
 			set_model(ng, method);
-			os_atomic_set_bool(&ng->reinit_done, false);
+			ng->reinit_done = false;
 			pthread_mutex_lock(&ng->nvafx_mutex);
 			for (int i = 0; i < (int)ng->channels; i++) {
 				/* Destroy previous FX */
@@ -958,9 +958,8 @@ static inline void process_nvafx(struct noise_suppress_data *ng)
 						do_log(LOG_DEBUG,
 						       "NvAFX_Run() failed, error NVAFX_STATUS_FAILED.\n"
 						       "This can occur when changing the FX and is not consequential.");
-						os_atomic_set_bool(
-							&ng->reinit_done,
-							false); // stop all processing; this will be reset at new init
+						ng->reinit_done =
+							false; // stop all processing; this will be reset at new init
 					} else {
 						do_log(LOG_ERROR,
 						       "NvAFX_Run() failed, error %i.\n",

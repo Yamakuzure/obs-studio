@@ -49,11 +49,6 @@ static inline bool deinterlacing_enabled(const struct obs_source *source)
 	return source->deinterlace_mode != OBS_DEINTERLACE_MODE_DISABLE;
 }
 
-static inline bool destroying(const struct obs_source *source)
-{
-	return atomic_load(&source->destroying);
-}
-
 struct obs_source_info *get_source_info(const char *id)
 {
 	for (size_t i = 0; i < obs->source_types.num; i++) {
@@ -620,7 +615,7 @@ void obs_source_frame_init(struct obs_source_frame *frame,
 
 static inline void obs_source_frame_decref(struct obs_source_frame *frame)
 {
-	if (os_atomic_dec_long(&frame->refs) == 0)
+	if (0 == --frame->refs)
 		obs_source_frame_destroy(frame);
 }
 
@@ -975,11 +970,11 @@ uint32_t obs_get_source_output_flags(const char *id)
 static void obs_source_deferred_update(obs_source_t *source)
 {
 	if (source->context.data && source->info.update) {
-		long count = os_atomic_load_long(&source->defer_update_count);
+		a_int64_t count = source->defer_update_count;
 		source->info.update(source->context.data,
 				    source->context.settings);
-		os_atomic_compare_swap_long(&source->defer_update_count, count,
-					    0);
+		atomic_compare_exchange_strong(&source->defer_update_count,
+					       &count, 0);
 		obs_source_dosignal(source, "source_update", "update");
 	}
 }
@@ -994,7 +989,7 @@ void obs_source_update(obs_source_t *source, obs_data_t *settings)
 	}
 
 	if (source->info.output_flags & OBS_SOURCE_VIDEO) {
-		os_atomic_inc_long(&source->defer_update_count);
+		source->defer_update_count++;
 	} else if (source->context.data && source->info.update) {
 		source->info.update(source->context.data,
 				    source->context.settings);
@@ -1132,7 +1127,7 @@ static void hide_source(obs_source_t *source)
 static void activate_tree(obs_source_t *parent, obs_source_t *child,
 			  void *param)
 {
-	os_atomic_inc_long(&child->activate_refs);
+	child->activate_refs++;
 
 	UNUSED_PARAMETER(parent);
 	UNUSED_PARAMETER(param);
@@ -1141,7 +1136,7 @@ static void activate_tree(obs_source_t *parent, obs_source_t *child,
 static void deactivate_tree(obs_source_t *parent, obs_source_t *child,
 			    void *param)
 {
-	os_atomic_dec_long(&child->activate_refs);
+	child->activate_refs--;
 
 	UNUSED_PARAMETER(parent);
 	UNUSED_PARAMETER(param);
@@ -1149,7 +1144,7 @@ static void deactivate_tree(obs_source_t *parent, obs_source_t *child,
 
 static void show_tree(obs_source_t *parent, obs_source_t *child, void *param)
 {
-	os_atomic_inc_long(&child->show_refs);
+	child->show_refs++;
 
 	UNUSED_PARAMETER(parent);
 	UNUSED_PARAMETER(param);
@@ -1157,7 +1152,7 @@ static void show_tree(obs_source_t *parent, obs_source_t *child, void *param)
 
 static void hide_tree(obs_source_t *parent, obs_source_t *child, void *param)
 {
-	os_atomic_dec_long(&child->show_refs);
+	child->show_refs--;
 
 	UNUSED_PARAMETER(parent);
 	UNUSED_PARAMETER(param);
@@ -1168,11 +1163,11 @@ void obs_source_activate(obs_source_t *source, enum view_type type)
 	if (!obs_source_valid(source, "obs_source_activate"))
 		return;
 
-	os_atomic_inc_long(&source->show_refs);
+	source->show_refs++;
 	obs_source_enum_active_tree(source, show_tree, NULL);
 
 	if (type == MAIN_VIEW) {
-		os_atomic_inc_long(&source->activate_refs);
+		source->activate_refs++;
 		obs_source_enum_active_tree(source, activate_tree, NULL);
 	}
 }
@@ -1182,14 +1177,14 @@ void obs_source_deactivate(obs_source_t *source, enum view_type type)
 	if (!obs_source_valid(source, "obs_source_deactivate"))
 		return;
 
-	if (os_atomic_load_long(&source->show_refs) > 0) {
-		os_atomic_dec_long(&source->show_refs);
+	if (source->show_refs > 0) {
+		source->show_refs--;
 		obs_source_enum_active_tree(source, hide_tree, NULL);
 	}
 
 	if (type == MAIN_VIEW) {
-		if (os_atomic_load_long(&source->activate_refs) > 0) {
-			os_atomic_dec_long(&source->activate_refs);
+		if (source->activate_refs > 0) {
+			source->activate_refs--;
 			obs_source_enum_active_tree(source, deactivate_tree,
 						    NULL);
 		}
@@ -1204,10 +1199,10 @@ static void filter_frame(obs_source_t *source,
 {
 	struct obs_source_frame *frame = *ref_frame;
 	if (frame) {
-		os_atomic_inc_long(&frame->refs);
+		frame->refs++;
 		frame = filter_async_video(source, frame);
 		if (frame)
-			os_atomic_dec_long(&frame->refs);
+			frame->refs--;
 	}
 
 	*ref_frame = frame;
@@ -1256,7 +1251,7 @@ void obs_source_video_tick(obs_source_t *source, float seconds)
 	if ((source->info.output_flags & OBS_SOURCE_ASYNC) != 0)
 		async_tick(source);
 
-	if (os_atomic_load_long(&source->defer_update_count) > 0)
+	if (source->defer_update_count > 0)
 		obs_source_deferred_update(source);
 
 	/* reset the filter render texture information once every frame */
@@ -1264,7 +1259,7 @@ void obs_source_video_tick(obs_source_t *source, float seconds)
 		gs_texrender_reset(source->filter_texrender);
 
 	/* call show/hide if the reference changed */
-	now_showing = !!source->show_refs;
+	now_showing = source->show_refs != 0;
 	if (now_showing != source->showing) {
 		if (now_showing) {
 			show_source(source);
@@ -1352,9 +1347,8 @@ static void reset_audio_data(obs_source_t *source, uint64_t os_time)
 {
 	for (size_t i = 0; i < MAX_AUDIO_CHANNELS; i++) {
 		if (source->audio_input_buf[i].size)
-			circlebuf_pop_front(
-				&source->audio_input_buf[i], NULL,
-				source->audio_input_buf[i].size);
+			circlebuf_pop_front(&source->audio_input_buf[i], NULL,
+					    source->audio_input_buf[i].size);
 	}
 
 	source->last_audio_input_buf_size = 0;
@@ -3538,7 +3532,7 @@ cache_video(struct obs_source *source, const struct obs_source_frame *frame)
 		da_push_back(source->async_cache, &new_af);
 	}
 
-	os_atomic_inc_long(&new_frame->refs);
+	new_frame->refs++;
 
 	pthread_mutex_unlock(&source->async_mutex);
 
@@ -3568,7 +3562,7 @@ obs_source_output_video_internal(obs_source_t *source,
 	/* ------------------------------------------- */
 	pthread_mutex_lock(&source->async_mutex);
 	if (output) {
-		if (os_atomic_dec_long(&output->refs) == 0) {
+		if (0 == --output->refs) {
 			obs_source_frame_destroy(output);
 			output = NULL;
 		} else {
@@ -3582,7 +3576,7 @@ obs_source_output_video_internal(obs_source_t *source,
 void obs_source_output_video(obs_source_t *source,
 			     const struct obs_source_frame *frame)
 {
-	if (destroying(source))
+	if (source->destroying)
 		return;
 	if (!frame) {
 		obs_source_output_video_internal(source, NULL);
@@ -3599,7 +3593,7 @@ void obs_source_output_video(obs_source_t *source,
 void obs_source_output_video2(obs_source_t *source,
 			      const struct obs_source_frame2 *frame)
 {
-	if (destroying(source))
+	if (source->destroying)
 		return;
 	if (!frame) {
 		obs_source_output_video_internal(source, NULL);
@@ -3644,7 +3638,7 @@ void obs_source_set_async_rotation(obs_source_t *source, long rotation)
 void obs_source_output_cea708(obs_source_t *source,
 			      const struct obs_source_cea_708 *captions)
 {
-	if (destroying(source))
+	if (source->destroying)
 		return;
 	if (!captions) {
 		return;
@@ -3705,7 +3699,7 @@ obs_source_preload_video_internal(obs_source_t *source,
 {
 	if (!obs_source_valid(source, "obs_source_preload_video"))
 		return;
-	if (destroying(source))
+	if (source->destroying)
 		return;
 	if (!frame)
 		return;
@@ -3724,7 +3718,7 @@ obs_source_preload_video_internal(obs_source_t *source,
 void obs_source_preload_video(obs_source_t *source,
 			      const struct obs_source_frame *frame)
 {
-	if (destroying(source))
+	if (source->destroying)
 		return;
 	if (!frame) {
 		obs_source_preload_video_internal(source, NULL);
@@ -3741,7 +3735,7 @@ void obs_source_preload_video(obs_source_t *source,
 void obs_source_preload_video2(obs_source_t *source,
 			       const struct obs_source_frame2 *frame)
 {
-	if (destroying(source))
+	if (source->destroying)
 		return;
 	if (!frame) {
 		obs_source_preload_video_internal(source, NULL);
@@ -3783,7 +3777,7 @@ void obs_source_show_preloaded_video(obs_source_t *source)
 
 	if (!obs_source_valid(source, "obs_source_show_preloaded_video"))
 		return;
-	if (destroying(source))
+	if (source->destroying)
 		return;
 	if (!source->async_preload_frame)
 		return;
@@ -3836,7 +3830,7 @@ obs_source_set_video_frame_internal(obs_source_t *source,
 void obs_source_set_video_frame(obs_source_t *source,
 				const struct obs_source_frame *frame)
 {
-	if (destroying(source))
+	if (source->destroying)
 		return;
 	if (!frame) {
 		obs_source_preload_video_internal(source, NULL);
@@ -3853,7 +3847,7 @@ void obs_source_set_video_frame(obs_source_t *source,
 void obs_source_set_video_frame2(obs_source_t *source,
 				 const struct obs_source_frame2 *frame)
 {
-	if (destroying(source))
+	if (source->destroying)
 		return;
 	if (!frame) {
 		obs_source_preload_video_internal(source, NULL);
@@ -4072,7 +4066,7 @@ void obs_source_output_audio(obs_source_t *source,
 
 	if (!obs_source_valid(source, "obs_source_output_audio"))
 		return;
-	if (destroying(source))
+	if (source->destroying)
 		return;
 	if (!obs_ptr_valid(audio_in, "obs_source_output_audio"))
 		return;
@@ -4252,7 +4246,7 @@ struct obs_source_frame *obs_source_get_frame(obs_source_t *source)
 	source->cur_async_frame = NULL;
 
 	if (frame) {
-		os_atomic_inc_long(&frame->refs);
+		frame->refs++;
 	}
 
 	pthread_mutex_unlock(&source->async_mutex);
@@ -4271,7 +4265,7 @@ void obs_source_release_frame(obs_source_t *source,
 	} else {
 		pthread_mutex_lock(&source->async_mutex);
 
-		if (os_atomic_dec_long(&frame->refs) == 0)
+		if (0 == --frame->refs)
 			obs_source_frame_destroy(frame);
 		else
 			remove_async_frame(source, frame);
@@ -5849,7 +5843,7 @@ void obs_source_set_audio_active(obs_source_t *source, bool active)
 	if (!obs_source_valid(source, "obs_source_set_audio_active"))
 		return;
 
-	if (os_atomic_set_bool(&source->audio_active, active) == active)
+	if (atomic_exchange(&source->audio_active, active) == active)
 		return;
 
 	if (active) {
@@ -5864,7 +5858,7 @@ void obs_source_set_audio_active(obs_source_t *source, bool active)
 bool obs_source_audio_active(const obs_source_t *source)
 {
 	return obs_source_valid(source, "obs_source_audio_active")
-		       ? os_atomic_load_bool(&source->audio_active)
+		       ? source->audio_active
 		       : false;
 }
 

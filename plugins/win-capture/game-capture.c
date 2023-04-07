@@ -144,9 +144,9 @@ struct game_capture {
 	struct dstr executable;
 	enum window_priority priority;
 	obs_hotkey_pair_id hotkey_pair;
-	volatile long hotkey_window;
-	volatile bool deactivate_hook;
-	volatile bool activate_hook_now;
+	a_int64_t hotkey_window;
+	a_bool_t deactivate_hook;
+	a_bool_t activate_hook_now;
 	bool wait_for_target_startup;
 	bool showing;
 	bool active;
@@ -493,10 +493,9 @@ static bool hotkey_start(void *data, obs_hotkey_pair_id id,
 
 	if (pressed && gc->config.mode == CAPTURE_MODE_HOTKEY) {
 		info("Activate hotkey pressed");
-		os_atomic_set_long(&gc->hotkey_window,
-				   (long)(uintptr_t)GetForegroundWindow());
-		os_atomic_set_bool(&gc->deactivate_hook, true);
-		os_atomic_set_bool(&gc->activate_hook_now, true);
+		gc->hotkey_window = (int64_t)(uintptr_t)GetForegroundWindow();
+		gc->deactivate_hook = true;
+		gc->activate_hook_now = true;
 	}
 
 	return true;
@@ -512,7 +511,7 @@ static bool hotkey_stop(void *data, obs_hotkey_pair_id id, obs_hotkey_t *hotkey,
 
 	if (pressed && gc->config.mode == CAPTURE_MODE_HOTKEY) {
 		info("Deactivate hotkey pressed");
-		os_atomic_set_bool(&gc->deactivate_hook, true);
+		gc->deactivate_hook = true;
 	}
 
 	return true;
@@ -1772,12 +1771,11 @@ static void check_foreground_window(struct game_capture *gc, float seconds)
 static void game_capture_tick(void *data, float seconds)
 {
 	struct game_capture *gc = data;
-	bool deactivate = os_atomic_set_bool(&gc->deactivate_hook, false);
-	bool activate_now = os_atomic_set_bool(&gc->activate_hook_now, false);
+	bool deactivate = atomic_exchange(&gc->deactivate_hook, false);
+	bool activate_now = atomic_exchange(&gc->activate_hook_now, false);
 
 	if (activate_now) {
-		HWND hwnd = (HWND)(uintptr_t)os_atomic_load_long(
-			&gc->hotkey_window);
+		HWND hwnd = (HWND)(uintptr_t)gc->hotkey_window;
 
 		if (ms_is_uwp_window(hwnd))
 			hwnd = ms_get_uwp_actual_window(hwnd);

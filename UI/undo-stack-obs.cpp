@@ -1,7 +1,5 @@
 #include "undo-stack-obs.hpp"
 
-#include <util/util.hpp>
-
 #define MAX_STACK_SIZE 5000
 
 undo_stack::undo_stack(ui_ptr ui) : ui(ui)
@@ -68,7 +66,7 @@ void undo_stack::add_action(const QString &name, const undo_redo_cb &undo,
 
 void undo_stack::undo()
 {
-	if (undo_items.size() == 0 || !is_enabled())
+	if (undo_items.empty() || !is_enabled())
 		return;
 
 	last_is_repeatable = false;
@@ -81,7 +79,7 @@ void undo_stack::undo()
 	ui->actionMainRedo->setText(QTStr("Undo.Item.Redo").arg(temp.name));
 	ui->actionMainRedo->setEnabled(true);
 
-	if (undo_items.size() == 0) {
+	if (undo_items.empty()) {
 		ui->actionMainUndo->setDisabled(true);
 		ui->actionMainUndo->setText(QTStr("Undo.Undo"));
 	} else {
@@ -92,7 +90,7 @@ void undo_stack::undo()
 
 void undo_stack::redo()
 {
-	if (redo_items.size() == 0 || !is_enabled())
+	if (redo_items.empty() || !is_enabled())
 		return;
 
 	last_is_repeatable = false;
@@ -105,7 +103,7 @@ void undo_stack::redo()
 	ui->actionMainUndo->setText(QTStr("Undo.Item.Undo").arg(temp.name));
 	ui->actionMainUndo->setEnabled(true);
 
-	if (redo_items.size() == 0) {
+	if (redo_items.empty()) {
 		ui->actionMainRedo->setDisabled(true);
 		ui->actionMainRedo->setText(QTStr("Undo.Redo"));
 	} else {
@@ -119,7 +117,7 @@ void undo_stack::enable_internal()
 	last_is_repeatable = false;
 
 	ui->actionMainUndo->setDisabled(false);
-	if (redo_items.size() > 0)
+	if (!redo_items.empty())
 		ui->actionMainRedo->setDisabled(false);
 }
 

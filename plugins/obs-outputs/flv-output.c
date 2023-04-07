@@ -21,7 +21,6 @@
 #include <util/platform.h>
 #include <util/dstr.h>
 #include <util/threading.h>
-#include <inttypes.h>
 #include "flv-mux.h"
 
 #define do_log(level, format, ...)                \
@@ -35,8 +34,8 @@ struct flv_output {
 	obs_output_t *output;
 	struct dstr path;
 	FILE *file;
-	volatile bool active;
-	volatile bool stopping;
+	a_bool_t active;
+	a_bool_t stopping;
 	uint64_t stop_ts;
 	bool sent_headers;
 	int64_t last_packet_ts;
@@ -46,16 +45,6 @@ struct flv_output {
 	bool got_first_video;
 	int32_t start_dts_offset;
 };
-
-static inline bool stopping(struct flv_output *stream)
-{
-	return os_atomic_load_bool(&stream->stopping);
-}
-
-static inline bool active(struct flv_output *stream)
-{
-	return os_atomic_load_bool(&stream->active);
-}
 
 static const char *flv_output_getname(void *unused)
 {
@@ -84,12 +73,11 @@ static void *flv_output_create(obs_data_t *settings, obs_output_t *output)
 	return stream;
 }
 
-static int write_packet(struct flv_output *stream,
-			struct encoder_packet *packet, bool is_header)
+static void write_packet(struct flv_output *stream,
+			 struct encoder_packet *packet, bool is_header)
 {
 	uint8_t *data;
 	size_t size;
-	int ret = 0;
 
 	stream->last_packet_ts = get_ms_time(packet, packet->dts);
 
@@ -97,8 +85,6 @@ static int write_packet(struct flv_output *stream,
 		       &size, is_header);
 	fwrite(data, 1, size, stream->file);
 	bfree(data);
-
-	return ret;
 }
 
 static void write_meta_data(struct flv_output *stream)
@@ -176,7 +162,7 @@ static bool flv_output_start(void *data)
 
 	stream->got_first_video = false;
 	stream->sent_headers = false;
-	os_atomic_set_bool(&stream->stopping, false);
+	stream->stopping = false;
 
 	/* get path */
 	settings = obs_output_get_settings(stream->output);
@@ -191,7 +177,7 @@ static bool flv_output_start(void *data)
 	}
 
 	/* write headers and start capture */
-	os_atomic_set_bool(&stream->active, true);
+	stream->active = true;
 	obs_output_begin_data_capture(stream->output, 0);
 
 	info("Writing FLV file '%s'...", stream->path.array);
@@ -203,12 +189,12 @@ static void flv_output_stop(void *data, uint64_t ts)
 	struct flv_output *stream = data;
 	debug_log("Setting stream to stop...");
 	stream->stop_ts = ts / 1000;
-	os_atomic_set_bool(&stream->stopping, true);
+	stream->stopping = true;
 }
 
 static void flv_output_actual_stop(struct flv_output *stream, int code)
 {
-	os_atomic_set_bool(&stream->active, false);
+	stream->active = false;
 
 	if (stream->file) {
 		write_file_info(stream->file, stream->last_packet_ts,
@@ -232,7 +218,7 @@ static void flv_output_data(void *data, struct encoder_packet *packet)
 
 	pthread_mutex_lock(&stream->mutex);
 
-	if (!active(stream))
+	if (!stream->active)
 		goto unlock;
 
 	if (!packet) {
@@ -240,7 +226,7 @@ static void flv_output_data(void *data, struct encoder_packet *packet)
 		goto unlock;
 	}
 
-	if (stopping(stream)) {
+	if (stream->stopping) {
 		if (packet->sys_dts_usec >= (int64_t)stream->stop_ts) {
 			flv_output_actual_stop(stream, 0);
 			goto unlock;

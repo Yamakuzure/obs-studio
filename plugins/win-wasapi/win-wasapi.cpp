@@ -310,7 +310,7 @@ public:
 };
 
 class WASAPINotify : public IMMNotificationClient {
-	long refs = 0; /* auto-incremented to 1 by ComPtr */
+	a_int64_t refs = 0; /* auto-incremented to 1 by ComPtr */
 	WASAPISource *source;
 
 public:
@@ -318,12 +318,12 @@ public:
 
 	STDMETHODIMP_(ULONG) AddRef()
 	{
-		return (ULONG)os_atomic_inc_long(&refs);
+		return (ULONG)(refs++);
 	}
 
 	STDMETHODIMP_(ULONG) STDMETHODCALLTYPE Release()
 	{
-		long val = os_atomic_dec_long(&refs);
+		long val = (long)(refs--);
 		if (val == 0)
 			delete this;
 		return (ULONG)val;
@@ -340,7 +340,7 @@ public:
 			return E_NOINTERFACE;
 		}
 
-		os_atomic_inc_long(&refs);
+		refs++;
 		return S_OK;
 	}
 

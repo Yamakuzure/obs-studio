@@ -255,7 +255,7 @@ static void on_audio_playback(void *param, obs_source_t *source,
 	if (pthread_mutex_trylock(&monitor->playback_mutex) != 0)
 		return;
 
-	if (os_atomic_load_long(&source->activate_refs) == 0)
+	if (source->activate_refs == 0)
 		goto unlock;
 
 	success = audio_resampler_resample(

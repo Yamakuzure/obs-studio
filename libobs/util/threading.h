@@ -24,6 +24,7 @@
  * pthread conditional waits.
  */
 
+#include "c17atomics.h"
 #include "c99defs.h"
 
 #ifndef _MSC_VER
@@ -33,12 +34,6 @@
 
 #ifdef __cplusplus
 extern "C" {
-#endif
-
-#ifdef _WIN32
-#include "threading-windows.h"
-#else
-#include "threading-posix.h"
 #endif
 
 /* this may seem strange, but you can't use it unless it's an initializer */

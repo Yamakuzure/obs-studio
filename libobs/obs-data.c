@@ -30,7 +30,7 @@
 #include <jansson.h>
 
 struct obs_data_item {
-	volatile long ref;
+	a_int64_t ref;
 	const char *name;
 	struct obs_data *parent;
 	UT_hash_handle hh;
@@ -45,13 +45,13 @@ struct obs_data_item {
 };
 
 struct obs_data {
-	volatile long ref;
+	a_int64_t ref;
 	char *json;
 	struct obs_data_item *items;
 };
 
 struct obs_data_array {
-	volatile long ref;
+	a_int64_t ref;
 	DARRAY(obs_data_t *, objects);
 };
 
@@ -708,7 +708,7 @@ obs_data_t *obs_data_create_from_json_file_safe(const char *json_file,
 void obs_data_addref(obs_data_t *data)
 {
 	if (data)
-		os_atomic_inc_long(&data->ref);
+		data->ref++;
 }
 
 static inline void obs_data_destroy(struct obs_data *data)
@@ -730,7 +730,7 @@ void obs_data_release(obs_data_t *data)
 	if (!data)
 		return;
 
-	if (os_atomic_dec_long(&data->ref) == 0)
+	if (0 == --data->ref)
 		obs_data_destroy(data);
 }
 
@@ -1373,7 +1373,7 @@ obs_data_array_t *obs_data_array_create()
 void obs_data_array_addref(obs_data_array_t *array)
 {
 	if (array)
-		os_atomic_inc_long(&array->ref);
+		array->ref++;
 }
 
 static inline void obs_data_array_destroy(obs_data_array_t *array)
@@ -1391,7 +1391,7 @@ void obs_data_array_release(obs_data_array_t *array)
 	if (!array)
 		return;
 
-	if (os_atomic_dec_long(&array->ref) == 0)
+	if (0 == --array->ref)
 		obs_data_array_destroy(array);
 }
 
@@ -1410,7 +1410,7 @@ obs_data_t *obs_data_array_item(obs_data_array_t *array, size_t idx)
 	data = (idx < array->objects.num) ? array->objects.array[idx] : NULL;
 
 	if (data)
-		os_atomic_inc_long(&data->ref);
+		data->ref++;
 	return data;
 }
 
@@ -1419,7 +1419,7 @@ size_t obs_data_array_push_back(obs_data_array_t *array, obs_data_t *obj)
 	if (!array || !obj)
 		return 0;
 
-	os_atomic_inc_long(&obj->ref);
+	obj->ref++;
 	return da_push_back(array->objects, &obj);
 }
 
@@ -1428,7 +1428,7 @@ void obs_data_array_insert(obs_data_array_t *array, size_t idx, obs_data_t *obj)
 	if (!array || !obj)
 		return;
 
-	os_atomic_inc_long(&obj->ref);
+	obj->ref++;
 	da_insert(array->objects, idx, &obj);
 }
 
@@ -1565,7 +1565,7 @@ obs_data_item_t *obs_data_first(obs_data_t *data)
 		return NULL;
 
 	if (data->items)
-		os_atomic_inc_long(&data->items->ref);
+		data->items->ref++;
 	return data->items;
 }
 
@@ -1576,7 +1576,7 @@ obs_data_item_t *obs_data_item_byname(obs_data_t *data, const char *name)
 
 	struct obs_data_item *item = get_item(data, name);
 	if (item)
-		os_atomic_inc_long(&item->ref);
+		item->ref++;
 	return item;
 }
 
@@ -1589,7 +1589,7 @@ bool obs_data_item_next(obs_data_item_t **item)
 		*item = next;
 
 		if (next) {
-			os_atomic_inc_long(&next->ref);
+			next->ref++;
 			return true;
 		}
 	}
@@ -1600,8 +1600,7 @@ bool obs_data_item_next(obs_data_item_t **item)
 void obs_data_item_release(obs_data_item_t **item)
 {
 	if (item && *item) {
-		long ref = os_atomic_dec_long(&(*item)->ref);
-		if (!ref) {
+		if (0 >= --(*item)->ref) {
 			obs_data_item_destroy(*item);
 			*item = NULL;
 		}
@@ -1813,7 +1812,7 @@ static inline obs_data_t *data_item_get_obj(obs_data_item_t *item,
 							    : NULL;
 
 	if (obj)
-		os_atomic_inc_long(&obj->ref);
+		obj->ref++;
 	return obj;
 }
 
@@ -1826,7 +1825,7 @@ static inline obs_data_array_t *data_item_get_array(obs_data_item_t *item,
 		item_valid(item, OBS_DATA_ARRAY) ? get_array(item) : NULL;
 
 	if (array)
-		os_atomic_inc_long(&array->ref);
+		array->ref++;
 	return array;
 }
 

@@ -407,7 +407,7 @@ struct graphics_subsystem {
 	struct gs_effect *first_effect;
 
 	pthread_mutex_t mutex;
-	volatile long ref;
+	a_int64_t ref;
 
 	struct blend_state cur_blend_state;
 	DARRAY(struct blend_state, blend_state_stack);

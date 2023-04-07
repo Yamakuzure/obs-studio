@@ -18,11 +18,14 @@
 
 #include "c99defs.h"
 #include "base.h"
-#include <wchar.h>
-#include <string.h>
 
 #ifdef __cplusplus
+#include <cwchar>
+#include <cstring>
 extern "C" {
+#else
+#include <wchar.h>
+#include <string.h>
 #endif
 
 struct base_allocator {
@@ -69,7 +72,8 @@ static inline wchar_t *bwstrdup_n(const wchar_t *str, size_t n)
 	if (!str)
 		return NULL;
 
-	dup = (wchar_t *)bmemdup_ext(str, n * sizeof(wchar_t), (n + 1) * sizeof(wchar_t));
+	dup = (wchar_t *)bmemdup_ext(str, n * sizeof(wchar_t),
+				     (n + 1) * sizeof(wchar_t));
 
 	return dup;
 }

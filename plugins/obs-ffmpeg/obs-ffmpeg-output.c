@@ -58,8 +58,8 @@ static bool new_stream(struct ffmpeg_data *data, AVStream **stream,
 		       const AVCodec **codec, enum AVCodecID id,
 		       const char *name)
 {
-	*codec = (!!name && *name) ? avcodec_find_encoder_by_name(name)
-				   : avcodec_find_encoder(id);
+	*codec = (name != nullptr && *name) ? avcodec_find_encoder_by_name(name)
+					    : avcodec_find_encoder(id);
 
 	if (!*codec) {
 		ffmpeg_log_error(LOG_WARNING, data,
@@ -76,7 +76,7 @@ static bool new_stream(struct ffmpeg_data *data, AVStream **stream,
 		return false;
 	}
 
-	(*stream)->id = data->output->nb_streams - 1;
+	(*stream)->id = (int)(data->output->nb_streams - 1);
 	return true;
 }
 
@@ -255,8 +255,8 @@ static bool create_video_stream(struct ffmpeg_data *data)
 	context->bit_rate = (int64_t)data->config.video_bitrate * 1000;
 	context->width = data->config.scale_width;
 	context->height = data->config.scale_height;
-	context->time_base = (AVRational){ovi.fps_den, ovi.fps_num};
-	context->framerate = (AVRational){ovi.fps_num, ovi.fps_den};
+	context->time_base = (AVRational){(int)ovi.fps_den, (int)ovi.fps_num};
+	context->framerate = (AVRational){(int)ovi.fps_num, (int)ovi.fps_den};
 	context->gop_size = data->config.gop_size;
 	context->pix_fmt = closest_format;
 	context->color_range = data->config.color_range;
@@ -369,13 +369,13 @@ static bool create_audio_stream(struct ffmpeg_data *data, int idx)
 	context = stream->codec;
 #endif
 	context->bit_rate = (int64_t)data->config.audio_bitrate * 1000;
-	context->time_base = (AVRational){1, aoi.samples_per_sec};
+	context->time_base = (AVRational){1, (int)aoi.samples_per_sec};
 #if LIBAVUTIL_VERSION_INT < AV_VERSION_INT(57, 24, 100)
 	context->channels = get_audio_channels(aoi.speakers);
 #endif
-	channels = get_audio_channels(aoi.speakers);
+	channels = (int)get_audio_channels(aoi.speakers);
 
-	context->sample_rate = aoi.samples_per_sec;
+	context->sample_rate = (int)aoi.samples_per_sec;
 #if LIBAVCODEC_VERSION_INT < AV_VERSION_INT(59, 24, 100)
 	context->channel_layout = av_get_default_channel_layout(channels);
 
@@ -665,11 +665,6 @@ fail:
 
 /* ------------------------------------------------------------------------- */
 
-static inline bool stopping(struct ffmpeg_output *output)
-{
-	return os_atomic_load_bool(&output->stopping);
-}
-
 static const char *ffmpeg_output_getname(void *unused)
 {
 	UNUSED_PARAMETER(unused);
@@ -767,14 +762,14 @@ static void receive_video(void *param, struct video_data *frame)
 
 	AVCodecContext *context = data->video_ctx;
 	AVPacket *packet = NULL;
-	int ret = 0, got_packet;
+	int got_packet;
 
 	if (!output->video_start_ts)
 		output->video_start_ts = frame->timestamp;
 	if (!data->start_timestamp)
 		data->start_timestamp = frame->timestamp;
 
-	ret = av_frame_make_writable(data->vframe);
+	int ret = av_frame_make_writable(data->vframe);
 	if (ret < 0) {
 		blog(LOG_WARNING,
 		     "receive_video: Error obtaining writable "
@@ -783,7 +778,7 @@ static void receive_video(void *param, struct video_data *frame)
 		//FIXME: stop the encode with an error
 		return;
 	}
-	if (!!data->swscale)
+	if (data->swscale != nullptr)
 		sws_scale(data->swscale, (const uint8_t *const *)frame->data,
 			  (const int *)frame->linesize, 0, data->config.height,
 			  data->vframe->data, data->vframe->linesize);
@@ -844,8 +839,6 @@ static void receive_video(void *param, struct video_data *frame)
 			packet = NULL;
 			pthread_mutex_unlock(&output->write_mutex);
 			os_sem_post(output->write_sem);
-		} else {
-			ret = 0;
 		}
 #if LIBAVFORMAT_VERSION_MAJOR < 58
 	}
@@ -868,7 +861,7 @@ static void encode_audio(struct ffmpeg_output *output, int idx,
 	struct ffmpeg_data *data = &output->ff_data;
 
 	AVPacket *packet = NULL;
-	int ret, got_packet;
+	int got_packet;
 	int channels;
 #if LIBAVUTIL_VERSION_INT >= AV_VERSION_INT(57, 24, 100)
 	channels = context->ch_layout.nb_channels;
@@ -882,10 +875,10 @@ static void encode_audio(struct ffmpeg_output *output, int idx,
 		data->total_samples[idx], (AVRational){1, context->sample_rate},
 		context->time_base);
 
-	ret = avcodec_fill_audio_frame(data->aframe[idx], channels,
-				       context->sample_fmt,
-				       data->samples[idx][0], (int)total_size,
-				       1);
+	int ret = avcodec_fill_audio_frame(data->aframe[idx], channels,
+					   context->sample_fmt,
+					   data->samples[idx][0],
+					   (int)total_size, 1);
 	if (ret < 0) {
 		blog(LOG_WARNING,
 		     "encode_audio: avcodec_fill_audio_frame "
@@ -986,8 +979,7 @@ static void receive_audio(void *param, size_t mix_idx, struct audio_data *frame)
 		circlebuf_push_back(&data->excess_frames[track_order][i],
 				    in.data[i], in.frames * data->audio_size);
 
-	while (data->excess_frames[track_order][0].size >=
-	       frame_size_bytes) {
+	while (data->excess_frames[track_order][0].size >= frame_size_bytes) {
 		for (size_t i = 0; i < data->audio_planes; i++)
 			circlebuf_pop_front(
 				&data->excess_frames[track_order][i],
@@ -1040,7 +1032,7 @@ static int process_packet(struct ffmpeg_output *output)
 			packet.size, packet.flags,
 			packet.stream_index, output->packets.num);*/
 
-	if (stopping(output)) {
+	if (output->stopping) {
 		uint64_t sys_ts = get_packet_sys_dts(output, packet);
 		if (sys_ts >= output->stop_ts) {
 			ret = 0;
@@ -1249,7 +1241,7 @@ static bool ffmpeg_output_start(void *data)
 	if (output->connecting)
 		return false;
 
-	os_atomic_set_bool(&output->stopping, false);
+	output->stopping = false;
 	output->audio_start_ts = 0;
 	output->video_start_ts = 0;
 	output->total_bytes = 0;
@@ -1275,7 +1267,7 @@ static void ffmpeg_output_stop(void *data, uint64_t ts)
 	if (output->active) {
 		if (ts > 0) {
 			output->stop_ts = ts;
-			os_atomic_set_bool(&output->stopping, true);
+			output->stopping = true;
 		}
 
 		ffmpeg_output_full_stop(output);

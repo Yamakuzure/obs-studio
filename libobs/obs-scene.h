@@ -28,20 +28,20 @@ struct item_action {
 };
 
 struct obs_scene_item {
-	volatile long ref;
-	volatile bool removed;
+	a_int64_t ref;
+	a_bool_t removed;
 
 	bool is_group;
-	bool update_transform;
-	bool update_group_resize;
+	a_bool_t update_transform;
+	a_bool_t update_group_resize;
 
 	int64_t id;
 
 	struct obs_scene *parent;
 	struct obs_source *source;
-	volatile long active_refs;
-	volatile long defer_update;
-	volatile long defer_group_resize;
+	a_int64_t active_refs;
+	a_int64_t defer_update;
+	a_int64_t defer_group_resize;
 	bool user_visible;
 	bool visible;
 	bool selected;

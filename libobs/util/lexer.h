@@ -16,9 +16,12 @@
 
 #pragma once
 
-#include "c99defs.h"
 #include "dstr.h"
 #include "darray.h"
+
+// We need to typedef DARRAY() below, so do not use _Atomic(size_t) then!
+#define USE_NON_ATOMIC_SIZE_T
+#include "c17atomics.h"
 
 #ifdef __cplusplus
 extern "C" {

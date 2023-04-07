@@ -62,13 +62,13 @@ struct rtmp_stream {
 	bool got_first_video;
 	int64_t start_dts_offset;
 
-	volatile bool connecting;
+	a_bool_t connecting;
 	pthread_t connect_thread;
 
-	volatile bool active;
-	volatile bool disconnected;
-	volatile bool encode_error;
-	volatile bool silent_reconnect;
+	a_bool_t active;
+	a_bool_t disconnected;
+	a_bool_t encode_error;
+	a_bool_t silent_reconnect;
 	pthread_t send_thread;
 
 	int max_shutdown_time_sec;

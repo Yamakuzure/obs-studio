@@ -58,9 +58,14 @@ struct darray {
 
 static inline void darray_init(struct darray *dst)
 {
+	PRAGMA_WARN_PUSH
+	// NOTE: Those warnings could be false positive from GCC 12 with -O2
+	PRAGMA_WARN_STRINGOP_OVERFLOW
+	PRAGMA_WARN_ARRAY_BOUNDS
 	dst->array = nullptr;
-	atomic_init(&dst->num, 0);
-	atomic_init(&dst->capacity, 0);
+	dst->num = 0;
+	dst->capacity = 0;
+	PRAGMA_WARN_POP
 }
 
 static inline void darray_free(struct darray *dst)
@@ -218,8 +223,9 @@ static inline void *darray_push_back_new(const size_t element_size,
 
 	last = darray_end(element_size, dst);
 	PRAGMA_WARN_PUSH
-	// NOTE: Those warning could be false positive from GCC 12 with -O2
+	// NOTE: Those warnings could be false positive from GCC 12 with -O2
 	PRAGMA_WARN_STRINGOP_OVERFLOW
+	PRAGMA_WARN_ARRAY_BOUNDS
 	memset(last, 0, element_size);
 	PRAGMA_WARN_POP
 	return last;
@@ -325,7 +331,7 @@ static inline void darray_erase(const size_t element_size, struct darray *dst,
 {
 	assert(idx < dst->num);
 
-	if (idx >= dst->num || !--dst->num)
+	if (idx >= dst->num || 0 == --dst->num)
 		return;
 
 	memmove(darray_item(element_size, dst, idx),
@@ -483,7 +489,7 @@ static inline void darray_swap(const size_t element_size, struct darray *dst,
 		struct {                          \
 			type *array;              \
 			a_size_t num;             \
-			volatile size_t capacity; \
+			a_size_t capacity;        \
 		};                                \
 	} NAME
 #else
@@ -493,7 +499,7 @@ static inline void darray_swap(const size_t element_size, struct darray *dst,
 		struct {                          \
 			type *array;              \
 			a_size_t num;             \
-			volatile size_t capacity; \
+			a_size_t capacity;        \
 		};                                \
 	} NAME
 #endif // __cplusplus

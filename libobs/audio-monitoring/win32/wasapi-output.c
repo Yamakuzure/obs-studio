@@ -313,7 +313,7 @@ static void on_audio_playback(void *param, obs_source_t *source,
 	if (!TryAcquireSRWLockExclusive(&monitor->playback_mutex)) {
 		return;
 	}
-	if (os_atomic_load_long(&source->activate_refs) == 0) {
+	if (source->activate_refs == 0) {
 		goto unlock;
 	}
 

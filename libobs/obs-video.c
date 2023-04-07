@@ -860,7 +860,8 @@ static inline void video_sleep(struct obs_core_video *video, uint64_t *p_time,
 
 	pthread_mutex_lock(&obs->video.mixes_mutex);
 	for (size_t i = 0, num = obs->video.mixes.num; i < num; i++) {
-		struct obs_core_video_mix *video_mix = obs->video.mixes.array[i];
+		struct obs_core_video_mix *video_mix =
+			obs->video.mixes.array[i];
 		bool raw_active = video_mix->raw_was_active;
 		bool gpu_active = video_mix->gpu_was_active;
 
@@ -1082,10 +1083,9 @@ static inline void update_active_state(struct obs_core_video_mix *video)
 #endif
 	const bool was_active = video->was_active;
 
-	bool raw_active = os_atomic_load_long(&video->raw_active) > 0;
+	bool raw_active = video->raw_active > 0;
 #ifdef _WIN32
-	const bool gpu_active =
-		os_atomic_load_long(&video->gpu_encoder_active) > 0;
+	const bool gpu_active = video->gpu_encoder_active > 0;
 	const bool active = raw_active || gpu_active;
 #else
 	const bool active = raw_active;

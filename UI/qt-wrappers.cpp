@@ -31,6 +31,7 @@
 #include <QLabel>
 #include <QPushButton>
 #include <QToolBar>
+#include <utility>
 
 #if !defined(_WIN32) && !defined(__APPLE__)
 #include <obs-nix-platform.h>
@@ -75,20 +76,12 @@ OBSMessageBox::question(QWidget *parent, const QString &title,
 		QPushButton *button = mb.addButton(QMessageBox::x); \
 		button->setText(QTStr(#x));                         \
 	}
-	add_button(Open);
-	add_button(Save);
-	add_button(Cancel);
-	add_button(Close);
-	add_button(Discard);
-	add_button(Apply);
-	add_button(Reset);
-	add_button(Yes);
-	add_button(No);
-	add_button(Abort);
-	add_button(Retry);
-	add_button(Ignore);
+	add_button(Open) add_button(Save) add_button(Cancel) add_button(
+		Close) add_button(Discard) add_button(Apply) add_button(Reset)
+		add_button(Yes) add_button(No) add_button(Abort)
+			add_button(Retry) add_button(Ignore)
 #undef add_button
-	return (QMessageBox::StandardButton)mb.exec();
+				return (QMessageBox::StandardButton)mb.exec();
 }
 
 void OBSMessageBox::information(QWidget *parent, const QString &title,
@@ -231,22 +224,23 @@ void DeleteLayout(QLayout *layout)
 
 class QuickThread : public QThread {
 public:
-	explicit inline QuickThread(std::function<void()> func_) : func(func_)
+	explicit inline QuickThread(std::function<void()> func_)
+		: func(std::move(func_))
 	{
 	}
 
 private:
-	virtual void run() override { func(); }
+	void run() override { func(); }
 
 	std::function<void()> func;
 };
 
 QThread *CreateQThread(std::function<void()> func)
 {
-	return new QuickThread(func);
+	return new QuickThread(std::move(func));
 }
 
-volatile long insideEventLoop = 0;
+a_int64_t insideEventLoop = 0;
 
 void ExecuteFuncSafeBlock(std::function<void()> func)
 {
@@ -258,12 +252,12 @@ void ExecuteFuncSafeBlock(std::function<void()> func)
 					  Qt::QueuedConnection);
 	};
 
-	os_atomic_inc_long(&insideEventLoop);
+	insideEventLoop++;
 	QScopedPointer<QThread> thread(CreateQThread(wait));
 	thread->start();
 	eventLoop.exec();
 	thread->wait();
-	os_atomic_dec_long(&insideEventLoop);
+	insideEventLoop--;
 }
 
 void ExecuteFuncSafeBlockMsgBox(std::function<void()> func,
@@ -280,12 +274,12 @@ void ExecuteFuncSafeBlockMsgBox(std::function<void()> func,
 		QMetaObject::invokeMethod(&dlg, "accept", Qt::QueuedConnection);
 	};
 
-	os_atomic_inc_long(&insideEventLoop);
+	insideEventLoop++;
 	QScopedPointer<QThread> thread(CreateQThread(wait));
 	thread->start();
 	dlg.exec();
 	thread->wait();
-	os_atomic_dec_long(&insideEventLoop);
+	insideEventLoop--;
 }
 
 static bool enable_message_boxes = false;
@@ -295,7 +289,7 @@ void EnableThreadedMessageBoxes(bool enable)
 	enable_message_boxes = enable;
 }
 
-void ExecThreadedWithoutBlocking(std::function<void()> func,
+void ExecThreadedWithoutBlocking(const std::function<void()> &func,
 				 const QString &title, const QString &text)
 {
 	if (!enable_message_boxes)
@@ -307,7 +301,7 @@ void ExecThreadedWithoutBlocking(std::function<void()> func,
 bool LineEditCanceled(QEvent *event)
 {
 	if (event->type() == QEvent::KeyPress) {
-		QKeyEvent *keyEvent = reinterpret_cast<QKeyEvent *>(event);
+		auto *keyEvent = reinterpret_cast<QKeyEvent *>(event);
 		return keyEvent->key() == Qt::Key_Escape;
 	}
 
@@ -317,7 +311,7 @@ bool LineEditCanceled(QEvent *event)
 bool LineEditChanged(QEvent *event)
 {
 	if (event->type() == QEvent::KeyPress) {
-		QKeyEvent *keyEvent = reinterpret_cast<QKeyEvent *>(event);
+		auto *keyEvent = reinterpret_cast<QKeyEvent *>(event);
 
 		switch (keyEvent->key()) {
 		case Qt::Key_Tab:
@@ -335,8 +329,7 @@ bool LineEditChanged(QEvent *event)
 
 void SetComboItemEnabled(QComboBox *c, int idx, bool enabled)
 {
-	QStandardItemModel *model =
-		dynamic_cast<QStandardItemModel *>(c->model());
+	auto *model = dynamic_cast<QStandardItemModel *>(c->model());
 	QStandardItem *item = model->item(idx);
 	item->setFlags(enabled ? Qt::ItemIsSelectable | Qt::ItemIsEnabled
 			       : Qt::NoItemFlags);
@@ -354,7 +347,8 @@ void setThemeID(QWidget *widget, const QString &themeID)
 	}
 }
 
-QString SelectDirectory(QWidget *parent, QString title, QString path)
+QString SelectDirectory(QWidget *parent, const QString &title,
+			const QString &path)
 {
 	QString dir = QFileDialog::getExistingDirectory(
 		parent, title, path,
@@ -363,8 +357,8 @@ QString SelectDirectory(QWidget *parent, QString title, QString path)
 	return dir;
 }
 
-QString SaveFile(QWidget *parent, QString title, QString path,
-		 QString extensions)
+QString SaveFile(QWidget *parent, const QString &title, const QString &path,
+		 const QString &extensions)
 {
 	QString file =
 		QFileDialog::getSaveFileName(parent, title, path, extensions);
@@ -372,8 +366,8 @@ QString SaveFile(QWidget *parent, QString title, QString path,
 	return file;
 }
 
-QString OpenFile(QWidget *parent, QString title, QString path,
-		 QString extensions)
+QString OpenFile(QWidget *parent, const QString &title, const QString &path,
+		 const QString &extensions)
 {
 	QString file =
 		QFileDialog::getOpenFileName(parent, title, path, extensions);
@@ -381,8 +375,8 @@ QString OpenFile(QWidget *parent, QString title, QString path,
 	return file;
 }
 
-QStringList OpenFiles(QWidget *parent, QString title, QString path,
-		      QString extensions)
+QStringList OpenFiles(QWidget *parent, const QString &title,
+		      const QString &path, const QString &extensions)
 {
 	QStringList files =
 		QFileDialog::getOpenFileNames(parent, title, path, extensions);

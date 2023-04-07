@@ -15,9 +15,9 @@ struct ffmpeg_muxer {
 	int64_t stop_ts;
 	uint64_t total_bytes;
 	bool sent_headers;
-	volatile bool active;
-	volatile bool capturing;
-	volatile bool stopping;
+	a_bool_t active;
+	a_bool_t capturing;
+	a_bool_t stopping;
 	struct dstr path;
 	struct dstr printable_path;
 	struct dstr muxer_settings;
@@ -33,7 +33,7 @@ struct ffmpeg_muxer {
 	int64_t save_ts;
 	int keyframes;
 	obs_hotkey_id hotkey;
-	volatile bool muxing;
+	a_bool_t muxing;
 	DARRAY(struct encoder_packet, mux_packets);
 
 	/* split file */
@@ -42,7 +42,7 @@ struct ffmpeg_muxer {
 	int64_t video_pts_offset;
 	int64_t audio_dts_offsets[MAX_AUDIO_MIXES];
 	bool split_file_ready;
-	volatile bool manual_split;
+	a_bool_t manual_split;
 
 	/* these are accessed both by replay buffer and by HLS */
 	pthread_t mux_thread;
@@ -64,8 +64,6 @@ struct ffmpeg_muxer {
 	bool allow_overwrite;
 };
 
-bool stopping(struct ffmpeg_muxer *stream);
-bool active(struct ffmpeg_muxer *stream);
 void start_pipe(struct ffmpeg_muxer *stream, const char *path);
 bool write_packet(struct ffmpeg_muxer *stream, struct encoder_packet *packet);
 bool send_headers(struct ffmpeg_muxer *stream);

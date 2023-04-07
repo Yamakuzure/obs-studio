@@ -125,7 +125,7 @@ using d3dtex_t = ComPtr<ID3D11Texture2D>;
 using buf_t = std::vector<uint8_t>;
 
 struct amf_texencode : amf_base, public AMFSurfaceObserver {
-	volatile bool destroying = false;
+	a_bool_t destroying = false;
 
 	std::vector<handle_tex> input_textures;
 
@@ -137,11 +137,11 @@ struct amf_texencode : amf_base, public AMFSurfaceObserver {
 	ComPtr<ID3D11DeviceContext> context;
 
 	inline amf_texencode() : amf_base(false) {}
-	~amf_texencode() { os_atomic_set_bool(&destroying, true); }
+	~amf_texencode() { destroying = true; }
 
 	void AMF_STD_CALL OnSurfaceDataRelease(amf::AMFSurface *surf) override
 	{
-		if (os_atomic_load_bool(&destroying))
+		if (destroying)
 			return;
 
 		std::scoped_lock lock(textures_mutex);
@@ -162,18 +162,18 @@ struct amf_texencode : amf_base, public AMFSurfaceObserver {
 };
 
 struct amf_fallback : amf_base, public AMFSurfaceObserver {
-	volatile bool destroying = false;
+	a_bool_t destroying = false;
 
 	std::mutex buffers_mutex;
 	std::vector<buf_t> available_buffers;
 	std::unordered_map<AMFSurface *, buf_t> active_buffers;
 
 	inline amf_fallback() : amf_base(true) {}
-	~amf_fallback() { os_atomic_set_bool(&destroying, true); }
+	~amf_fallback() { destroying = true; }
 
 	void AMF_STD_CALL OnSurfaceDataRelease(amf::AMFSurface *surf) override
 	{
-		if (os_atomic_load_bool(&destroying))
+		if (destroying)
 			return;
 
 		std::scoped_lock lock(buffers_mutex);

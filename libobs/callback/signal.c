@@ -90,7 +90,7 @@ struct global_callback_info {
 struct signal_handler {
 	struct signal_info *first;
 	pthread_mutex_t mutex;
-	volatile long refs;
+	a_int64_t refs;
 
 	DARRAY(struct global_callback_info, global_callbacks);
 	pthread_mutex_t global_callbacks_mutex;
@@ -158,7 +158,7 @@ static void signal_handler_actually_destroy(signal_handler_t *handler)
 
 void signal_handler_destroy(signal_handler_t *handler)
 {
-	if (handler && os_atomic_dec_long(&handler->refs) == 0) {
+	if (handler && 0 == --handler->refs) {
 		signal_handler_actually_destroy(handler);
 	}
 }
@@ -223,7 +223,7 @@ static void signal_handler_connect_internal(signal_handler_t *handler,
 	pthread_mutex_lock(&sig->mutex);
 
 	if (keep_ref)
-		os_atomic_inc_long(&handler->refs);
+		handler->refs++;
 
 	idx = signal_get_callback_idx(sig, callback, data);
 	if (keep_ref || idx == DARRAY_INVALID)
@@ -283,7 +283,7 @@ void signal_handler_disconnect(signal_handler_t *handler, const char *signal,
 
 	pthread_mutex_unlock(&sig->mutex);
 
-	if (keep_ref && os_atomic_dec_long(&handler->refs) == 0) {
+	if (keep_ref && 0 == --handler->refs) {
 		signal_handler_actually_destroy(handler);
 	}
 }
@@ -405,9 +405,7 @@ void signal_handler_signal(signal_handler_t *handler, const char *signal,
 	if (remove_refs > 0) {
 		debug_log("removing %ld / %ld refs", remove_refs,
 			  handler->refs);
-		os_atomic_set_long(&handler->refs,
-				   os_atomic_load_long(&handler->refs) -
-					   remove_refs);
+		handler->refs = handler->refs - remove_refs;
 	}
 }
 

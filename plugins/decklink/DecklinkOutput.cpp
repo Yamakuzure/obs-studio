@@ -62,7 +62,7 @@ bool DeckLinkOutput::Activate(DeckLinkDevice *device, long long modeId)
 		return false;
 	}
 
-	os_atomic_inc_long(&activateRefs);
+	activateRefs++;
 	return true;
 }
 
@@ -74,7 +74,7 @@ void DeckLinkOutput::Deactivate(void)
 
 	instance = nullptr;
 
-	os_atomic_dec_long(&activateRefs);
+	activateRefs--;
 }
 
 obs_output_t *DeckLinkOutput::GetOutput(void) const

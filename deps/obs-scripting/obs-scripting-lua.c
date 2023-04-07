@@ -286,7 +286,7 @@ static void timer_call(struct script_callback *p_cb)
 {
 	struct lua_obs_callback *cb = (struct lua_obs_callback *)p_cb;
 
-	if (script_callback_removed(p_cb))
+	if (p_cb->removed)
 		return;
 
 	lock_callback();
@@ -327,7 +327,7 @@ static void obs_lua_main_render_callback(void *priv, uint32_t cx, uint32_t cy)
 	struct lua_obs_callback *cb = priv;
 	lua_State *script = cb->script;
 
-	if (script_callback_removed(&cb->base)) {
+	if (cb->base.removed) {
 		obs_remove_main_render_callback(obs_lua_main_render_callback,
 						cb);
 		return;
@@ -375,7 +375,7 @@ static void obs_lua_tick_callback(void *priv, float seconds)
 	struct lua_obs_callback *cb = priv;
 	lua_State *script = cb->script;
 
-	if (script_callback_removed(&cb->base)) {
+	if (cb->base.removed) {
 		obs_remove_tick_callback(obs_lua_tick_callback, cb);
 		return;
 	}
@@ -421,7 +421,7 @@ static void calldata_signal_callback(void *priv, calldata_t *cd)
 	struct lua_obs_callback *cb = priv;
 	lua_State *script = cb->script;
 
-	if (script_callback_removed(&cb->base)) {
+	if (cb->base.removed) {
 		signal_handler_remove_current();
 		return;
 	}
@@ -503,7 +503,7 @@ static void calldata_signal_callback_global(void *priv, const char *signal,
 	struct lua_obs_callback *cb = priv;
 	lua_State *script = cb->script;
 
-	if (script_callback_removed(&cb->base)) {
+	if (cb->base.removed) {
 		signal_handler_remove_current();
 		return;
 	}
@@ -672,7 +672,7 @@ static void hotkey_pressed(void *p_cb, bool pressed)
 	struct lua_obs_callback *cb = p_cb;
 	lua_State *script = cb->script;
 
-	if (script_callback_removed(&cb->base))
+	if (cb->base.removed)
 		return;
 
 	lock_callback();
@@ -698,7 +698,7 @@ static void hotkey_callback(void *p_cb, obs_hotkey_id id, obs_hotkey_t *hotkey,
 {
 	struct lua_obs_callback *cb = p_cb;
 
-	if (script_callback_removed(&cb->base))
+	if (cb->base.removed)
 		return;
 
 	if (pressed)
@@ -754,7 +754,7 @@ static bool button_prop_clicked(obs_properties_t *props, obs_property_t *p,
 	lua_State *script = cb->script;
 	bool ret = false;
 
-	if (script_callback_removed(&cb->base))
+	if (cb->base.removed)
 		return false;
 
 	lock_callback();
@@ -810,7 +810,7 @@ static bool modified_callback(void *p_cb, obs_properties_t *props,
 	lua_State *script = cb->script;
 	bool ret = false;
 
-	if (script_callback_removed(&cb->base))
+	if (cb->base.removed)
 		return false;
 
 	lock_callback();
@@ -1088,7 +1088,7 @@ static void lua_tick(void *param, float seconds)
 		struct lua_obs_timer *next = timer->next;
 		struct lua_obs_callback *cb = lua_obs_timer_cb(timer);
 
-		if (script_callback_removed(&cb->base)) {
+		if (cb->base.removed) {
 			lua_obs_timer_remove(timer);
 		} else {
 			uint64_t elapsed = ts - timer->last_ts;
@@ -1182,7 +1182,7 @@ void obs_lua_script_unload(obs_script_t *s)
 	struct lua_obs_callback *cb =
 		(struct lua_obs_callback *)data->first_callback;
 	while (cb) {
-		os_atomic_set_bool(&cb->base.removed, true);
+		cb->base.removed = true;
 		cb = (struct lua_obs_callback *)cb->base.next;
 	}
 

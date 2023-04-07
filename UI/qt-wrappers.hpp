@@ -81,7 +81,7 @@ void ExecuteFuncSafeBlockMsgBox(std::function<void()> func,
 /* allows executing without message boxes if starting up, otherwise with a
  * message box */
 void EnableThreadedMessageBoxes(bool enable);
-void ExecThreadedWithoutBlocking(std::function<void()> func,
+void ExecThreadedWithoutBlocking(const std::function<void()>& func,
 				 const QString &title, const QString &text);
 
 class SignalBlocker {
@@ -113,13 +113,13 @@ void SetComboItemEnabled(QComboBox *c, int idx, bool enabled);
 
 void setThemeID(QWidget *widget, const QString &themeID);
 
-QString SelectDirectory(QWidget *parent, QString title, QString path);
-QString SaveFile(QWidget *parent, QString title, QString path,
-		 QString extensions);
-QString OpenFile(QWidget *parent, QString title, QString path,
-		 QString extensions);
-QStringList OpenFiles(QWidget *parent, QString title, QString path,
-		      QString extensions);
+QString SelectDirectory(QWidget *parent, const QString& title, const QString& path);
+QString SaveFile(QWidget *parent, const QString& title, const QString& path,
+		 const QString& extensions);
+QString OpenFile(QWidget *parent, const QString& title, const QString& path,
+		 const QString& extensions);
+QStringList OpenFiles(QWidget *parent, const QString& title, const QString& path,
+		      const QString& extensions);
 
 void TruncateLabel(QLabel *label, QString newText,
 		   int length = MAX_LABEL_LENGTH);

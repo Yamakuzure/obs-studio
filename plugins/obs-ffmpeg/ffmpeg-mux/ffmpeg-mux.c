@@ -78,7 +78,9 @@ static inline void resize_buf_resize(struct resize_buf *rb, size_t size)
 		if (rb->capacity < size) {
 			size_t capx2 = rb->capacity * 2;
 			size_t new_cap = capx2 > size ? capx2 : size;
-			rb->buf = realloc(rb->buf, new_cap);
+			uint8_t *new_buf = (uint8_t *)realloc(rb->buf, new_cap);
+			if (new_buf && (new_buf != rb->buf))
+				rb->buf = new_buf;
 			rb->capacity = new_cap;
 		}
 
@@ -142,8 +144,8 @@ struct io_header {
 
 struct io_buffer {
 	bool active;
-	bool shutdown_requested;
-	bool output_error;
+	a_bool_t shutdown_requested;
+	a_bool_t output_error;
 	os_event_t *buffer_space_available_event;
 	os_event_t *new_data_available_event;
 	pthread_t io_thread;
@@ -227,7 +229,7 @@ static void ffmpeg_mux_free(struct ffmpeg_mux *ffm)
 	// If we're writing to a file with the circlebuf, shut it
 	// down gracefully
 	if (ffm->io.active) {
-		os_atomic_set_bool(&ffm->io.shutdown_requested, true);
+		ffm->io.shutdown_requested = true;
 
 		// Wakes up the I/O thread and waits for it to finish
 		pthread_mutex_lock(&ffm->io.data_mutex);
@@ -736,7 +738,7 @@ static void *ffmpeg_mux_io_thread(void *data)
 
 	unsigned char *chunk = malloc(CHUNK_SIZE);
 	if (!chunk) {
-		os_atomic_set_bool(&ffm->io.output_error, true);
+		ffm->io.output_error = true;
 		fprintf(stderr, "Error allocating memory for output\n");
 		goto error;
 	}
@@ -758,8 +760,7 @@ static void *ffmpeg_mux_io_thread(void *data)
 
 		// Loop to write in chunk_size chunks
 		for (;;) {
-			shutting_down = os_atomic_load_bool(
-				&ffm->io.shutdown_requested);
+			shutting_down = ffm->io.shutdown_requested;
 
 			pthread_mutex_lock(&ffm->io.data_mutex);
 
@@ -842,7 +843,8 @@ static void *ffmpeg_mux_io_thread(void *data)
 			// Seek if we need to
 			if (want_seek) {
 				os_fseeki64(ffm->io.output_file,
-					    next_seek_position, SEEK_SET);
+					    (int64_t)next_seek_position,
+					    SEEK_SET);
 
 				// Update the next virtual position, making sure to take
 				// into account the size of the chunk we're about to write.
@@ -855,7 +857,7 @@ static void *ffmpeg_mux_io_thread(void *data)
 			// Write the current chunk to the output file
 			if (fwrite(chunk, chunk_used, 1, ffm->io.output_file) !=
 			    1) {
-				os_atomic_set_bool(&ffm->io.output_error, true);
+				ffm->io.output_error = true;
 				fprintf(stderr, "Error writing to '%s', %s\n",
 					ffm->params.printable_file.array,
 					strerror(errno));
@@ -885,7 +887,7 @@ static int64_t ffmpeg_mux_seek_av_buffer(void *opaque, int64_t offset,
 	struct ffmpeg_mux *ffm = opaque;
 
 	// If the output thread failed, signal that back up the stack
-	if (os_atomic_load_bool(&ffm->io.output_error))
+	if (ffm->io.output_error)
 		return -1;
 
 	// Update where the next write should go
@@ -904,7 +906,7 @@ static int ffmpeg_mux_write_av_buffer(void *opaque, uint8_t *buf, int buf_size)
 	struct ffmpeg_mux *ffm = opaque;
 
 	// If the output thread failed, signal that back up the stack
-	if (os_atomic_load_bool(&ffm->io.output_error))
+	if (ffm->io.output_error)
 		return -1;
 
 	for (;;) {

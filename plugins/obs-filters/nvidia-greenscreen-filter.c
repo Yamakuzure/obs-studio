@@ -44,7 +44,7 @@ struct nv_greenscreen_data {
 	obs_source_t *context;
 	bool images_allocated;
 	bool initial_render;
-	volatile bool processing_stop;
+	a_bool_t processing_stop;
 	bool processed_frame;
 	bool target_valid;
 	bool got_new_frame;
@@ -115,7 +115,7 @@ static void nv_greenscreen_filter_actual_destroy(void *data)
 		return;
 	}
 
-	os_atomic_set_bool(&filter->processing_stop, true);
+	filter->processing_stop = true;
 
 	if (filter->images_allocated) {
 		obs_enter_graphics();
@@ -160,7 +160,7 @@ static void nv_greenscreen_filter_reset(void *data, calldata_t *calldata)
 	struct nv_greenscreen_data *filter = (struct nv_greenscreen_data *)data;
 	NvCV_Status vfxErr;
 
-	os_atomic_set_bool(&filter->processing_stop, true);
+	filter->processing_stop = true;
 	// first destroy
 	if (filter->stream) {
 		NvVFX_CudaStreamDestroy(filter->stream);
@@ -212,7 +212,7 @@ static void nv_greenscreen_filter_reset(void *data, calldata_t *calldata)
 		error("Error loading AI Greenscreen FX %i", vfxErr);
 
 	filter->images_allocated = false;
-	os_atomic_set_bool(&filter->processing_stop, false);
+	filter->processing_stop = false;
 }
 
 static void init_images_greenscreen(struct nv_greenscreen_data *filter)
@@ -341,7 +341,7 @@ static void init_images_greenscreen(struct nv_greenscreen_data *filter)
 	return;
 fail:
 	error("Error during allocation of images");
-	os_atomic_set_bool(&filter->processing_stop, true);
+	filter->processing_stop = true;
 	return;
 }
 
@@ -411,7 +411,7 @@ static bool process_texture_greenscreen(struct nv_greenscreen_data *filter)
 
 	return true;
 fail:
-	os_atomic_set_bool(&filter->processing_stop, true);
+	filter->processing_stop = true;
 	return false;
 }
 
@@ -433,7 +433,7 @@ static void *nv_greenscreen_filter_create(obs_data_t *settings,
 	filter->width = 0;
 	filter->height = 0;
 	filter->initial_render = false;
-	os_atomic_set_bool(&filter->processing_stop, false);
+	filter->processing_stop = false;
 	filter->handler = NULL;
 	filter->processing_interval = 1;
 	filter->processing_counter = 0;
@@ -841,8 +841,7 @@ static void nv_greenscreen_filter_render(void *data, gs_effect_t *effect)
 					NvCV_GetErrorStringFromCode(vfxErr);
 				error("Error creating src img; error %i: %s",
 				      vfxErr, errString);
-				os_atomic_set_bool(&filter->processing_stop,
-						   true);
+				filter->processing_stop = true;
 				return;
 			}
 		}
@@ -854,7 +853,7 @@ static void nv_greenscreen_filter_render(void *data, gs_effect_t *effect)
 				NvCV_GetErrorStringFromCode(vfxErr);
 			error("Error passing src ID3D11Texture to img; error %i: %s",
 			      vfxErr, errString);
-			os_atomic_set_bool(&filter->processing_stop, true);
+			filter->processing_stop = true;
 			return;
 		}
 

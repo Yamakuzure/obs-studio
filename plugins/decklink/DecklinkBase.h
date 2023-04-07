@@ -19,7 +19,7 @@ protected:
 	ComPtr<DeckLinkDeviceInstance> instance;
 	DeckLinkDeviceDiscovery *discovery;
 	std::recursive_mutex deviceMutex;
-	volatile long activateRefs = 0;
+	a_int64_t activateRefs = 0;
 	BMDPixelFormat pixelFormat = bmdFormat8BitYUV;
 	video_colorspace colorSpace = VIDEO_CS_DEFAULT;
 	video_range_type colorRange = VIDEO_RANGE_DEFAULT;

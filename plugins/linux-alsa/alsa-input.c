@@ -53,8 +53,8 @@ struct alsa_data {
 	pthread_t listen_thread;
 	pthread_t reopen_thread;
 	os_event_t *abort_event;
-	volatile bool listen;
-	volatile bool reopen;
+	a_bool_t listen;
+	a_bool_t reopen;
 
 	/* alsa */
 	snd_pcm_t *handle;
@@ -96,17 +96,19 @@ struct obs_source_info alsa_input_capture = {
 	.icon_type = OBS_ICON_TYPE_AUDIO_INPUT,
 };
 
-static bool _alsa_try_open(struct alsa_data *);
-static bool _alsa_open(struct alsa_data *);
-static void _alsa_close(struct alsa_data *);
-static bool _alsa_configure(struct alsa_data *);
-static void _alsa_start_reopen(struct alsa_data *);
-static void _alsa_stop_reopen(struct alsa_data *);
-static void *_alsa_listen(void *);
-static void *_alsa_reopen(void *);
+static bool alsa_try_open_internal(struct alsa_data *data);
+static bool alsa_open_internal(struct alsa_data *data);
+static void alsa_close_internal(struct alsa_data *data);
+static bool alsa_configure_internal(struct alsa_data *data);
+static void alsa_start_reopen_internal(struct alsa_data *data);
+static void alsa_stop_reopen_internal(struct alsa_data *data);
+static void *alsa_listen_internal(void *attr);
+static void *alsa_reopen_internal(void *attr);
 
-static enum audio_format _alsa_to_obs_audio_format(snd_pcm_format_t);
-static enum speaker_layout _alsa_channels_to_obs_speakers(unsigned int);
+static enum audio_format
+alsa_to_obs_audio_format_internal(snd_pcm_format_t format);
+static enum speaker_layout
+alsa_channels_to_obs_speakers_internal(unsigned int channels);
 
 /*****************************************************************************/
 
@@ -141,7 +143,7 @@ void *alsa_create(obs_data_t *settings, obs_source_t *source)
 	}
 
 #if !SHUTDOWN_ON_DEACTIVATE
-	_alsa_try_open(data);
+	alsa_try_open_internal(data);
 #endif
 	return data;
 
@@ -158,7 +160,7 @@ void alsa_destroy(void *vptr)
 	struct alsa_data *data = vptr;
 
 	if (data->handle)
-		_alsa_close(data);
+		alsa_close_internal(data);
 
 	os_event_destroy(data->abort_event);
 	bfree(data->device);
@@ -217,8 +219,8 @@ void alsa_update(void *vptr, obs_data_t *settings)
 #else
 	if (reset) {
 		if (data->handle)
-			_alsa_close(data);
-		_alsa_try_open(data);
+			alsa_close_internal(data);
+		alsa_try_open_internal(data);
 	}
 #endif
 }
@@ -340,19 +342,19 @@ obs_properties_t *alsa_get_properties(void *unused)
 
 /*****************************************************************************/
 
-bool _alsa_try_open(struct alsa_data *data)
+bool alsa_try_open_internal(struct alsa_data *data)
 {
-	_alsa_stop_reopen(data);
+	alsa_stop_reopen_internal(data);
 
-	if (_alsa_open(data))
+	if (alsa_open_internal(data))
 		return true;
 
-	_alsa_start_reopen(data);
+	alsa_start_reopen_internal(data);
 
 	return false;
 }
 
-bool _alsa_open(struct alsa_data *data)
+bool alsa_open_internal(struct alsa_data *data)
 {
 	pthread_attr_t attr;
 	int err;
@@ -365,7 +367,7 @@ bool _alsa_open(struct alsa_data *data)
 		return false;
 	}
 
-	if (!_alsa_configure(data))
+	if (!alsa_configure_internal(data))
 		goto cleanup;
 
 	if (snd_pcm_state(data->handle) != SND_PCM_STATE_PREPARED) {
@@ -387,7 +389,8 @@ bool _alsa_open(struct alsa_data *data)
 	pthread_attr_init(&attr);
 	pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
 
-	err = pthread_create(&data->listen_thread, &attr, _alsa_listen, data);
+	err = pthread_create(&data->listen_thread, &attr, alsa_listen_internal,
+			     data);
 	if (err) {
 		pthread_attr_destroy(&attr);
 		blog(LOG_ERROR,
@@ -400,14 +403,14 @@ bool _alsa_open(struct alsa_data *data)
 	return true;
 
 cleanup:
-	_alsa_close(data);
+	alsa_close_internal(data);
 	return false;
 }
 
-void _alsa_close(struct alsa_data *data)
+void alsa_close_internal(struct alsa_data *data)
 {
 	if (data->listen_thread) {
-		os_atomic_set_bool(&data->listen, false);
+		data->listen = false;
 		pthread_join(data->listen_thread, NULL);
 		data->listen_thread = 0;
 	}
@@ -421,7 +424,7 @@ void _alsa_close(struct alsa_data *data)
 		bfree(data->buffer), data->buffer = NULL;
 }
 
-bool _alsa_configure(struct alsa_data *data)
+bool alsa_configure_internal(struct alsa_data *data)
 {
 	snd_pcm_hw_params_t *hwparams;
 	int err;
@@ -464,7 +467,8 @@ bool _alsa_configure(struct alsa_data *data)
 		blog(LOG_ERROR, "device doesnt support any OBS formats");
 		return false;
 	}
-	snd_pcm_hw_params_set_format(data->handle, hwparams, data->format);
+	err = snd_pcm_hw_params_set_format(data->handle, hwparams,
+					   data->format);
 	if (err < 0) {
 		blog(LOG_ERROR, "snd_pcm_hw_params_set_format failed: %s",
 		     snd_strerror(err));
@@ -521,18 +525,19 @@ bool _alsa_configure(struct alsa_data *data)
 	return true;
 }
 
-void _alsa_start_reopen(struct alsa_data *data)
+void alsa_start_reopen_internal(struct alsa_data *data)
 {
 	pthread_attr_t attr;
 	int err;
 
-	if (os_atomic_load_bool(&data->reopen))
+	if (data->reopen)
 		return;
 
 	pthread_attr_init(&attr);
 	pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
 
-	err = pthread_create(&data->reopen_thread, &attr, _alsa_reopen, data);
+	err = pthread_create(&data->reopen_thread, &attr, alsa_reopen_internal,
+			     data);
 	if (err) {
 		blog(LOG_ERROR,
 		     "Failed to create reopen thread for device '%s'.",
@@ -542,9 +547,9 @@ void _alsa_start_reopen(struct alsa_data *data)
 	pthread_attr_destroy(&attr);
 }
 
-void _alsa_stop_reopen(struct alsa_data *data)
+void alsa_stop_reopen_internal(struct alsa_data *data)
 {
-	if (os_atomic_load_bool(&data->reopen))
+	if (data->reopen)
 		os_event_signal(data->abort_event);
 
 	if (data->reopen_thread) {
@@ -555,7 +560,7 @@ void _alsa_stop_reopen(struct alsa_data *data)
 	os_event_reset(data->abort_event);
 }
 
-void *_alsa_listen(void *attr)
+void *alsa_listen_internal(void *attr)
 {
 	struct alsa_data *data = attr;
 	struct obs_source_audio out;
@@ -563,21 +568,21 @@ void *_alsa_listen(void *attr)
 	blog(LOG_DEBUG, "Capture thread started.");
 
 	out.data[0] = data->buffer;
-	out.format = _alsa_to_obs_audio_format(data->format);
-	out.speakers = _alsa_channels_to_obs_speakers(data->channels);
+	out.format = alsa_to_obs_audio_format_internal(data->format);
+	out.speakers = alsa_channels_to_obs_speakers_internal(data->channels);
 	out.samples_per_sec = data->rate;
 
-	os_atomic_set_bool(&data->listen, true);
+	data->listen = true;
 
 	do {
 		snd_pcm_sframes_t frames = snd_pcm_readi(
 			data->handle, data->buffer, data->period_size);
 
-		if (!os_atomic_load_bool(&data->listen))
+		if (!data->listen)
 			break;
 
 		if (frames <= 0) {
-			frames = snd_pcm_recover(data->handle, frames, 0);
+			frames = snd_pcm_recover(data->handle, (int)frames, 0);
 			if (frames <= 0) {
 				snd_pcm_wait(data->handle, 100);
 				continue;
@@ -594,40 +599,38 @@ void *_alsa_listen(void *attr)
 
 		if (out.timestamp > data->first_ts)
 			obs_source_output_audio(data->source, &out);
-	} while (os_atomic_load_bool(&data->listen));
+	} while (data->listen);
 
 	blog(LOG_DEBUG, "Capture thread is about to exit.");
 
 	pthread_exit(NULL);
-	return NULL;
 }
 
-void *_alsa_reopen(void *attr)
+void *alsa_reopen_internal(void *attr)
 {
 	struct alsa_data *data = attr;
 	unsigned long timeout = REOPEN_TIMEOUT;
 
 	blog(LOG_DEBUG, "Reopen thread started.");
 
-	os_atomic_set_bool(&data->reopen, true);
+	data->reopen = true;
 
 	while (os_event_timedwait(data->abort_event, timeout) == ETIMEDOUT) {
-		if (_alsa_open(data))
+		if (alsa_open_internal(data))
 			break;
 
 		if (timeout < (REOPEN_TIMEOUT * 5))
 			timeout += REOPEN_TIMEOUT;
 	}
 
-	os_atomic_set_bool(&data->reopen, false);
+	data->reopen = false;
 
 	blog(LOG_DEBUG, "Reopen thread is about to exit.");
 
 	pthread_exit(NULL);
-	return NULL;
 }
 
-enum audio_format _alsa_to_obs_audio_format(snd_pcm_format_t format)
+enum audio_format alsa_to_obs_audio_format_internal(snd_pcm_format_t format)
 {
 	switch (format) {
 	case SND_PCM_FORMAT_U8:
@@ -639,13 +642,12 @@ enum audio_format _alsa_to_obs_audio_format(snd_pcm_format_t format)
 	case SND_PCM_FORMAT_FLOAT_LE:
 		return AUDIO_FORMAT_FLOAT;
 	default:
-		break;
+		return AUDIO_FORMAT_UNKNOWN;
 	}
-
-	return AUDIO_FORMAT_UNKNOWN;
 }
 
-enum speaker_layout _alsa_channels_to_obs_speakers(unsigned int channels)
+enum speaker_layout
+alsa_channels_to_obs_speakers_internal(unsigned int channels)
 {
 	switch (channels) {
 	case 1:
@@ -662,7 +664,7 @@ enum speaker_layout _alsa_channels_to_obs_speakers(unsigned int channels)
 		return SPEAKERS_5POINT1;
 	case 8:
 		return SPEAKERS_7POINT1;
+	default:
+		return SPEAKERS_UNKNOWN;
 	}
-
-	return SPEAKERS_UNKNOWN;
 }

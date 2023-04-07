@@ -1583,7 +1583,7 @@ void OBSBasic::SetPreviewProgramMode(bool enabled)
 		return;
 
 	ui->modeSwitch->setChecked(enabled);
-	os_atomic_set_bool(&previewProgramMode, enabled);
+	previewProgramMode = enabled;
 
 	if (IsPreviewProgramMode()) {
 		if (!previewEnabled)
@@ -1799,7 +1799,8 @@ OBSSource OBSBasic::GetOverrideTransition(OBSSource source)
 
 	OBSDataAutoRelease rls_data = obs_source_get_private_settings(source);
 
-	const char *trOverrideName = obs_data_get_string(rls_data, "transition");
+	const char *trOverrideName =
+		obs_data_get_string(rls_data, "transition");
 
 	OBSSource trOverride = nullptr;
 

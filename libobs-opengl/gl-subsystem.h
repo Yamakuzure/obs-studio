@@ -417,7 +417,7 @@ extern void convert_sampler_info(struct gs_sampler_state *sampler,
 
 struct gs_sampler_state {
 	gs_device_t *device;
-	volatile long ref;
+	a_int64_t ref;
 
 	GLint min_filter;
 	GLint mag_filter;
@@ -430,12 +430,12 @@ struct gs_sampler_state {
 
 static inline void samplerstate_addref(gs_samplerstate_t *ss)
 {
-	os_atomic_inc_long(&ss->ref);
+	ss->ref++;
 }
 
 static inline void samplerstate_release(gs_samplerstate_t *ss)
 {
-	if (os_atomic_dec_long(&ss->ref) == 0)
+	if (ss->ref == 0)
 		bfree(ss);
 }
 

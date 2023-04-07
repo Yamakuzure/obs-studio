@@ -25,7 +25,7 @@ struct audio_monitor {
 	size_t wait_size;
 	uint32_t channels;
 
-	volatile bool active;
+	a_bool_t active;
 	bool paused;
 	bool ignore;
 };
@@ -61,11 +61,11 @@ static void on_audio_playback(void *param, obs_source_t *source,
 	float vol = source->user_volume;
 	uint32_t bytes;
 
-	if (!os_atomic_load_bool(&monitor->active)) {
+	if (!monitor->active) {
 		return;
 	}
 
-	if (os_atomic_load_long(&source->activate_refs) == 0) {
+	if (source->activate_refs == 0) {
 		return;
 	}
 

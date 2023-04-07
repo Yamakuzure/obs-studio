@@ -194,13 +194,13 @@ struct obs_hotkeys_platform {
 
 static void hotkeys_retain(struct obs_hotkeys_platform *plat)
 {
-	os_atomic_inc_long(&plat->refs);
+	plat->refs++;
 }
 
 static inline void free_hotkeys_platform(obs_hotkeys_platform_t *plat);
 static void hotkeys_release(struct obs_hotkeys_platform *plat)
 {
-	if (os_atomic_dec_long(&plat->refs) == -1)
+	if (-1 == --plat->refs)
 		free_hotkeys_platform(plat);
 }
 

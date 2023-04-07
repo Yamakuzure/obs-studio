@@ -41,8 +41,8 @@ OBSBasicStatusBar::OBSBasicStatusBar(QWidget *parent)
 	streamIcon->setPixmap(streamingInactivePixmap);
 	recordIcon->setPixmap(recordingInactivePixmap);
 
-	QWidget *brWidget = new QWidget(this);
-	QHBoxLayout *brLayout = new QHBoxLayout(brWidget);
+	auto *brWidget = new QWidget(this);
+	auto *brLayout = new QHBoxLayout(brWidget);
 	brLayout->setContentsMargins(0, 0, 0, 0);
 
 	statusSquare = new QLabel(brWidget);
@@ -101,14 +101,13 @@ void OBSBasicStatusBar::Activate()
 		connect(refreshTimer, SIGNAL(timeout()), this,
 			SLOT(UpdateStatusBar()));
 
-		int skipped = video_output_get_skipped_frames(obs_get_video());
-		int total = video_output_get_total_frames(obs_get_video());
-
 		totalStreamSeconds = 0;
 		totalRecordSeconds = 0;
 		lastSkippedFrameCount = 0;
-		startSkippedFrameCount = skipped;
-		startTotalFrameCount = total;
+		startSkippedFrameCount =
+			(int)video_output_get_skipped_frames(obs_get_video());
+		startTotalFrameCount =
+			(int)video_output_get_total_frames(obs_get_video());
 
 		refreshTimer->start(1000);
 		active = true;
@@ -129,7 +128,7 @@ void OBSBasicStatusBar::Activate()
 
 void OBSBasicStatusBar::Deactivate()
 {
-	OBSBasic *main = qobject_cast<OBSBasic *>(parent());
+	auto *main = qobject_cast<OBSBasic *>(parent());
 	if (!main)
 		return;
 
@@ -227,7 +226,7 @@ void OBSBasicStatusBar::UpdateBandwidth()
 
 void OBSBasicStatusBar::UpdateCPUUsage()
 {
-	OBSBasic *main = qobject_cast<OBSBasic *>(parent());
+	auto *main = qobject_cast<OBSBasic *>(parent());
 	if (!main)
 		return;
 
@@ -275,11 +274,11 @@ void OBSBasicStatusBar::UpdateStreamTime()
 	}
 }
 
-extern volatile bool recording_paused;
+extern a_bool_t recording_paused;
 
 void OBSBasicStatusBar::UpdateRecordTime()
 {
-	bool paused = os_atomic_load_bool(&recording_paused);
+	bool paused = recording_paused;
 
 	if (!paused) {
 		totalRecordSeconds++;
@@ -357,8 +356,7 @@ void OBSBasicStatusBar::UpdateDroppedFrames()
 
 void OBSBasicStatusBar::OBSOutputReconnect(void *data, calldata_t *params)
 {
-	OBSBasicStatusBar *statusBar =
-		reinterpret_cast<OBSBasicStatusBar *>(data);
+	auto *statusBar = reinterpret_cast<OBSBasicStatusBar *>(data);
 
 	int seconds = (int)calldata_int(params, "timeout_sec");
 	QMetaObject::invokeMethod(statusBar, "Reconnect", Q_ARG(int, seconds));
@@ -366,15 +364,14 @@ void OBSBasicStatusBar::OBSOutputReconnect(void *data, calldata_t *params)
 
 void OBSBasicStatusBar::OBSOutputReconnectSuccess(void *data, calldata_t *)
 {
-	OBSBasicStatusBar *statusBar =
-		reinterpret_cast<OBSBasicStatusBar *>(data);
+	auto *statusBar = reinterpret_cast<OBSBasicStatusBar *>(data);
 
 	QMetaObject::invokeMethod(statusBar, "ReconnectSuccess");
 }
 
 void OBSBasicStatusBar::Reconnect(int seconds)
 {
-	OBSBasic *main = qobject_cast<OBSBasic *>(parent());
+	auto *main = qobject_cast<OBSBasic *>(parent());
 
 	if (!retries)
 		main->SysTrayNotify(
@@ -384,7 +381,7 @@ void OBSBasicStatusBar::Reconnect(int seconds)
 	reconnectTimeout = seconds;
 
 	if (streamOutput) {
-		delaySecTotal = obs_output_get_active_delay(streamOutput);
+		delaySecTotal = (int)obs_output_get_active_delay(streamOutput);
 		UpdateDelayMsg();
 
 		retries++;
@@ -404,7 +401,7 @@ void OBSBasicStatusBar::ReconnectClear()
 
 void OBSBasicStatusBar::ReconnectSuccess()
 {
-	OBSBasic *main = qobject_cast<OBSBasic *>(parent());
+	auto *main = qobject_cast<OBSBasic *>(parent());
 
 	QString msg = QTStr("Basic.StatusBar.ReconnectSuccessful");
 	showMessage(msg, 4000);
@@ -412,14 +409,14 @@ void OBSBasicStatusBar::ReconnectSuccess()
 	ReconnectClear();
 
 	if (streamOutput) {
-		delaySecTotal = obs_output_get_active_delay(streamOutput);
+		delaySecTotal = (int)obs_output_get_active_delay(streamOutput);
 		UpdateDelayMsg();
 	}
 }
 
 void OBSBasicStatusBar::UpdateStatusBar()
 {
-	OBSBasic *main = qobject_cast<OBSBasic *>(parent());
+	auto *main = qobject_cast<OBSBasic *>(parent());
 
 	UpdateBandwidth();
 
@@ -431,8 +428,8 @@ void OBSBasicStatusBar::UpdateStatusBar()
 
 	UpdateDroppedFrames();
 
-	int skipped = video_output_get_skipped_frames(obs_get_video());
-	int total = video_output_get_total_frames(obs_get_video());
+	int skipped = (int)video_output_get_skipped_frames(obs_get_video());
+	int total = (int)video_output_get_total_frames(obs_get_video());
 
 	skipped -= startSkippedFrameCount;
 	total -= startTotalFrameCount;
@@ -454,7 +451,7 @@ void OBSBasicStatusBar::UpdateStatusBar()
 
 void OBSBasicStatusBar::StreamDelayStarting(int sec)
 {
-	OBSBasic *main = qobject_cast<OBSBasic *>(parent());
+	auto *main = qobject_cast<OBSBasic *>(parent());
 	if (!main || !main->outputHandler)
 		return;
 

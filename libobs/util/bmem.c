@@ -74,7 +74,7 @@ static void *a_realloc(void *ptr, size_t size)
 
 	if (!ptr)
 		return a_malloc(size);
-	diff = ((char *)ptr)[-1];
+	diff = (long)((char *)ptr)[-1];
 	ptr = realloc((char *)ptr - diff, size + diff);
 	if (ptr)
 		ptr = (char *)ptr + diff;
@@ -96,7 +96,7 @@ static void a_free(void *ptr)
 #endif
 }
 
-static long num_allocs = 0;
+static a_int64_t num_allocs = 0;
 
 void *bmalloc(size_t size)
 {
@@ -116,14 +116,14 @@ void *bmalloc(size_t size)
 		       (unsigned long)size);
 	}
 
-	os_atomic_inc_long(&num_allocs);
+	num_allocs++;
 	return ptr;
 }
 
 void *brealloc(void *ptr, size_t size)
 {
 	if (!ptr)
-		os_atomic_inc_long(&num_allocs);
+		num_allocs++;
 
 	if (!size) {
 		blog(LOG_ERROR,
@@ -147,7 +147,7 @@ void *brealloc(void *ptr, size_t size)
 void bfree(void *ptr)
 {
 	if (ptr) {
-		os_atomic_dec_long(&num_allocs);
+		num_allocs--;
 		a_free(ptr);
 	}
 }

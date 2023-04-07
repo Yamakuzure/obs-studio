@@ -16,6 +16,8 @@
 ******************************************************************************/
 
 #pragma once
+#ifndef LIBOBS_OBS_H_INCLUDED
+#define LIBOBS_OBS_H_INCLUDED 1
 
 #include "util/c99defs.h"
 #include "util/bmem.h"
@@ -176,11 +178,11 @@ struct obs_video_info {
 	const char *graphics_module;
 #endif
 
-	uint32_t fps_num; /**< Output FPS numerator */
-	uint32_t fps_den; /**< Output FPS denominator */
+	uint32_t fps_num;                /**< Output FPS numerator */
+	uint32_t fps_den;                /**< Output FPS denominator */
 
-	uint32_t base_width;  /**< Base compositing width */
-	uint32_t base_height; /**< Base compositing height */
+	uint32_t base_width;             /**< Base compositing width */
+	uint32_t base_height;            /**< Base compositing height */
 
 	uint32_t output_width;           /**< Output width */
 	uint32_t output_height;          /**< Output height */
@@ -195,7 +197,7 @@ struct obs_video_info {
 	enum video_colorspace colorspace; /**< YUV type (if YUV) */
 	enum video_range_type range;      /**< YUV range (if YUV) */
 
-	enum obs_scale_type scale_type; /**< How to scale if scaling */
+	enum obs_scale_type scale_type;   /**< How to scale if scaling */
 };
 
 /**
@@ -278,7 +280,7 @@ struct obs_source_frame {
 	uint8_t trc; /* enum video_trc */
 
 	/* used internally by libobs */
-	volatile long refs;
+	a_int64_t refs;
 	bool prev_frame;
 };
 
@@ -1740,7 +1742,7 @@ static inline obs_scene_t *obs_get_scene_by_name(const char *name)
 	obs_scene_t *scene = obs_scene_from_source(source);
 	if (!scene) {
 		obs_source_release(source);
-		return NULL;
+		return nullptr;
 	}
 	return scene;
 }
@@ -2587,7 +2589,7 @@ static inline void obs_source_frame_free(struct obs_source_frame *frame)
 {
 	if (frame) {
 		bfree(frame->data[0]);
-		memset(frame, 0, sizeof(*frame));
+		memset(frame->data, 0, sizeof(frame->data));
 	}
 }
 
@@ -2620,3 +2622,5 @@ EXPORT enum obs_icon_type obs_source_get_icon_type(const char *id);
 #ifdef __cplusplus
 }
 #endif
+
+#endif // LIBOBS_OBS_H_INCLUDED

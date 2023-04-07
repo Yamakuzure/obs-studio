@@ -431,7 +431,7 @@ static void timer_call(struct script_callback *p_cb)
 {
 	struct python_obs_callback *cb = (struct python_obs_callback *)p_cb;
 
-	if (script_callback_removed(p_cb))
+	if (p_cb->removed)
 		return;
 
 	lock_callback(cb);
@@ -476,7 +476,7 @@ static void obs_python_tick_callback(void *priv, float seconds)
 {
 	struct python_obs_callback *cb = priv;
 
-	if (script_callback_removed(&cb->base)) {
+	if (cb->base.removed) {
 		obs_remove_tick_callback(obs_python_tick_callback, cb);
 		return;
 	}
@@ -546,7 +546,7 @@ static void calldata_signal_callback(void *priv, calldata_t *cd)
 {
 	struct python_obs_callback *cb = priv;
 
-	if (script_callback_removed(&cb->base)) {
+	if (cb->base.removed) {
 		signal_handler_remove_current();
 		return;
 	}
@@ -652,7 +652,7 @@ static void calldata_signal_callback_global(void *priv, const char *signal,
 {
 	struct python_obs_callback *cb = priv;
 
-	if (script_callback_removed(&cb->base)) {
+	if (cb->base.removed) {
 		signal_handler_remove_current();
 		return;
 	}
@@ -767,7 +767,7 @@ static void hotkey_pressed(void *p_cb, bool pressed)
 {
 	struct python_obs_callback *cb = p_cb;
 
-	if (script_callback_removed(&cb->base))
+	if (cb->base.removed)
 		return;
 
 	lock_callback(cb);
@@ -803,7 +803,7 @@ static void hotkey_callback(void *p_cb, obs_hotkey_id id, obs_hotkey_t *hotkey,
 {
 	struct python_obs_callback *cb = p_cb;
 
-	if (script_callback_removed(&cb->base))
+	if (cb->base.removed)
 		return;
 
 	if (pressed)
@@ -873,7 +873,7 @@ static bool button_prop_clicked(obs_properties_t *props, obs_property_t *p,
 	struct python_obs_callback *cb = p_cb;
 	bool ret = false;
 
-	if (script_callback_removed(&cb->base))
+	if (cb->base.removed)
 		return false;
 
 	lock_callback(cb);
@@ -937,7 +937,7 @@ static bool modified_callback(void *p_cb, obs_properties_t *props,
 	struct python_obs_callback *cb = p_cb;
 	bool ret = false;
 
-	if (script_callback_removed(&cb->base))
+	if (cb->base.removed)
 		return false;
 
 	lock_callback(cb);
@@ -1370,7 +1370,7 @@ void obs_python_script_unload(obs_script_t *s)
 	 * atomically share ownership with callbacks when they're called. */
 	struct script_callback *cb = data->first_callback;
 	while (cb) {
-		os_atomic_set_bool(&cb->removed, true);
+		cb->removed = true;
 		cb = cb->next;
 	}
 
@@ -1592,7 +1592,7 @@ static void python_tick(void *param, float seconds)
 		struct python_obs_timer *next = timer->next;
 		struct python_obs_callback *cb = python_obs_timer_cb(timer);
 
-		if (script_callback_removed(&cb->base)) {
+		if (cb->base.removed) {
 			python_obs_timer_remove(timer);
 		} else {
 			uint64_t elapsed = ts - timer->last_ts;

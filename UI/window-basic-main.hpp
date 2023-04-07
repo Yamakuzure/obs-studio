@@ -112,8 +112,8 @@ struct QuickTransition {
 	int id = 0;
 	bool fadeToBlack = false;
 
-	inline QuickTransition() {}
-	inline QuickTransition(OBSSource source_, int duration_, int id_,
+	inline QuickTransition() = default;
+	inline QuickTransition(const OBSSource &source_, int duration_, int id_,
 			       bool fadeToBlack_ = false)
 		: source(source_),
 		  duration(duration_),
@@ -361,7 +361,7 @@ private:
 	void UpdateVolumeControlsPeakMeterType();
 	void ClearVolumeControls();
 
-	void UploadLog(const char *subdir, const char *file, const bool crash);
+	void UploadLog(const char *subdir, const char *file, bool crash);
 
 	void Save(const char *file);
 	void LoadData(obs_data_t *new_data, const char *file);
@@ -501,7 +501,7 @@ private:
 	bool editPropertiesMode = false;
 	bool sceneDuplicationMode = true;
 	bool swapScenesMode = true;
-	volatile bool previewProgramMode = false;
+	a_bool_t previewProgramMode = false;
 	obs_hotkey_id togglePreviewProgramHotkey = 0;
 	obs_hotkey_id transitionHotkey = 0;
 	obs_hotkey_id statsHotkey = 0;
@@ -585,20 +585,20 @@ private:
 	QIcon defaultIcon;
 	QIcon audioProcessOutputIcon;
 
-	QIcon GetImageIcon() const;
-	QIcon GetColorIcon() const;
-	QIcon GetSlideshowIcon() const;
-	QIcon GetAudioInputIcon() const;
-	QIcon GetAudioOutputIcon() const;
-	QIcon GetDesktopCapIcon() const;
-	QIcon GetWindowCapIcon() const;
-	QIcon GetGameCapIcon() const;
-	QIcon GetCameraIcon() const;
-	QIcon GetTextIcon() const;
-	QIcon GetMediaIcon() const;
-	QIcon GetBrowserIcon() const;
-	QIcon GetDefaultIcon() const;
-	QIcon GetAudioProcessOutputIcon() const;
+	[[nodiscard]] QIcon GetImageIcon() const;
+	[[nodiscard]] QIcon GetColorIcon() const;
+	[[nodiscard]] QIcon GetSlideshowIcon() const;
+	[[nodiscard]] QIcon GetAudioInputIcon() const;
+	[[nodiscard]] QIcon GetAudioOutputIcon() const;
+	[[nodiscard]] QIcon GetDesktopCapIcon() const;
+	[[nodiscard]] QIcon GetWindowCapIcon() const;
+	[[nodiscard]] QIcon GetGameCapIcon() const;
+	[[nodiscard]] QIcon GetCameraIcon() const;
+	[[nodiscard]] QIcon GetTextIcon() const;
+	[[nodiscard]] QIcon GetMediaIcon() const;
+	[[nodiscard]] QIcon GetBrowserIcon() const;
+	[[nodiscard]] QIcon GetDefaultIcon() const;
+	[[nodiscard]] QIcon GetAudioProcessOutputIcon() const;
 
 	QSlider *tBar;
 	bool tBarActive = false;
@@ -640,8 +640,8 @@ private:
 	QColor cropColor;
 	QColor hoverColor;
 
-	QColor GetCropColor() const;
-	QColor GetHoverColor() const;
+	[[nodiscard]] QColor GetCropColor() const;
+	[[nodiscard]] QColor GetHoverColor() const;
 
 	void UpdatePreviewSpacingHelpers();
 	bool drawSpacingHelpers = true;
@@ -876,7 +876,7 @@ public:
 	inline OBSSource GetCurrentSceneSource()
 	{
 		OBSScene curScene = GetCurrentScene();
-		return OBSSource(obs_scene_get_source(curScene));
+		return {obs_scene_get_source(curScene)};
 	}
 
 	obs_service_t *GetService();
@@ -885,14 +885,14 @@ public:
 	int GetTransitionDuration();
 	int GetTbarPosition();
 
-	inline bool IsPreviewProgramMode() const
+	[[nodiscard]] inline bool IsPreviewProgramMode() const
 	{
-		return os_atomic_load_bool(&previewProgramMode);
+		return previewProgramMode;
 	}
 
-	inline bool VCamEnabled() const { return vcamEnabled; }
+	[[nodiscard]] inline bool VCamEnabled() const { return vcamEnabled; }
 
-	bool Active() const;
+	[[nodiscard]] bool Active() const;
 
 	void ResetUI();
 	int ResetVideo();
@@ -909,7 +909,7 @@ public:
 	void NewProject();
 	void LoadProject();
 
-	inline void GetDisplayRect(int &x, int &y, int &cx, int &cy)
+	inline void GetDisplayRect(int &x, int &y, int &cx, int &cy) const
 	{
 		x = previewX;
 		y = previewY;
@@ -917,9 +917,12 @@ public:
 		cy = previewCY;
 	}
 
-	inline bool SavingDisabled() const { return disableSaving; }
+	[[nodiscard]] inline bool SavingDisabled() const
+	{
+		return disableSaving;
+	}
 
-	inline double GetCPUUsage() const
+	[[nodiscard]] inline double GetCPUUsage() const
 	{
 		return os_cpu_usage_info_query(cpuUsageInfo);
 	}
@@ -974,8 +977,8 @@ public:
 				      const char *slot);
 
 	QIcon GetSourceIcon(const char *id) const;
-	QIcon GetGroupIcon() const;
-	QIcon GetSceneIcon() const;
+	[[nodiscard]] QIcon GetGroupIcon() const;
+	[[nodiscard]] QIcon GetSceneIcon() const;
 
 	OBSWeakSource copyFilter;
 
@@ -1004,18 +1007,18 @@ public:
 
 	void SetDisplayAffinity(QWindow *window);
 
-	QColor GetSelectionColor() const;
+	[[nodiscard]] QColor GetSelectionColor() const;
 
 protected:
-	virtual void closeEvent(QCloseEvent *event) override;
+	void closeEvent(QCloseEvent *event) override;
 #if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
 	virtual bool nativeEvent(const QByteArray &eventType, void *message,
 				 qintptr *result) override;
 #else
-	virtual bool nativeEvent(const QByteArray &eventType, void *message,
-				 long *result) override;
+	bool nativeEvent(const QByteArray &eventType, void *message,
+			 long *result) override;
 #endif
-	virtual void changeEvent(QEvent *event) override;
+	void changeEvent(QEvent *event) override;
 
 private slots:
 	void on_actionFullscreenInterface_triggered();
@@ -1155,7 +1158,7 @@ private slots:
 
 	void logUploadFinished(const QString &text, const QString &error);
 	void crashUploadFinished(const QString &text, const QString &error);
-	void openLogDialog(const QString &text, const bool crash);
+	void openLogDialog(const QString &text, bool crash);
 
 	void updateCheckFinished();
 
@@ -1214,15 +1217,15 @@ public:
 	 * warning for `ui` while initializing `undo_s`. */
 	undo_stack undo_s;
 
-	explicit OBSBasic(QWidget *parent = 0);
-	virtual ~OBSBasic();
+	explicit OBSBasic(QWidget *parent = nullptr);
+	~OBSBasic() override;
 
-	virtual void OBSInit() override;
+	void OBSInit() override;
 
-	virtual config_t *Config() const override;
+	[[nodiscard]] config_t *Config() const override;
 
-	virtual int GetProfilePath(char *path, size_t size,
-				   const char *file) const override;
+	int GetProfilePath(char *path, size_t size,
+			   const char *file) const override;
 
 	static void InitBrowserPanelSafeBlock();
 };
@@ -1231,10 +1234,10 @@ class SceneRenameDelegate : public QStyledItemDelegate {
 	Q_OBJECT
 
 public:
-	SceneRenameDelegate(QObject *parent);
-	virtual void setEditorData(QWidget *editor,
-				   const QModelIndex &index) const override;
+	explicit SceneRenameDelegate(QObject *parent);
+	void setEditorData(QWidget *editor,
+			   const QModelIndex &index) const override;
 
 protected:
-	virtual bool eventFilter(QObject *editor, QEvent *event) override;
+	bool eventFilter(QObject *editor, QEvent *event) override;
 };

@@ -816,12 +816,12 @@ void OBSBasic::Save(const char *file)
 
 void OBSBasic::DeferSaveBegin()
 {
-	os_atomic_inc_long(&disableSaving);
+	disableSaving++;
 }
 
 void OBSBasic::DeferSaveEnd()
 {
-	long result = os_atomic_dec_long(&disableSaving);
+	long result = --disableSaving;
 	if (result == 0) {
 		SaveProject();
 	}
@@ -4894,7 +4894,7 @@ void OBSBasic::closeEvent(QCloseEvent *event)
 	/* Do not close window if inside of a temporary event loop because we
 	 * could be inside of an Auth::LoadUI call.  Keep trying once per
 	 * second until we've exit any known sub-loops. */
-	if (os_atomic_load_long(&insideEventLoop) != 0) {
+	if (insideEventLoop != 0) {
 		QTimer::singleShot(1000, this, SLOT(close()));
 		event->ignore();
 		return;
@@ -5097,7 +5097,7 @@ void OBSBasic::on_action_Settings_triggered()
 	/* Do not load settings window if inside of a temporary event loop
 	 * because we could be inside of an Auth::LoadUI call.  Keep trying
 	 * once per second until we've exit any known sub-loops. */
-	if (os_atomic_load_long(&insideEventLoop) != 0) {
+	if (insideEventLoop != 0) {
 		QTimer::singleShot(1000, this,
 				   SLOT(on_action_Settings_triggered()));
 		return;
@@ -7015,8 +7015,8 @@ inline void OBSBasic::OnActivate(bool force)
 	}
 }
 
-extern volatile bool recording_paused;
-extern volatile bool replaybuf_active;
+extern a_bool_t recording_paused;
+extern a_bool_t replaybuf_active;
 
 inline void OBSBasic::OnDeactivate()
 {
@@ -7040,7 +7040,7 @@ inline void OBSBasic::OnDeactivate()
 		}
 	} else if (outputHandler->Active() && trayIcon &&
 		   trayIcon->isVisible()) {
-		if (os_atomic_load_bool(&recording_paused)) {
+		if (recording_paused) {
 #ifdef __APPLE__
 			QIcon trayIconFile =
 				QIcon(":/res/images/obs_paused_macos.svg");
@@ -7633,7 +7633,7 @@ void OBSBasic::StartReplayBuffer()
 
 	if (!outputHandler->StartReplayBuffer()) {
 		replayBufferButton->first()->setChecked(false);
-	} else if (os_atomic_load_bool(&recording_paused)) {
+	} else if (recording_paused) {
 		ShowReplayBufferPauseWarning();
 	}
 }
@@ -8217,11 +8217,11 @@ void OBSBasic::GetConfigFPS(uint32_t &num, uint32_t &den) const
 {
 	uint32_t type = config_get_uint(basicConfig, "Video", "FPSType");
 
-	if (type == 1) //"Integer"
+	if (type == 1)      //"Integer"
 		GetFPSInteger(num, den);
 	else if (type == 2) //"Fraction"
 		GetFPSFraction(num, den);
-	else if (false) //"Nanoseconds", currently not implemented
+	else if (false)     //"Nanoseconds", currently not implemented
 		GetFPSNanoseconds(num, den);
 	else
 		GetFPSCommon(num, den);
@@ -10211,7 +10211,7 @@ void OBSBasic::UpdatePatronJson(const QString &text, const QString &error)
 void OBSBasic::PauseRecording()
 {
 	if (!pause || !outputHandler || !outputHandler->fileOutput ||
-	    os_atomic_load_bool(&recording_paused))
+	    recording_paused)
 		return;
 
 	obs_output_t *output = outputHandler->fileOutput;
@@ -10239,7 +10239,7 @@ void OBSBasic::PauseRecording()
 							   trayIconFile));
 		}
 
-		os_atomic_set_bool(&recording_paused, true);
+		recording_paused = true;
 
 		auto replay = replayBufferButton ? replayBufferButton->second()
 						 : nullptr;
@@ -10249,7 +10249,7 @@ void OBSBasic::PauseRecording()
 		if (api)
 			api->on_event(OBS_FRONTEND_EVENT_RECORDING_PAUSED);
 
-		if (os_atomic_load_bool(&replaybuf_active))
+		if (replaybuf_active)
 			ShowReplayBufferPauseWarning();
 	}
 }
@@ -10257,7 +10257,7 @@ void OBSBasic::PauseRecording()
 void OBSBasic::UnpauseRecording()
 {
 	if (!pause || !outputHandler || !outputHandler->fileOutput ||
-	    !os_atomic_load_bool(&recording_paused))
+	    !recording_paused)
 		return;
 
 	obs_output_t *output = outputHandler->fileOutput;
@@ -10285,7 +10285,7 @@ void OBSBasic::UnpauseRecording()
 							   trayIconFile));
 		}
 
-		os_atomic_set_bool(&recording_paused, false);
+		recording_paused = false;
 
 		auto replay = replayBufferButton ? replayBufferButton->second()
 						 : nullptr;

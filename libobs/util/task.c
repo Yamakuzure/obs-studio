@@ -23,14 +23,14 @@ struct os_task_info {
 
 static THREAD_LOCAL bool exit_thread = false;
 static THREAD_LOCAL long thread_id = 0;
-static volatile long thread_id_counter = 1;
+static a_int64_t thread_id_counter = 1;
 
 static void *tiny_tubular_task_thread(void *param);
 
 os_task_queue_t *os_task_queue_create()
 {
 	struct os_task_queue *tq = bzalloc(sizeof(*tq));
-	tq->id = os_atomic_inc_long(&thread_id_counter);
+	tq->id = ++thread_id_counter;
 
 	if (pthread_mutex_init(&tq->mutex, NULL) != 0)
 		goto fail1;

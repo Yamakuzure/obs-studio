@@ -34,7 +34,7 @@ static void *gpu_encode_thread(struct obs_core_video_mix *video)
 		uint64_t next_key;
 		size_t lock_count = 0;
 
-		if (os_atomic_load_bool(&video->gpu_encode_stop))
+		if (video->gpu_encode_stop)
 			break;
 
 		if (wait_frames) {
@@ -204,7 +204,7 @@ bool init_gpu_encoding(struct obs_core_video_mix *video)
 void stop_gpu_encoding_thread(struct obs_core_video_mix *video)
 {
 	if (video->gpu_encode_thread_initialized) {
-		os_atomic_set_bool(&video->gpu_encode_stop, true);
+		video->gpu_encode_stop = true;
 		os_sem_post(video->gpu_encode_semaphore);
 		pthread_join(video->gpu_encode_thread, NULL);
 		video->gpu_encode_thread_initialized = false;

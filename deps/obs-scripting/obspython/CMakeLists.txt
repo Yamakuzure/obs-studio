@@ -56,6 +56,7 @@ elseif(OS_MACOS)
 
   set_property(TARGET obspython PROPERTY XCODE_ATTRIBUTE_STRIP_STYLE non-global)
 elseif(OS_LINUX OR OS_FREEBSD)
+  target_compile_options(obspython PRIVATE -Wno-unused-parameter)
   target_link_libraries(obspython PRIVATE Python::Python)
 endif()
 

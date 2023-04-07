@@ -23,13 +23,10 @@
 #include <util/threading.h>
 #include <inttypes.h>
 #include "ftl.h"
-#include "flv-mux.h"
-#include "net-if.h"
 
 #ifdef _WIN32
 #include <Iphlpapi.h>
 #else
-#include <sys/ioctl.h>
 #define INFINITE 0xFFFFFFFF
 #endif
 
@@ -47,14 +44,14 @@
 
 #define FTL_URL_PROTOCOL "ftl://"
 
-typedef struct _nalu_t {
+typedef struct nalu_ {
 	int len;
 	int dts_usec;
 	int send_marker_bit;
 	uint8_t *data;
 } nalu_t;
 
-typedef struct _frame_of_nalus_t {
+typedef struct frame_of_nalus_ {
 	nalu_t nalus[100];
 	int total;
 	int complete_frame;
@@ -68,13 +65,13 @@ struct ftl_stream {
 	bool sent_headers;
 	int64_t frames_sent;
 
-	volatile bool connecting;
+	a_bool_t connecting;
 	pthread_t connect_thread;
 	pthread_t status_thread;
 
-	volatile bool active;
-	volatile bool disconnected;
-	volatile bool encode_error;
+	a_bool_t active;
+	a_bool_t disconnected;
+	a_bool_t encode_error;
 	pthread_t send_thread;
 
 	int max_shutdown_time_sec;
@@ -114,7 +111,7 @@ static void log_libftl_messages(ftl_log_severity_t log_level,
 static int init_connect(struct ftl_stream *stream);
 static void *connect_thread(void *data);
 static void *status_thread(void *data);
-static int _ftl_error_to_obs_error(int status);
+static int ftl_error_to_obs_error_internal(int status);
 
 static const char *ftl_stream_getname(void *unused)
 {
@@ -153,21 +150,6 @@ static inline bool stopping(struct ftl_stream *stream)
 	return os_event_try(stream->stop_event) != EAGAIN;
 }
 
-static inline bool connecting(struct ftl_stream *stream)
-{
-	return os_atomic_load_bool(&stream->connecting);
-}
-
-static inline bool active(struct ftl_stream *stream)
-{
-	return os_atomic_load_bool(&stream->active);
-}
-
-static inline bool disconnected(struct ftl_stream *stream)
-{
-	return os_atomic_load_bool(&stream->disconnected);
-}
-
 static void ftl_stream_destroy(void *data)
 {
 	struct ftl_stream *stream = data;
@@ -175,10 +157,10 @@ static void ftl_stream_destroy(void *data)
 
 	info("ftl_stream_destroy");
 
-	if (stopping(stream) && !connecting(stream)) {
+	if (stopping(stream) && !stream->connecting) {
 		pthread_join(stream->send_thread, NULL);
 
-	} else if (connecting(stream) || active(stream)) {
+	} else if (stream->connecting || stream->active) {
 		if (stream->connecting) {
 			info("wait for connect_thread to terminate");
 			pthread_join(stream->status_thread, NULL);
@@ -189,7 +171,7 @@ static void ftl_stream_destroy(void *data)
 		stream->stop_ts = 0;
 		os_event_signal(stream->stop_event);
 
-		if (active(stream)) {
+		if (stream->active) {
 			os_sem_post(stream->send_sem);
 			obs_output_end_data_capture(stream->output);
 			pthread_join(stream->send_thread, NULL);
@@ -203,19 +185,17 @@ static void ftl_stream_destroy(void *data)
 		info("Failed to destroy from ingest %d", status_code);
 	}
 
-	if (stream) {
-		free_packets(stream);
-		dstr_free(&stream->path);
-		dstr_free(&stream->username);
-		dstr_free(&stream->password);
-		dstr_free(&stream->encoder_name);
-		dstr_free(&stream->bind_ip);
-		os_event_destroy(stream->stop_event);
-		os_sem_destroy(stream->send_sem);
-		pthread_mutex_destroy(&stream->packets_mutex);
-		circlebuf_free(&stream->packets);
-		bfree(stream);
-	}
+	free_packets(stream);
+	dstr_free(&stream->path);
+	dstr_free(&stream->username);
+	dstr_free(&stream->password);
+	dstr_free(&stream->encoder_name);
+	dstr_free(&stream->bind_ip);
+	os_event_destroy(stream->stop_event);
+	os_sem_destroy(stream->send_sem);
+	pthread_mutex_destroy(&stream->packets_mutex);
+	circlebuf_free(&stream->packets);
+	bfree(stream);
 }
 
 static void *ftl_stream_create(obs_data_t *settings, obs_output_t *output)
@@ -255,7 +235,7 @@ static void ftl_stream_stop(void *data, uint64_t ts)
 		return;
 	}
 
-	if (connecting(stream)) {
+	if (stream->connecting) {
 		pthread_join(stream->status_thread, NULL);
 		pthread_join(stream->connect_thread, NULL);
 	}
@@ -268,7 +248,7 @@ static void ftl_stream_stop(void *data, uint64_t ts)
 			(uint64_t)stream->max_shutdown_time_sec * 1000000000ULL;
 	}
 
-	if (active(stream)) {
+	if (stream->active) {
 		os_event_signal(stream->stop_event);
 		if (stream->stop_ts == 0)
 			os_sem_post(stream->send_sem);
@@ -297,7 +277,7 @@ static int avc_get_video_frame(struct ftl_stream *stream,
 			       struct encoder_packet *packet, bool is_header)
 {
 	int consumed = 0;
-	int len = (int)packet->size;
+	int len;
 	nalu_t *nalu;
 
 	unsigned char *video_stream = packet->data;
@@ -367,11 +347,10 @@ static int avc_get_video_frame(struct ftl_stream *stream,
 	return 0;
 }
 
-static int send_packet(struct ftl_stream *stream, struct encoder_packet *packet,
-		       bool is_header)
+static void send_packet(struct ftl_stream *stream,
+			struct encoder_packet *packet, bool is_header)
 {
 	int bytes_sent = 0;
-	int ret = 0;
 
 	if (packet->type == OBS_ENCODER_VIDEO) {
 		stream->coded_pic_buffer.total = 0;
@@ -405,7 +384,6 @@ static int send_packet(struct ftl_stream *stream, struct encoder_packet *packet,
 	}
 
 	stream->total_bytes_sent += bytes_sent;
-	return ret;
 }
 
 static void set_peak_bitrate(struct ftl_stream *stream)
@@ -497,20 +475,17 @@ static void *send_thread(void *data)
 		 * required for webrtc */
 		if (packet.keyframe) {
 			if (!send_headers(stream, packet.dts_usec)) {
-				os_atomic_set_bool(&stream->disconnected, true);
+				stream->disconnected = true;
 				break;
 			}
 		}
 
-		if (send_packet(stream, &packet, false) < 0) {
-			os_atomic_set_bool(&stream->disconnected, true);
-			break;
-		}
+		send_packet(stream, &packet, false);
 	}
 
-	bool encode_error = os_atomic_load_bool(&stream->encode_error);
+	bool encode_error = stream->encode_error;
 
-	if (disconnected(stream)) {
+	if (stream->disconnected) {
 		info("Disconnected from %s", stream->path.array);
 	} else if (encode_error) {
 		info("Encoder error, disconnecting");
@@ -536,7 +511,7 @@ static void *send_thread(void *data)
 
 	free_packets(stream);
 	os_event_reset(stream->stop_event);
-	os_atomic_set_bool(&stream->active, false);
+	stream->active = false;
 	stream->sent_headers = false;
 	return NULL;
 }
@@ -556,7 +531,8 @@ static bool send_video_header(struct ftl_stream *stream, int64_t dts_usec)
 	if (!obs_encoder_get_extra_data(vencoder, &header, &size))
 		return false;
 	packet.size = obs_parse_avc_header(&packet.data, header, size);
-	return send_packet(stream, &packet, true) >= 0;
+	send_packet(stream, &packet, true);
+	return true;
 }
 
 static inline bool send_headers(struct ftl_stream *stream, int64_t dts_usec)
@@ -591,7 +567,7 @@ static int init_send(struct ftl_stream *stream)
 		return OBS_OUTPUT_ERROR;
 	}
 
-	os_atomic_set_bool(&stream->active, true);
+	stream->active = true;
 
 	obs_output_begin_data_capture(stream->output, 0);
 
@@ -622,7 +598,7 @@ static int try_connect(struct ftl_stream *stream)
 			warn("Ingest connect failed with: %s (%d)",
 			     ftl_status_code_to_string(status_code),
 			     status_code);
-			return _ftl_error_to_obs_error(status_code);
+			return ftl_error_to_obs_error_internal(status_code);
 		}
 	}
 
@@ -657,7 +633,7 @@ static bool ftl_stream_start(void *data)
 	}
 
 	stream->frames_sent = 0;
-	os_atomic_set_bool(&stream->connecting, true);
+	stream->connecting = true;
 
 	return pthread_create(&stream->connect_thread, NULL, connect_thread,
 			      stream) == 0;
@@ -800,12 +776,12 @@ static void ftl_stream_data(void *data, struct encoder_packet *packet)
 	struct encoder_packet new_packet;
 	bool added_packet = false;
 
-	if (disconnected(stream) || !active(stream))
+	if (stream->disconnected || !stream->active)
 		return;
 
 	/* encoder failure */
 	if (!packet) {
-		os_atomic_set_bool(&stream->encode_error, true);
+		stream->encode_error = true;
 		os_sem_post(stream->send_sem);
 		return;
 	}
@@ -817,7 +793,7 @@ static void ftl_stream_data(void *data, struct encoder_packet *packet)
 
 	pthread_mutex_lock(&stream->packets_mutex);
 
-	if (!disconnected(stream)) {
+	if (!stream->disconnected) {
 		added_packet = (packet->type == OBS_ENCODER_VIDEO)
 				       ? add_video_packet(stream, &new_packet)
 				       : add_packet(stream, &new_packet);
@@ -900,7 +876,7 @@ static void *status_thread(void *data)
 	ftl_status_msg_t status;
 	ftl_status_t status_code;
 
-	while (!disconnected(stream)) {
+	while (!stream->disconnected) {
 		status_code = ftl_ingest_get_status(&stream->ftl_handle,
 						    &status, 1000);
 
@@ -1008,7 +984,7 @@ static void *connect_thread(void *data)
 	if (!stopping(stream))
 		pthread_detach(stream->connect_thread);
 
-	os_atomic_set_bool(&stream->connecting, false);
+	stream->connecting = false;
 	return NULL;
 }
 
@@ -1038,8 +1014,8 @@ static int init_connect(struct ftl_stream *stream)
 		return OBS_OUTPUT_ERROR;
 	}
 
-	os_atomic_set_bool(&stream->disconnected, false);
-	os_atomic_set_bool(&stream->encode_error, false);
+	stream->disconnected = false;
+	stream->encode_error = false;
 	stream->total_bytes_sent = 0;
 	stream->dropped_frames = 0;
 	stream->min_priority = 0;
@@ -1060,14 +1036,6 @@ static int init_connect(struct ftl_stream *stream)
 
 	key = obs_service_get_connect_info(service,
 					   OBS_SERVICE_CONNECT_INFO_STREAM_KEY);
-
-	int target_bitrate = (int)obs_data_get_int(video_settings, "bitrate");
-	int peak_bitrate = (int)((float)target_bitrate * 1.1f);
-
-	//minimum overshoot tolerance of 10%
-	if (peak_bitrate < target_bitrate) {
-		peak_bitrate = target_bitrate;
-	}
 
 	stream->params.stream_key = (char *)key;
 	stream->params.video_codec = FTL_VIDEO_H264;
@@ -1117,7 +1085,7 @@ static int init_connect(struct ftl_stream *stream)
 }
 
 // Returns 0 on success
-static int _ftl_error_to_obs_error(int status)
+static int ftl_error_to_obs_error_internal(int status)
 {
 	/* Map FTL errors to OBS errors */
 

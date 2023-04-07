@@ -15,16 +15,12 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ******************************************************************************/
 
-//#include <assert.h>
 #include <inttypes.h>
 #include "../util/bmem.h"
-//#include "../util/platform.h"
 #include "../util/profiler.h"
 #include "../util/threading.h"
-//#include "../util/darray.h"
 #include "../util/util_uint64.h"
 
-//#include "format-conversion.h"
 #include "video-io.h"
 #include "video-frame.h"
 #include "video-scaler.h"
@@ -62,15 +58,15 @@ struct video_output {
 
 	pthread_t thread;
 	pthread_mutex_t data_mutex;
-	atomic_bool stop;
+	a_bool_t stop;
 
 	os_sem_t *update_semaphore;
 	uint64_t frame_time;
-	volatile long skipped_frames;
-	volatile long total_frames;
+	a_int64_t skipped_frames;
+	a_int64_t total_frames;
 
-	atomic_bool initialized;
-	atomic_bool have_thread;
+	a_bool_t initialized;
+	a_bool_t have_thread;
 
 	pthread_mutex_t input_mutex;
 	DARRAY(struct video_input, inputs);
@@ -80,8 +76,8 @@ struct video_output {
 	size_t last_added;
 	struct cached_frame_info cache[MAX_CACHE_SIZE];
 
-	volatile bool raw_active;
-	volatile long gpu_refs;
+	a_bool_t raw_active;
+	a_int64_t gpu_refs;
 };
 
 /* ------------------------------------------------------------------------- */
@@ -162,7 +158,7 @@ static inline bool video_output_cur_frame(struct video_output *video)
 			video->last_added = video->first_added;
 	} else if (skipped) {
 		--frame_info->skipped;
-		os_atomic_inc_long(&video->skipped_frames);
+		video->skipped_frames++;
 	}
 
 	pthread_mutex_unlock(&video->data_mutex);
@@ -190,10 +186,10 @@ static void *video_thread(void *param)
 
 		profile_start(video_thread_name);
 		while (!video->stop && !video_output_cur_frame(video)) {
-			os_atomic_inc_long(&video->total_frames);
+			video->total_frames++;
 		}
 
-		os_atomic_inc_long(&video->total_frames);
+		video->total_frames++;
 		profile_end(video_thread_name);
 
 		profile_reenable_thread();
@@ -397,8 +393,8 @@ static inline bool video_input_init(struct video_input *input,
 
 static inline void reset_frames(video_t *video)
 {
-	os_atomic_set_long(&video->skipped_frames, 0);
-	os_atomic_set_long(&video->total_frames, 0);
+	video->skipped_frames = 0;
+	video->total_frames = 0;
 }
 
 WARN_UNUSED_RESULT bool
@@ -446,10 +442,10 @@ video_output_connect(video_t *video, const struct video_scale_info *conversion,
 				  video->raw_active ? "ALREADY ACTIVE!"
 						    : "inactive");
 			if (video->inputs.num == 0) {
-				if (!os_atomic_load_long(&video->gpu_refs)) {
+				if (!video->gpu_refs) {
 					reset_frames(video);
 				}
-				os_atomic_set_bool(&video->raw_active, true);
+				video->raw_active = true;
 			}
 			da_push_back(video->inputs, &input);
 		} else {
@@ -468,10 +464,9 @@ video_output_connect(video_t *video, const struct video_scale_info *conversion,
 
 static void log_skipped(video_t *video)
 {
-	long skipped = os_atomic_load_long(&video->skipped_frames);
+	long skipped = video->skipped_frames;
 	double percentage_skipped =
-		(double)skipped /
-		(double)os_atomic_load_long(&video->total_frames) * 100.0;
+		(double)skipped / (double)video->total_frames * 100.;
 
 	if (skipped)
 		blog(LOG_INFO,
@@ -503,8 +498,8 @@ void video_output_disconnect(video_t *video,
 		if (video->inputs.num == 0) {
 			debug_log("video '%s' has no inputs any more",
 				  video->info.name);
-			os_atomic_set_bool(&video->raw_active, false);
-			if (!os_atomic_load_long(&video->gpu_refs)) {
+			video->raw_active = false;
+			if (!video->gpu_refs) {
 				log_skipped(video);
 			}
 		}
@@ -518,7 +513,7 @@ bool video_output_active(const video_t *video)
 {
 	if (!video)
 		return false;
-	return os_atomic_load_bool(&video->raw_active);
+	return video->raw_active;
 }
 
 const struct video_output_info *video_output_get_info(const video_t *video)
@@ -641,12 +636,12 @@ double video_output_get_frame_rate(const video_t *video)
 
 uint32_t video_output_get_skipped_frames(const video_t *video)
 {
-	return (uint32_t)os_atomic_load_long(&video->skipped_frames);
+	return (uint32_t)video->skipped_frames;
 }
 
 uint32_t video_output_get_total_frames(const video_t *video)
 {
-	return (uint32_t)os_atomic_load_long(&video->total_frames);
+	return (uint32_t)video->total_frames;
 }
 
 /* Note: These four functions below are a very slight bit of a hack.  If the
@@ -657,32 +652,28 @@ uint32_t video_output_get_total_frames(const video_t *video)
 
 void video_output_inc_texture_encoders(video_t *video)
 {
-	debug_log("gpu_refs: %ld, raw_active: %s",
-		  os_atomic_load_long(&video->gpu_refs),
-		  os_atomic_load_bool(&video->raw_active) ? "true" : "false");
-	if (os_atomic_inc_long(&video->gpu_refs) == 1 &&
-	    !os_atomic_load_bool(&video->raw_active)) {
+	debug_log("gpu_refs: %ld, raw_active: %s", video->gpu_refs,
+		  video->raw_active ? "true" : "false");
+	if (++video->gpu_refs == 1 && !video->raw_active) {
 		reset_frames(video);
 	}
 }
 
 void video_output_dec_texture_encoders(video_t *video)
 {
-	debug_log("gpu_refs: %ld, raw_active: %s",
-		  os_atomic_load_long(&video->gpu_refs),
-		  os_atomic_load_bool(&video->raw_active) ? "true" : "false");
-	if (os_atomic_dec_long(&video->gpu_refs) == 0 &&
-	    !os_atomic_load_bool(&video->raw_active)) {
+	debug_log("gpu_refs: %ld, raw_active: %s", video->gpu_refs,
+		  video->raw_active ? "true" : "false");
+	if (0 == --video->gpu_refs && !video->raw_active) {
 		log_skipped(video);
 	}
 }
 
 void video_output_inc_texture_frames(video_t *video)
 {
-	os_atomic_inc_long(&video->total_frames);
+	video->total_frames++;
 }
 
 void video_output_inc_texture_skipped_frames(video_t *video)
 {
-	os_atomic_inc_long(&video->skipped_frames);
+	video->skipped_frames++;
 }

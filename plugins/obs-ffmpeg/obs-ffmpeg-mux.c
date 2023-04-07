@@ -22,7 +22,7 @@
 #include "util/windows/win-version.h"
 #endif
 
-#include <libavformat/avformat.h>
+//#include <libavformat/avformat.h>
 
 #if defined(_DEBUG)
 #ifndef _WIN32
@@ -97,7 +97,7 @@ static void split_file_proc(void *data, calldata_t *cd)
 	if (!stream->split_file)
 		return;
 
-	os_atomic_set_bool(&stream->manual_split, true);
+	stream->manual_split = true;
 }
 
 static void *ffmpeg_mux_create(obs_data_t *settings, obs_output_t *output)
@@ -125,21 +125,6 @@ static void *ffmpeg_mux_create(obs_data_t *settings, obs_output_t *output)
 #define FFMPEG_MUX "obs-ffmpeg-mux"
 #endif
 
-static inline bool capturing(struct ffmpeg_muxer *stream)
-{
-	return os_atomic_load_bool(&stream->capturing);
-}
-
-bool stopping(struct ffmpeg_muxer *stream)
-{
-	return os_atomic_load_bool(&stream->stopping);
-}
-
-bool active(struct ffmpeg_muxer *stream)
-{
-	return os_atomic_load_bool(&stream->active);
-}
-
 /* TODO: allow codecs other than h264 whenever we start using them */
 
 static void add_video_encoder_params(struct ffmpeg_muxer *stream,
@@ -152,10 +137,10 @@ static void add_video_encoder_params(struct ffmpeg_muxer *stream,
 
 	int codec_tag = (int)obs_data_get_int(settings, "codec_type");
 #if __BYTE_ORDER == __LITTLE_ENDIAN
-	codec_tag = ((codec_tag >> 24) & 0x000000FF) |
-		    ((codec_tag << 8) & 0x00FF0000) |
-		    ((codec_tag >> 8) & 0x0000FF00) |
-		    ((codec_tag << 24) & 0xFF000000);
+	codec_tag = (int)(((codec_tag >> 24) & 0x000000FF) |
+			  ((codec_tag << 8) & 0x00FF0000) |
+			  ((codec_tag >> 8) & 0x0000FF00) |
+			  ((codec_tag << 24) & 0xFF000000));
 #endif
 
 	obs_data_release(settings);
@@ -472,8 +457,8 @@ static inline bool ffmpeg_mux_start_internal(struct ffmpeg_muxer *stream,
 	}
 
 	/* write headers and start capture */
-	os_atomic_set_bool(&stream->active, true);
-	os_atomic_set_bool(&stream->capturing, true);
+	stream->active = true;
+	stream->capturing = true;
 	stream->is_hls = false;
 	stream->total_bytes = 0;
 	stream->dropped_frames = 0;
@@ -521,7 +506,7 @@ int deactivate(struct ffmpeg_muxer *stream, int code)
 		  "\tstream stopping     : %s",
 		  code, stream->is_hls ? "true" : "false",
 		  stream->mux_thread_joinable ? "true" : "false",
-		  active(stream) ? "true" : "false",
+		  stream->active ? "true" : "false",
 		  stream->sent_headers ? "true" : "false",
 		  stream->stopping ? "true" : "false");
 
@@ -539,23 +524,23 @@ int deactivate(struct ffmpeg_muxer *stream, int code)
 		}
 	}
 
-	if (active(stream)) {
+	if (stream->active) {
 		debug_log("Stream '%s' active, destroying stream->pipe",
 			  stream_path);
 		ret = os_process_pipe_destroy(stream->pipe);
 		stream->pipe = NULL;
 
-		os_atomic_set_bool(&stream->active, false);
+		stream->active = false;
 
 		info("Output of file '%s' stopped", stream_path);
 	} else
 		debug_log("Stream '%s' is not active!", stream_path);
 
-	os_atomic_set_bool(&stream->sent_headers, false);
+	stream->sent_headers = false;
 
 	if (code) {
 		obs_output_signal_stop(stream->output, code);
-	} else if (stopping(stream)) {
+	} else if (stream->stopping) {
 		obs_output_end_data_capture(stream->output);
 	}
 
@@ -572,7 +557,7 @@ int deactivate(struct ffmpeg_muxer *stream, int code)
 		pthread_mutex_unlock(&stream->write_mutex);
 	}
 
-	os_atomic_set_bool(&stream->stopping, false);
+	stream->stopping = false;
 	return ret;
 }
 
@@ -582,13 +567,13 @@ void ffmpeg_mux_stop(void *data, uint64_t ts)
 
 	debug_log(
 		"Called %s stopping stream/capturing (Capturing: %s, ts: %lu)",
-		(capturing(stream) || ts == 0) ? "and" : "but NOT",
-		capturing(stream) ? "true" : "false", ts);
+		(stream->capturing || ts == 0) ? "and" : "but NOT",
+		stream->capturing ? "true" : "false", ts);
 
-	if (capturing(stream) || ts == 0) {
+	if (stream->capturing || ts == 0) {
 		stream->stop_ts = (int64_t)ts / 1000LL;
-		os_atomic_set_bool(&stream->stopping, true);
-		os_atomic_set_bool(&stream->capturing, false);
+		stream->stopping = true;
+		stream->capturing = false;
 	}
 }
 
@@ -612,20 +597,16 @@ static void signal_failure(struct ffmpeg_muxer *stream)
 
 	ret = deactivate(stream, 0);
 
-	switch (ret) {
-	case FFM_UNSUPPORTED:
+	if (FFM_UNSUPPORTED == ret) {
 		code = OBS_OUTPUT_UNSUPPORTED;
-		break;
-	default:
-		if (stream->is_network) {
-			code = OBS_OUTPUT_DISCONNECTED;
-		} else {
-			code = OBS_OUTPUT_ENCODE_ERROR;
-		}
+	} else if (stream->is_network) {
+		code = OBS_OUTPUT_DISCONNECTED;
+	} else {
+		code = OBS_OUTPUT_ENCODE_ERROR;
 	}
 
 	obs_output_signal_stop(stream->output, code);
-	os_atomic_set_bool(&stream->capturing, false);
+	stream->capturing = false;
 }
 
 static void find_best_filename(struct dstr *path, bool space)
@@ -726,7 +707,7 @@ bool write_packet(struct ffmpeg_muxer *stream, struct encoder_packet *packet)
 	stream->total_bytes += packet->size;
 
 	if (stream->split_file)
-		stream->cur_size += packet->size;
+		stream->cur_size += (int64_t)(packet->size);
 
 	return true;
 }
@@ -790,7 +771,7 @@ static inline bool should_split(struct ffmpeg_muxer *stream,
 	if (!packet->keyframe)
 		return false;
 
-	if (os_atomic_load_bool(&stream->manual_split))
+	if (stream->manual_split)
 		return true;
 
 	/* reached maximum file size */
@@ -862,7 +843,7 @@ static bool prepare_split_file(struct ffmpeg_muxer *stream,
 
 static inline bool has_audio(struct ffmpeg_muxer *stream)
 {
-	return !!obs_output_get_audio_encoder(stream->output, 0);
+	return obs_output_get_audio_encoder(stream->output, 0) != nullptr;
 }
 
 static void push_back_packet(struct darray *packets,
@@ -879,14 +860,14 @@ static void ffmpeg_mux_data(void *data, struct encoder_packet *packet)
 
 #if defined(_DEBUG)
 	// Only report switches, or we'll flood the log!
-	if (active(stream) != stream_is_active) {
-		stream_is_active = active(stream);
+	if (stream->active != stream_is_active) {
+		stream_is_active = stream->active;
 		debug_log("stream active: %s",
 			  stream_is_active ? "true" : "false");
 	}
 #endif // _DEBUG
 
-	if (!active(stream))
+	if (!stream->active)
 		return;
 
 	/* encoder failure */
@@ -934,13 +915,13 @@ static void ffmpeg_mux_data(void *data, struct encoder_packet *packet)
 		if (!send_headers(stream))
 			return;
 
-		os_atomic_set_bool(&stream->sent_headers, true);
+		stream->sent_headers = true;
 
 		if (stream->split_file)
 			stream->cur_time = packet->dts_usec;
 	}
 
-	if (stopping(stream)) {
+	if (stream->stopping) {
 		debug_log("Stopping %s deactivating stream (%ld %s %ld)",
 			  (packet->sys_dts_usec >= stream->stop_ts) ? "and"
 								    : "but NOT",
@@ -964,7 +945,7 @@ static void ffmpeg_mux_data(void *data, struct encoder_packet *packet)
 		}
 		da_free(stream->mux_packets);
 		stream->split_file_ready = false;
-		os_atomic_set_bool(&stream->manual_split, false);
+		stream->manual_split = false;
 	}
 
 	if (stream->split_file)
@@ -1056,7 +1037,7 @@ static void replay_buffer_hotkey(void *data, obs_hotkey_id id,
 
 	struct ffmpeg_muxer *stream = data;
 
-	if (os_atomic_load_bool(&stream->active)) {
+	if (stream->active) {
 		obs_encoder_t *vencoder =
 			obs_output_get_video_encoder(stream->output);
 		if (obs_encoder_paused(vencoder)) {
@@ -1064,7 +1045,7 @@ static void replay_buffer_hotkey(void *data, obs_hotkey_id id,
 			return;
 		}
 
-		stream->save_ts = os_gettime_ns() / 1000LL;
+		stream->save_ts = (int64_t)(os_gettime_ns() / 1000LL);
 	}
 }
 
@@ -1077,7 +1058,7 @@ static void save_replay_proc(void *data, calldata_t *cd)
 static void get_last_replay(void *data, calldata_t *cd)
 {
 	struct ffmpeg_muxer *stream = data;
-	if (!os_atomic_load_bool(&stream->muxing))
+	if (!stream->muxing)
 		calldata_set_string(cd, "path", stream->path.array);
 }
 
@@ -1125,8 +1106,8 @@ static bool replay_buffer_start(void *data)
 	stream->max_size = obs_data_get_int(s, "max_size_mb") * (1024 * 1024);
 	obs_data_release(s);
 
-	os_atomic_set_bool(&stream->active, true);
-	os_atomic_set_bool(&stream->capturing, true);
+	stream->active = true;
+	stream->capturing = true;
 	stream->total_bytes = 0;
 	obs_output_begin_data_capture(stream->output, 0);
 
@@ -1200,8 +1181,9 @@ static inline void replay_buffer_purge(struct ffmpeg_muxer *stream,
 }
 
 static void insert_packet(struct darray *array, struct encoder_packet *packet,
-			  int64_t video_offset, int64_t *audio_offsets,
-			  int64_t video_pts_offset, int64_t *audio_dts_offsets)
+			  int64_t video_offset, const int64_t *audio_offsets,
+			  int64_t video_pts_offset,
+			  const int64_t *audio_dts_offsets)
 {
 	struct encoder_packet pkt;
 	DARRAY(struct encoder_packet, packets);
@@ -1276,7 +1258,7 @@ error:
 				&stream->mux_packets.array[i]);
 	}
 	da_free(stream->mux_packets);
-	os_atomic_set_bool(&stream->muxing, false);
+	stream->muxing = false;
 
 	if (!error) {
 		calldata_t cd = {0};
@@ -1331,13 +1313,13 @@ static void replay_buffer_save(struct ffmpeg_muxer *stream)
 
 	generate_filename(stream, &stream->path, true);
 
-	os_atomic_set_bool(&stream->muxing, true);
+	stream->muxing = true;
 	stream->mux_thread_joinable = pthread_create(&stream->mux_thread, NULL,
 						     replay_buffer_mux_thread,
 						     stream) == 0;
 	if (!stream->mux_thread_joinable) {
 		warn("Failed to create muxer thread");
-		os_atomic_set_bool(&stream->muxing, false);
+		stream->muxing = false;
 	}
 }
 
@@ -1345,13 +1327,13 @@ static void deactivate_replay_buffer(struct ffmpeg_muxer *stream, int code)
 {
 	if (code) {
 		obs_output_signal_stop(stream->output, code);
-	} else if (stopping(stream)) {
+	} else if (stream->stopping) {
 		obs_output_end_data_capture(stream->output);
 	}
 
-	os_atomic_set_bool(&stream->active, false);
-	os_atomic_set_bool(&stream->sent_headers, false);
-	os_atomic_set_bool(&stream->stopping, false);
+	stream->active = false;
+	stream->sent_headers = false;
+	stream->stopping = false;
 	replay_buffer_clear(stream);
 }
 
@@ -1360,7 +1342,7 @@ static void replay_buffer_data(void *data, struct encoder_packet *packet)
 	struct ffmpeg_muxer *stream = data;
 	struct encoder_packet pkt;
 
-	if (!active(stream))
+	if (!stream->active)
 		return;
 
 	/* encoder failure */
@@ -1369,7 +1351,7 @@ static void replay_buffer_data(void *data, struct encoder_packet *packet)
 		return;
 	}
 
-	if (stopping(stream)) {
+	if (stream->stopping) {
 		if (packet->sys_dts_usec >= stream->stop_ts) {
 			deactivate_replay_buffer(stream, 0);
 			return;
@@ -1381,7 +1363,7 @@ static void replay_buffer_data(void *data, struct encoder_packet *packet)
 
 	if (!stream->packets.size)
 		stream->cur_time = pkt.dts_usec;
-	stream->cur_size += pkt.size;
+	stream->cur_size += (int64_t)pkt.size;
 
 	circlebuf_push_back(&stream->packets, packet, sizeof(*packet));
 
@@ -1389,7 +1371,7 @@ static void replay_buffer_data(void *data, struct encoder_packet *packet)
 		stream->keyframes++;
 
 	if (stream->save_ts && packet->sys_dts_usec >= stream->save_ts) {
-		if (os_atomic_load_bool(&stream->muxing))
+		if (stream->muxing)
 			return;
 
 		if (stream->mux_thread_joinable) {

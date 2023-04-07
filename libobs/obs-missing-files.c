@@ -21,7 +21,7 @@
 #include "obs.h"
 
 struct obs_missing_file {
-	volatile long ref;
+	a_int64_t ref;
 	char *file_path;
 	obs_missing_file_cb callback;
 	int src_type;
@@ -75,7 +75,7 @@ void obs_missing_files_append(obs_missing_files_t *dst,
 	for (size_t i = 0; i < src->files.num; i++) {
 		obs_missing_file_t *file = src->files.array[i];
 		obs_missing_files_add_file(dst, file);
-		os_atomic_inc_long(&file->ref);
+		file->ref++;
 	}
 }
 
@@ -109,7 +109,7 @@ void obs_missing_file_release(obs_missing_file_t *file)
 	if (!file)
 		return;
 
-	if (os_atomic_dec_long(&file->ref) == 0)
+	if (0 == --file->ref)
 		obs_missing_file_destroy(file);
 }
 

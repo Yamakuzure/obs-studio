@@ -451,9 +451,9 @@ static inline int open_output_file(struct ffmpeg_output *stream,
 	 * These options will be passed to protocol by avio_open2 through dict.
 	 * The invalid options will be left in dict. */
 	if (!rist && !srt) {
-		if (0 != (ret = av_dict_parse_string(&dict,
-						data->config.protocol_settings,
-						"=", " ", 0))) {
+		if (0 != (ret = av_dict_parse_string(
+				  &dict, data->config.protocol_settings, "=",
+				  " ", 0))) {
 			ffmpeg_mpegts_log_error(
 				LOG_WARNING, data,
 				"Failed to parse protocol settings: %s, %s",
@@ -468,7 +468,8 @@ static inline int open_output_file(struct ffmpeg_output *stream,
 			struct dstr str = {0};
 
 			AVDictionaryEntry *entry = NULL;
-			while (NULL != (entry = av_dict_get(dict, "", entry,
+			while (NULL !=
+			       (entry = av_dict_get(dict, "", entry,
 						    AV_DICT_IGNORE_SUFFIX)))
 				dstr_catf(&str, "\n\t%s=%s", entry->key,
 					  entry->value);
@@ -520,7 +521,8 @@ static inline int open_output_file(struct ffmpeg_output *stream,
 			struct dstr str = {0};
 
 			AVDictionaryEntry *entry = NULL;
-			while (NULL != (entry = av_dict_get(dict, "", entry,
+			while (NULL !=
+			       (entry = av_dict_get(dict, "", entry,
 						    AV_DICT_IGNORE_SUFFIX)))
 				dstr_catf(&str, "\n\t%s=%s", entry->key,
 					  entry->value);
@@ -687,11 +689,6 @@ fail:
 
 /* ------------------------------------------------------------------------- */
 
-static inline bool stopping(struct ffmpeg_output *output)
-{
-	return os_atomic_load_bool(&output->stopping);
-}
-
 static const char *ffmpeg_mpegts_getname(void *unused)
 {
 	UNUSED_PARAMETER(unused);
@@ -795,7 +792,7 @@ static int mpegts_process_packet(struct ffmpeg_output *output)
 	//     packet->size, packet->flags, packet->stream_index,
 	//     output->packets.num);
 
-	if (stopping(output)) {
+	if (output->stopping) {
 		uint64_t sys_ts = get_packet_sys_dts(output, packet);
 		if (sys_ts >= output->stop_ts) {
 			ret = 0;
@@ -849,7 +846,7 @@ static void *write_thread(void *data)
 		}
 	}
 
-	os_atomic_set_bool(&output->active, false);
+	output->active = false;
 	return NULL;
 }
 
@@ -1039,7 +1036,7 @@ static bool set_config(struct ffmpeg_output *stream)
 		code = OBS_OUTPUT_ERROR;
 		goto fail;
 	}
-	os_atomic_set_bool(&stream->active, true);
+	stream->active = true;
 	stream->write_thread_active = true;
 	stream->total_bytes = 0;
 	obs_output_begin_data_capture(stream->output, 0);
@@ -1067,7 +1064,7 @@ static bool ffmpeg_mpegts_start(void *data)
 	if (output->connecting)
 		return false;
 
-	os_atomic_set_bool(&output->stopping, false);
+	output->stopping = false;
 	output->audio_start_ts = 0;
 	output->video_start_ts = 0;
 	output->total_bytes = 0;
@@ -1094,7 +1091,7 @@ static void ffmpeg_mpegts_stop(void *data, uint64_t ts)
 	if (output->active) {
 		if (ts > 0) {
 			output->stop_ts = ts;
-			os_atomic_set_bool(&output->stopping, true);
+			output->stopping = true;
 		}
 
 		ffmpeg_mpegts_full_stop(output);
@@ -1143,7 +1140,7 @@ static inline int64_t rescale_ts2(AVStream *stream, AVRational codec_time_base,
 void mpegts_write_packet(struct ffmpeg_output *stream,
 			 struct encoder_packet *encpacket)
 {
-	if (stopping(stream) || !stream->ff_data.video ||
+	if (stream->stopping || !stream->ff_data.video ||
 	    !stream->ff_data.video_ctx || !stream->ff_data.audio_infos)
 		return;
 	if (!stream->ff_data.audio_infos[encpacket->track_idx].stream)
@@ -1188,8 +1185,8 @@ static bool write_header(struct ffmpeg_output *stream, struct ffmpeg_data *data)
 	AVDictionary *dict = NULL;
 	int ret;
 	/* get mpegts muxer settings (can be used with rist, srt, rtp, etc ... */
-	if (0 != (ret = av_dict_parse_string(&dict, data->config.muxer_settings, "=",
-					" ", 0))) {
+	if (0 != (ret = av_dict_parse_string(&dict, data->config.muxer_settings,
+					     "=", " ", 0))) {
 		ffmpeg_mpegts_log_error(
 			LOG_WARNING, data,
 			"Failed to parse muxer settings: %s, %s",
@@ -1204,7 +1201,7 @@ static bool write_header(struct ffmpeg_output *stream, struct ffmpeg_data *data)
 
 		AVDictionaryEntry *entry = NULL;
 		while (NULL != (entry = av_dict_get(dict, "", entry,
-					    AV_DICT_IGNORE_SUFFIX)))
+						    AV_DICT_IGNORE_SUFFIX)))
 			dstr_catf(&str, "\n\t%s=%s", entry->key, entry->value);
 
 		info("Using muxer settings: %s", str.array);
@@ -1227,7 +1224,7 @@ static bool write_header(struct ffmpeg_output *stream, struct ffmpeg_data *data)
 
 		AVDictionaryEntry *entry = NULL;
 		while (NULL != (entry = av_dict_get(dict, "", entry,
-					    AV_DICT_IGNORE_SUFFIX)))
+						    AV_DICT_IGNORE_SUFFIX)))
 			dstr_catf(&str, "\n\t%s=%s", entry->key, entry->value);
 
 		info("[ffmpeg mpegts muxer]: Invalid mpegts muxer settings: %s",
@@ -1271,7 +1268,7 @@ static void ffmpeg_mpegts_data(void *data, struct encoder_packet *packet)
 		return;
 	}
 
-	if (stopping(stream)) {
+	if (stream->stopping) {
 		if (packet->sys_dts_usec >= (int64_t)stream->stop_ts) {
 			ffmpeg_mpegts_deactivate(stream);
 			return;

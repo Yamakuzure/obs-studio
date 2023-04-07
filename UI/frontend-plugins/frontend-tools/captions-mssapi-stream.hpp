@@ -23,7 +23,7 @@ public:
 class mssapi_captions;
 
 class CaptionStream : public ISpAudio {
-	volatile long refs = 1;
+	a_int64_t refs = 1;
 	SPAUDIOBUFFERINFO buf_info = {};
 	mssapi_captions *handler;
 	ULONG notify_size = 0;

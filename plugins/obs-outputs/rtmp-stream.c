@@ -83,41 +83,21 @@ static inline bool stopping(struct rtmp_stream *stream)
 	return os_event_try(stream->stop_event) != EAGAIN;
 }
 
-static inline bool connecting(struct rtmp_stream *stream)
-{
-	return os_atomic_load_bool(&stream->connecting);
-}
-
-static inline bool active(struct rtmp_stream *stream)
-{
-	return os_atomic_load_bool(&stream->active);
-}
-
-static inline bool disconnected(struct rtmp_stream *stream)
-{
-	return os_atomic_load_bool(&stream->disconnected);
-}
-
-static inline bool silently_reconnecting(struct rtmp_stream *stream)
-{
-	return os_atomic_load_bool(&stream->silent_reconnect);
-}
-
 static void rtmp_stream_destroy(void *data)
 {
 	struct rtmp_stream *stream = data;
 
-	if (stopping(stream) && !connecting(stream)) {
+	if (stopping(stream) && !stream->connecting) {
 		pthread_join(stream->send_thread, NULL);
 
-	} else if (connecting(stream) || active(stream)) {
+	} else if (stream->connecting || stream->active) {
 		if (stream->connecting)
 			pthread_join(stream->connect_thread, NULL);
 
 		stream->stop_ts = 0;
 		os_event_signal(stream->stop_event);
 
-		if (active(stream)) {
+		if (stream->active) {
 			os_sem_post(stream->send_sem);
 			obs_output_end_data_capture(stream->output);
 			pthread_join(stream->send_thread, NULL);
@@ -213,7 +193,7 @@ static void rtmp_stream_stop(void *data, uint64_t ts)
 	if (stopping(stream) && ts != 0)
 		return;
 
-	if (connecting(stream))
+	if (stream->connecting)
 		pthread_join(stream->connect_thread, NULL);
 
 	stream->stop_ts = ts / 1000ULL;
@@ -223,7 +203,7 @@ static void rtmp_stream_stop(void *data, uint64_t ts)
 			ts +
 			(uint64_t)stream->max_shutdown_time_sec * 1000000000ULL;
 
-	if (active(stream)) {
+	if (stream->active) {
 		os_event_signal(stream->stop_event);
 		if (stream->stop_ts == 0)
 			os_sem_post(stream->send_sem);
@@ -302,7 +282,7 @@ static bool process_recv_data(struct rtmp_stream *stream, size_t size)
 
 	if (packet.m_body) {
 		if (packet.m_packetType == RTMP_PACKET_TYPE_RECONNECT) {
-			os_atomic_set_bool(&stream->silent_reconnect, true);
+			stream->silent_reconnect = true;
 		}
 		RTMPPacket_Free(&packet);
 	}
@@ -423,7 +403,7 @@ retry_send:
 
 static int handle_socket_read(struct rtmp_stream *stream)
 {
-	int ret = 0;
+	int ret;
 	int recv_size = 0;
 	if (!stream->new_socket_loop) {
 #ifdef _WIN32
@@ -447,7 +427,6 @@ static int send_packet(struct rtmp_stream *stream,
 {
 	uint8_t *data;
 	size_t size;
-	int ret = 0;
 
 	assert(idx < RTMP_MAX_STREAMS);
 	if (handle_socket_read(stream))
@@ -455,10 +434,13 @@ static int send_packet(struct rtmp_stream *stream,
 
 	if (idx > 0) {
 		flv_additional_packet_mux(
-			packet, is_header ? 0 : stream->start_dts_offset, &data,
-			&size, is_header, idx);
+			packet,
+			is_header ? 0 : (int32_t)(stream->start_dts_offset),
+			&data, &size, is_header, idx);
 	} else {
-		flv_packet_mux(packet, is_header ? 0 : stream->start_dts_offset,
+		flv_packet_mux(packet,
+			       is_header ? 0
+					 : (int32_t)(stream->start_dts_offset),
 			       &data, &size, is_header);
 	}
 
@@ -466,7 +448,7 @@ static int send_packet(struct rtmp_stream *stream,
 	droptest_cap_data_rate(stream, size);
 #endif
 
-	ret = RTMP_Write(&stream->rtmp, (char *)data, (int)size, 0);
+	int ret = RTMP_Write(&stream->rtmp, (char *)data, (int)size, 0);
 	bfree(data);
 
 	if (is_header)
@@ -484,27 +466,29 @@ static int send_packet_ex(struct rtmp_stream *stream,
 {
 	uint8_t *data;
 	size_t size = 0;
-	int ret = 0;
 
 	if (handle_socket_read(stream))
 		return -1;
 
 	if (is_header) {
 		flv_packet_start(packet, stream->video_codec,
-				 stream->start_dts_offset, &data, &size);
+				 (int32_t)(stream->start_dts_offset), &data,
+				 &size);
 	} else if (is_footer) {
 		flv_packet_end(packet, stream->video_codec,
-			       stream->start_dts_offset, &data, &size);
+			       (int32_t)(stream->start_dts_offset), &data,
+			       &size);
 	} else {
 		flv_packet_frames(packet, stream->video_codec,
-				  stream->start_dts_offset, &data, &size);
+				  (int32_t)(stream->start_dts_offset), &data,
+				  &size);
 	}
 
 #ifdef TEST_FRAMEDROPS
 	droptest_cap_data_rate(stream, size);
 #endif
 
-	ret = RTMP_Write(&stream->rtmp, (char *)data, (int)size, 0);
+	int ret = RTMP_Write(&stream->rtmp, (char *)data, (int)size, 0);
 	bfree(data);
 
 	if (is_header || is_footer) // manually created packets
@@ -684,14 +668,14 @@ static void *send_thread(void *data)
 
 		if (!stream->sent_headers) {
 			if (!send_headers(stream)) {
-				os_atomic_set_bool(&stream->disconnected, true);
+				stream->disconnected = true;
 				break;
 			}
 		}
 
 		/* silent reconnect signal received from server, reconnect on
 		 * next keyframe */
-		if (silently_reconnecting(stream) &&
+		if (stream->silent_reconnect &&
 		    packet.type == OBS_ENCODER_VIDEO && packet.keyframe) {
 			reinsert_packet_at_front(stream, &packet);
 			break;
@@ -712,7 +696,7 @@ static void *send_thread(void *data)
 		}
 
 		if (sent < 0) {
-			os_atomic_set_bool(&stream->disconnected, true);
+			stream->disconnected = true;
 			break;
 		}
 
@@ -725,14 +709,14 @@ static void *send_thread(void *data)
 		}
 	}
 
-	bool encode_error = os_atomic_load_bool(&stream->encode_error);
+	bool encode_error = stream->encode_error;
 
-	if (disconnected(stream)) {
+	if (stream->disconnected) {
 		info("Disconnected from %s", stream->path.array);
 	} else if (encode_error) {
 		info("Encoder error, disconnecting");
 		send_footers(stream); // Y2023 spec
-	} else if (silently_reconnecting(stream)) {
+	} else if (stream->silent_reconnect) {
 		info("Silent reconnect signal received from server");
 	} else {
 		info("User stopped the stream");
@@ -753,7 +737,7 @@ static void *send_thread(void *data)
 
 	set_output_error(stream);
 
-	if (silently_reconnecting(stream)) {
+	if (stream->silent_reconnect) {
 		/* manually close the socket to prevent librtmp from sending
 		 * unpublish / deletestream messages when we call RTMP_Close,
 		 * since we want to re-use this stream when we reconnect */
@@ -773,7 +757,7 @@ static void *send_thread(void *data)
 
 	if (!stopping(stream)) {
 		pthread_detach(stream->send_thread);
-		if (!silently_reconnecting(stream))
+		if (!stream->silent_reconnect)
 			obs_output_signal_stop(stream->output,
 					       OBS_OUTPUT_DISCONNECTED);
 	} else if (encode_error) {
@@ -782,10 +766,10 @@ static void *send_thread(void *data)
 		obs_output_end_data_capture(stream->output);
 	}
 
-	if (!silently_reconnecting(stream)) {
+	if (!stream->silent_reconnect) {
 		free_packets(stream);
 		os_event_reset(stream->stop_event);
-		os_atomic_set_bool(&stream->active, false);
+		stream->active = false;
 	}
 
 	stream->sent_headers = false;
@@ -798,7 +782,7 @@ static void *send_thread(void *data)
 		}
 	}
 
-	if (silently_reconnecting(stream)) {
+	if (stream->silent_reconnect) {
 		rtmp_stream_start(stream);
 	}
 
@@ -1022,7 +1006,7 @@ static int init_send(struct rtmp_stream *stream)
 	int ret;
 	obs_output_t *context = stream->output;
 
-	if (!silently_reconnecting(stream))
+	if (!stream->silent_reconnect)
 		reset_semaphore(stream);
 
 	ret = pthread_create(&stream->send_thread, NULL, send_thread, stream);
@@ -1061,8 +1045,8 @@ static int init_send(struct rtmp_stream *stream)
 		if (vencoder) {
 			obs_data_t *params = obs_encoder_get_settings(vencoder);
 			if (params) {
-				int bitrate =
-					obs_data_get_int(params, "bitrate");
+				int bitrate = (int)obs_data_get_int(params,
+								    "bitrate");
 				if (!bitrate) {
 					warn("Video encoder didn't return a "
 					     "valid bitrate, new network "
@@ -1081,8 +1065,8 @@ static int init_send(struct rtmp_stream *stream)
 		if (aencoder) {
 			obs_data_t *params = obs_encoder_get_settings(aencoder);
 			if (params) {
-				int bitrate =
-					obs_data_get_int(params, "bitrate");
+				int bitrate = (int)obs_data_get_int(params,
+								    "bitrate");
 				if (!bitrate)
 					bitrate = 160;
 				total_bitrate += bitrate;
@@ -1102,10 +1086,6 @@ static int init_send(struct rtmp_stream *stream)
 #ifdef _WIN32
 		ret = pthread_create(&stream->socket_thread, NULL,
 				     socket_thread_windows, stream);
-#else
-		warn("New socket loop not supported on this platform");
-		return OBS_OUTPUT_ERROR;
-#endif
 
 		if (ret != 0) {
 			RTMP_Close(&stream->rtmp);
@@ -1117,9 +1097,13 @@ static int init_send(struct rtmp_stream *stream)
 		stream->rtmp.m_bCustomSend = true;
 		stream->rtmp.m_customSendFunc = socket_queue_data;
 		stream->rtmp.m_customSendParam = stream;
+#else
+		warn("New socket loop not supported on this platform");
+		return OBS_OUTPUT_ERROR;
+#endif
 	}
 
-	os_atomic_set_bool(&stream->active, true);
+	stream->active = true;
 
 	if (!send_meta_data(stream)) {
 		warn("Disconnected while attempting to send metadata");
@@ -1139,7 +1123,7 @@ static int init_send(struct rtmp_stream *stream)
 		return OBS_OUTPUT_DISCONNECTED;
 	}
 
-	if (!silently_reconnecting(stream))
+	if (!stream->silent_reconnect)
 		obs_output_begin_data_capture(stream->output, 0);
 
 	return OBS_OUTPUT_SUCCESS;
@@ -1312,8 +1296,8 @@ static bool init_connect(struct rtmp_stream *stream)
 	if (!service)
 		return false;
 
-	os_atomic_set_bool(&stream->disconnected, false);
-	os_atomic_set_bool(&stream->encode_error, false);
+	stream->disconnected = false;
+	stream->encode_error = false;
 	stream->total_bytes_sent = 0;
 	stream->dropped_frames = 0;
 	stream->min_priority = 0;
@@ -1410,11 +1394,11 @@ static void *connect_thread(void *data)
 
 	os_set_thread_name("rtmp-stream: connect_thread");
 
-	if (!silently_reconnecting(stream)) {
+	if (!stream->silent_reconnect) {
 		if (!init_connect(stream)) {
 			obs_output_signal_stop(stream->output,
 					       OBS_OUTPUT_BAD_PATH);
-			os_atomic_set_bool(&stream->silent_reconnect, false);
+			stream->silent_reconnect = false;
 			return NULL;
 		}
 	} else {
@@ -1447,8 +1431,8 @@ static void *connect_thread(void *data)
 	if (!stopping(stream))
 		pthread_detach(stream->connect_thread);
 
-	os_atomic_set_bool(&stream->silent_reconnect, false);
-	os_atomic_set_bool(&stream->connecting, false);
+	stream->silent_reconnect = false;
+	stream->connecting = false;
 	return NULL;
 }
 
@@ -1456,14 +1440,14 @@ static bool rtmp_stream_start(void *data)
 {
 	struct rtmp_stream *stream = data;
 
-	if (!silently_reconnecting(stream)) {
+	if (!stream->silent_reconnect) {
 		if (!obs_output_can_begin_data_capture(stream->output, 0))
 			return false;
 		if (!obs_output_initialize_encoders(stream->output, 0))
 			return false;
 	}
 
-	os_atomic_set_bool(&stream->connecting, true);
+	stream->connecting = true;
 	return pthread_create(&stream->connect_thread, NULL, connect_thread,
 			      stream) == 0;
 }
@@ -1709,7 +1693,7 @@ static void check_to_drop_frames(struct rtmp_stream *stream, bool pframes)
 static bool add_video_packet(struct rtmp_stream *stream,
 			     struct encoder_packet *packet)
 {
-	if (!silently_reconnecting(stream)) {
+	if (!stream->silent_reconnect) {
 		check_to_drop_frames(stream, false);
 		check_to_drop_frames(stream, true);
 	}
@@ -1733,12 +1717,12 @@ static void rtmp_stream_data(void *data, struct encoder_packet *packet)
 	struct encoder_packet new_packet;
 	bool added_packet = false;
 
-	if (disconnected(stream) || !active(stream))
+	if (stream->disconnected || !stream->active)
 		return;
 
 	/* encoder fail */
 	if (!packet) {
-		os_atomic_set_bool(&stream->encode_error, true);
+		stream->encode_error = true;
 		os_sem_post(stream->send_sem);
 		return;
 	}
@@ -1769,7 +1753,7 @@ static void rtmp_stream_data(void *data, struct encoder_packet *packet)
 
 	pthread_mutex_lock(&stream->packets_mutex);
 
-	if (!disconnected(stream)) {
+	if (!stream->disconnected) {
 		added_packet = (packet->type == OBS_ENCODER_VIDEO)
 				       ? add_video_packet(stream, &new_packet)
 				       : add_packet(stream, &new_packet);

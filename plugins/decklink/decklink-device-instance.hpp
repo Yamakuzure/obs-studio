@@ -153,7 +153,7 @@ protected:
 	video_range_type colorRange = VIDEO_RANGE_DEFAULT;
 	ComPtr<IDeckLinkInput> input;
 	ComPtr<IDeckLinkOutput> output;
-	volatile long refCount = 1;
+	a_int64_t refCount = 1;
 	int64_t audioOffset = 0;
 	uint64_t nextAudioTS = 0;
 	uint64_t lastVideoTS = 0;

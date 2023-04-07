@@ -176,8 +176,8 @@ bool ffmpeg_hls_mux_start(void *data)
 		return false;
 
 	/* write headers and start capture */
-	os_atomic_set_bool(&stream->active, true);
-	os_atomic_set_bool(&stream->capturing, true);
+	stream->active = true;
+	stream->capturing = true;
 	stream->is_hls = true;
 	stream->total_bytes = 0;
 	stream->dropped_frames = 0;
@@ -287,7 +287,7 @@ void ffmpeg_hls_mux_data(void *data, struct encoder_packet *packet)
 	struct encoder_packet new_packet;
 	bool added_packet = false;
 
-	if (!active(stream))
+	if (!stream->active)
 		return;
 
 	/* encoder failure */
@@ -306,10 +306,10 @@ void ffmpeg_hls_mux_data(void *data, struct encoder_packet *packet)
 		debug_log("call send_headers()");
 		if (!send_headers(stream))
 			return;
-		os_atomic_set_bool(&stream->sent_headers, true);
+		stream->sent_headers = true;
 	}
 
-	if (stopping(stream)) {
+	if (stream->stopping) {
 		debug_log("Stopping %s deactivating stream (%ld %s %ld)",
 			  (packet->sys_dts_usec >= stream->stop_ts) ? "and"
 								    : "but NOT",
@@ -341,7 +341,7 @@ void ffmpeg_hls_mux_data(void *data, struct encoder_packet *packet)
 
 	pthread_mutex_lock(&stream->write_mutex);
 
-	if (active(stream)) {
+	if (stream->active) {
 		added_packet =
 			(packet->type == OBS_ENCODER_VIDEO)
 				? add_video_packet(stream, &new_packet)

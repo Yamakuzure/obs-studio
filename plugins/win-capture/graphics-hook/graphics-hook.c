@@ -1,3 +1,4 @@
+#include <util/threading.h>
 #include <windows.h>
 #include <psapi.h>
 #include <inttypes.h>
@@ -51,7 +52,7 @@ static HANDLE shmem_file_handle = 0;
 
 static struct thread_data thread_data = {0};
 
-volatile bool active = false;
+a_bool_t active = false;
 struct hook_info *global_hook_info = NULL;
 
 static inline void wait_for_dll_main_finish(HANDLE thread_handle)

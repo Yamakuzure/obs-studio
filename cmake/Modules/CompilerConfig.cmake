@@ -142,7 +142,7 @@ else()
 
   # Add sanitizer options if set
   if (CMAKE_SANITIZE MATCHES "[Tt]hread")
-    add_compile_options(-fsanitize=thread -ggdb)
+    add_compile_options(-fsanitize=thread -ggdb -Wno-tsan)
     add_link_options(-fsanitize=thread -ggdb)
   elseif(CMAKE_SANITIZE MATCHES "[Aa]ddress")
     add_compile_options(-fsanitize=address -ggdb)

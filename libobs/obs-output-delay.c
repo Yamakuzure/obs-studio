@@ -15,17 +15,16 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ******************************************************************************/
 
-#include <inttypes.h>
 #include "obs-internal.h"
 
 static inline bool delay_active(const struct obs_output *output)
 {
-	return os_atomic_load_bool(&output->delay_active);
+	return output->delay_active;
 }
 
 static inline bool delay_capturing(const struct obs_output *output)
 {
-	return os_atomic_load_bool(&output->delay_capturing);
+	return output->delay_capturing;
 }
 
 static inline void push_packet(struct obs_output *output,
@@ -75,7 +74,7 @@ void obs_output_cleanup_delay(obs_output_t *output)
 	}
 
 	output->active_delay_ns = 0;
-	os_atomic_set_long(&output->delay_restart_refs, 0);
+	output->delay_restart_refs = 0;
 }
 
 static inline bool pop_packet(struct obs_output *output, uint64_t t)
@@ -155,10 +154,10 @@ bool obs_output_delay_start(obs_output_t *output)
 	circlebuf_push_back(&output->delay_data, &dd, sizeof(dd));
 	pthread_mutex_unlock(&output->delay_mutex);
 
-	os_atomic_inc_long(&output->delay_restart_refs);
+	output->delay_restart_refs++;
 
 	blog(LOG_DEBUG, "[debug] obs_output_delay_start(): %ld refs",
-	     os_atomic_load_long(&output->delay_restart_refs));
+	     output->delay_restart_refs);
 
 	if (delay_active(output)) {
 		blog(LOG_DEBUG,

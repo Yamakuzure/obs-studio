@@ -85,7 +85,7 @@ struct ffmpeg_data {
 
 struct ffmpeg_output {
 	obs_output_t *output;
-	volatile bool active;
+	a_bool_t active;
 	struct ffmpeg_data ff_data;
 
 	bool connecting;
@@ -96,7 +96,7 @@ struct ffmpeg_output {
 	uint64_t audio_start_ts;
 	uint64_t video_start_ts;
 	uint64_t stop_ts;
-	volatile bool stopping;
+	a_bool_t stopping;
 
 	bool write_thread_active;
 	pthread_mutex_t write_mutex;

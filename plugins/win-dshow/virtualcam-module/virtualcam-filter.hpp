@@ -34,7 +34,7 @@ class VCamFilter : public DShow::OutputFilter {
 	DShow::VideoFormat format;
 	WinHandle thread_start;
 	WinHandle thread_stop;
-	volatile bool active = false;
+	a_bool_t active = false;
 
 	nv12_scale_t scaler = {};
 

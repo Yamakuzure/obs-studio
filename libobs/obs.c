@@ -2673,7 +2673,7 @@ obs_context_data_init_wrap(struct obs_context_data *context,
 	context->type = type;
 
 	pthread_mutex_init_value(&context->rename_cache_mutex);
-	if (pthread_mutex_init(&context->rename_cache_mutex, NULL) < 0)
+	if (pthread_mutex_init(&context->rename_cache_mutex, NULL) > 0)
 		return false;
 
 	context->signals = signal_handler_create();
@@ -3148,9 +3148,9 @@ start_raw_video(video_t *v, const struct video_scale_info *conversion,
 {
 	struct obs_core_video_mix *video = get_mix_for_video(v);
 	if (video)
-		os_atomic_inc_long(&video->raw_active);
+		video->raw_active++;
 	debug_log("calling video_output_connect() (video: %p, raw_active: %ld)",
-		  video, os_atomic_load_long(&video->raw_active));
+		  video, video->raw_active);
 	return video_output_connect(v, conversion, callback, param);
 }
 
@@ -3160,7 +3160,7 @@ void stop_raw_video(video_t *v,
 {
 	struct obs_core_video_mix *video = get_mix_for_video(v);
 	if (video)
-		os_atomic_dec_long(&video->raw_active);
+		video->raw_active--;
 	video_output_disconnect(v, callback, param);
 }
 
@@ -3253,7 +3253,7 @@ WARN_UNUSED_RESULT bool start_gpu_encode(obs_encoder_t *encoder)
 	obs_leave_graphics();
 
 	if (success) {
-		os_atomic_inc_long(&video->gpu_encoder_active);
+		video->gpu_encoder_active++;
 		video_output_inc_texture_encoders(video->video);
 	}
 
@@ -3270,7 +3270,7 @@ void stop_gpu_encode(obs_encoder_t *encoder)
 	struct obs_core_video_mix *video = get_mix_for_video(encoder->media);
 	bool call_free = false;
 
-	os_atomic_dec_long(&video->gpu_encoder_active);
+	video->gpu_encoder_active--;
 	video_output_dec_texture_encoders(video->video);
 
 	pthread_mutex_lock(&video->gpu_encoder_mutex);
@@ -3300,8 +3300,7 @@ bool obs_video_active(void)
 	for (size_t i = 0, num = obs->video.mixes.num; i < num; i++) {
 		struct obs_core_video_mix *video = obs->video.mixes.array[i];
 
-		if (os_atomic_load_long(&video->raw_active) > 0 ||
-		    os_atomic_load_long(&video->gpu_encoder_active) > 0) {
+		if (video->raw_active > 0 || video->gpu_encoder_active > 0) {
 			result = true;
 			break;
 		}

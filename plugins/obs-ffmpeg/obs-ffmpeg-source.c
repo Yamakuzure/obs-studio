@@ -58,7 +58,7 @@ struct ffmpeg_source {
 	pthread_mutex_t reconnect_mutex;
 	bool reconnect_thread_valid;
 	os_event_t *reconnect_stop_event;
-	volatile bool reconnecting;
+	a_bool_t reconnecting;
 	int reconnect_delay_sec;
 
 	enum obs_media_state state;
@@ -77,7 +77,7 @@ static void stop_reconnect_thread(struct ffmpeg_source *s)
 		os_event_signal(s->reconnect_stop_event);
 		pthread_join(s->reconnect_thread, NULL);
 		s->reconnect_thread_valid = false;
-		os_atomic_set_bool(&s->reconnecting, false);
+		s->reconnecting = false;
 		os_event_reset(s->reconnect_stop_event);
 	}
 	pthread_mutex_unlock(&s->reconnect_mutex);
@@ -283,7 +283,7 @@ static void preload_frame(void *opaque, struct obs_source_frame *f)
 	if (s->is_clear_on_media_end || s->is_looping)
 		obs_source_preload_video(s->source, f);
 
-	if (!s->is_local_file && os_atomic_set_bool(&s->reconnecting, false))
+	if (!s->is_local_file && atomic_exchange(&s->reconnecting, false))
 		FF_BLOG(LOG_INFO, "Reconnected.");
 }
 
@@ -298,7 +298,7 @@ static void get_audio(void *opaque, struct obs_source_audio *a)
 	struct ffmpeg_source *s = opaque;
 	obs_source_output_audio(s->source, a);
 
-	if (!s->is_local_file && os_atomic_set_bool(&s->reconnecting, false))
+	if (!s->is_local_file && atomic_exchange(&s->reconnecting, false))
 		FF_BLOG(LOG_INFO, "Reconnected.");
 }
 
@@ -396,7 +396,7 @@ static void ffmpeg_source_tick(void *data, float seconds)
 
 		if (!s->is_local_file) {
 			pthread_mutex_lock(&s->reconnect_mutex);
-			if (!os_atomic_set_bool(&s->reconnecting, true))
+			if (!atomic_exchange(&s->reconnecting, true)) {
 				FF_BLOG(LOG_WARNING, "Disconnected. "
 						     "Reconnecting...");
 			if (s->reconnect_thread_valid) {

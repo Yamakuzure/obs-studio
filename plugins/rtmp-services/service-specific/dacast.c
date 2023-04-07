@@ -12,7 +12,7 @@
 
 static update_info_t *dacast_update_info = NULL;
 static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
-static bool ingests_loaded = false;
+static a_bool_t ingests_loaded = false;
 
 struct dacast_ingest_info {
 	char *key;
@@ -115,7 +115,7 @@ static bool dacast_ingest_update(void *param, struct file_download_data *data)
 	pthread_mutex_unlock(&mutex);
 
 	if (success) {
-		os_atomic_set_bool(&ingests_loaded, true);
+		ingests_loaded = true;
 	}
 
 	return true;
@@ -143,7 +143,7 @@ void dacast_ingests_load_data(const char *server, const char *key)
 {
 	struct dstr uri = {0};
 
-	os_atomic_set_bool(&ingests_loaded, false);
+	ingests_loaded = false;
 
 	dstr_copy(&uri, server);
 	dstr_cat(&uri, key);
@@ -157,9 +157,9 @@ void dacast_ingests_load_data(const char *server, const char *key)
 		"[dacast ingest load data] ", get_module_name(), uri.array,
 		dacast_ingest_update, (void *)key);
 
-	if (!os_atomic_load_bool(&ingests_loaded)) {
+	if (!ingests_loaded) {
 		for (int i = 0; i < TIMEOUT_SEC * 100; i++) {
-			if (os_atomic_load_bool(&ingests_loaded)) {
+			if (ingests_loaded) {
 				break;
 			}
 			os_sleep_ms(10);

@@ -286,8 +286,8 @@ struct obs_core_video_mix {
 	struct circlebuf vframe_info_buffer_gpu;
 	gs_stagesurf_t *mapped_surfaces[NUM_CHANNELS];
 	int cur_texture;
-	volatile long raw_active;
-	volatile long gpu_encoder_active;
+	a_int64_t raw_active;
+	a_int64_t gpu_encoder_active;
 	bool gpu_was_active;
 	bool raw_was_active;
 	bool was_active;
@@ -299,7 +299,7 @@ struct obs_core_video_mix {
 	os_event_t *gpu_encode_inactive;
 	pthread_t gpu_encode_thread;
 	bool gpu_encode_thread_initialized;
-	volatile bool gpu_encode_stop;
+	a_bool_t gpu_encode_stop;
 
 	video_t *video;
 	struct obs_video_info ovi;
@@ -338,8 +338,8 @@ struct obs_core_video {
 	atomic_uint_fast64_t video_avg_frame_time_ns;
 	double video_fps;
 	pthread_t video_thread;
-	atomic_uint_fast32_t total_frames;
-	atomic_uint_fast32_t lagged_frames;
+	a_uint32_t total_frames;
+	a_uint32_t lagged_frames;
 	bool thread_initialized;
 
 	gs_texture_t *transparent_texture;
@@ -418,7 +418,7 @@ struct obs_core_data {
 
 	obs_data_t *private_data;
 
-	volatile bool valid;
+	a_bool_t valid;
 
 	DARRAY(char *, protocols);
 };
@@ -532,8 +532,8 @@ extern void stop_raw_video(video_t *video,
 /* obs shared context data */
 
 struct obs_weak_ref {
-	volatile long refs;
-	volatile long weak_refs;
+	a_int64_t refs;
+	a_int64_t weak_refs;
 };
 
 struct obs_weak_object {
@@ -606,30 +606,30 @@ extern void obs_context_data_setname_ht(struct obs_context_data *context,
 
 static inline void obs_ref_addref(struct obs_weak_ref *ref)
 {
-	os_atomic_inc_long(&ref->refs);
+	ref->refs++;
 }
 
 static inline bool obs_ref_release(struct obs_weak_ref *ref)
 {
-	return os_atomic_dec_long(&ref->refs) == -1;
+	return -1 == --ref->refs;
 }
 
 static inline void obs_weak_ref_addref(struct obs_weak_ref *ref)
 {
-	os_atomic_inc_long(&ref->weak_refs);
+	ref->weak_refs++;
 }
 
 static inline bool obs_weak_ref_release(struct obs_weak_ref *ref)
 {
-	return os_atomic_dec_long(&ref->weak_refs) == -1;
+	return -1 == --ref->weak_refs;
 }
 
 static inline bool obs_weak_ref_get_ref(struct obs_weak_ref *ref)
 {
-	long owners = os_atomic_load_long(&ref->refs);
+	a_int64_t owners = ref->refs;
 	while (owners > -1) {
-		if (os_atomic_compare_exchange_long(&ref->refs, &owners,
-						    owners + 1)) {
+		if (atomic_compare_exchange_weak(&ref->refs, &owners,
+						 owners + 1)) {
 			return true;
 		}
 	}
@@ -639,7 +639,7 @@ static inline bool obs_weak_ref_get_ref(struct obs_weak_ref *ref)
 
 static inline bool obs_weak_ref_expired(struct obs_weak_ref *ref)
 {
-	long owners = os_atomic_load_long(&ref->refs);
+	long owners = ref->refs;
 	return owners < 0;
 }
 
@@ -696,16 +696,16 @@ struct obs_source {
 	bool owns_info_id;
 
 	/* signals to call the source update in the video thread */
-	long defer_update_count;
+	a_int64_t defer_update_count;
 
 	/* ensures show/hide are only called once */
-	volatile long show_refs;
+	a_int64_t show_refs;
 
 	/* ensures activate/deactivate are only called once */
-	volatile long activate_refs;
+	a_int64_t activate_refs;
 
 	/* source is in the process of being destroyed */
-	volatile atomic_bool destroying;
+	a_bool_t destroying;
 
 	/* used to indicate that the source has been removed and all
 	 * references to it should be released (not exactly how I would prefer
@@ -725,8 +725,8 @@ struct obs_source {
 	bool texcoords_centered;
 
 	/* timing (if video is present, is based upon video) */
-	volatile bool timing_set;
-	volatile uint64_t timing_adjust;
+	a_bool_t timing_set;
+	a_uint64_t timing_adjust;
 	uint64_t resample_offset;
 	uint64_t last_audio_ts;
 	uint64_t next_audio_ts_min;
@@ -739,7 +739,7 @@ struct obs_source {
 	bool audio_failed;
 	bool audio_pending;
 	bool pending_stop;
-	bool audio_active;
+	a_bool_t audio_active;
 	bool user_muted;
 	bool muted;
 	struct obs_source *next_audio_source;
@@ -1078,7 +1078,7 @@ struct obs_output {
 
 	bool received_video;
 	bool received_audio;
-	volatile bool data_active;
+	a_bool_t data_active;
 	a_bool_t have_end_data_capture_thread;
 	int64_t video_offset;
 	int64_t audio_offsets[MAX_OUTPUT_AUDIO_ENCODERS];
@@ -1097,8 +1097,8 @@ struct obs_output {
 	float reconnect_retry_exp;
 	pthread_t reconnect_thread;
 	os_event_t *reconnect_stop_event;
-	volatile bool reconnecting;
-	volatile bool reconnect_thread_active;
+	a_bool_t reconnecting;
+	a_bool_t reconnect_thread_active;
 
 	uint32_t starting_drawn_count;
 	uint32_t starting_lagged_count;
@@ -1106,8 +1106,8 @@ struct obs_output {
 
 	int total_frames;
 
-	volatile bool active;
-	volatile bool paused;
+	a_bool_t active;
+	a_bool_t paused;
 	video_t *video;
 	audio_t *audio;
 	obs_encoder_t *video_encoder;
@@ -1149,9 +1149,9 @@ struct obs_output {
 	uint32_t delay_sec;
 	uint32_t delay_flags;
 	uint32_t delay_cur_flags;
-	volatile long delay_restart_refs;
-	volatile bool delay_active;
-	volatile bool delay_capturing;
+	a_int64_t delay_restart_refs;
+	a_bool_t delay_active;
+	a_bool_t delay_capturing;
 
 	char *last_error_message;
 
@@ -1221,8 +1221,8 @@ struct obs_encoder {
 	uint32_t scaled_height;
 	enum video_format preferred_format;
 
-	volatile bool active;
-	volatile bool paused;
+	a_bool_t active;
+	a_bool_t paused;
 	bool initialized;
 
 	/* indicates ownership of the info.id buffer */

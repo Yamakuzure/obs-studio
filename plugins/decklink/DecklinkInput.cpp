@@ -44,12 +44,12 @@ void DeckLinkInput::DevicesChanged(void *param, DeckLinkDevice *device,
 				return;
 			if (decklink->Activate(device, mode, videoConnection,
 					       audioConnection))
-				os_atomic_dec_long(&decklink->activateRefs);
+				decklink->activateRefs--;
 		}
 
 	} else if (!added && decklink->instance) {
 		if (decklink->instance->GetDevice() == device) {
-			os_atomic_inc_long(&decklink->activateRefs);
+			decklink->activateRefs++;
 			decklink->Deactivate();
 		}
 	}
@@ -106,7 +106,7 @@ bool DeckLinkInput::Activate(DeckLinkDevice *device, long long modeId,
 		return false;
 	}
 
-	os_atomic_inc_long(&activateRefs);
+	activateRefs++;
 	SaveSettings();
 	id = modeId;
 	isCapturing = true;
@@ -121,7 +121,7 @@ void DeckLinkInput::Deactivate(void)
 	isCapturing = false;
 	instance = nullptr;
 
-	os_atomic_dec_long(&activateRefs);
+	activateRefs--;
 }
 
 bool DeckLinkInput::Capturing(void)
