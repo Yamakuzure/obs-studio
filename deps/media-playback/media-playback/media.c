@@ -971,7 +971,7 @@ void mp_media_free(mp_media_t *media)
 		av_packet_free(&media->packet_pool.array[i]);
 	da_free(media->packet_pool);
 	avformat_close_input(&media->fmt);
-	pthread_mutex_destroy(&media->mutex);
+	PTHREAD_MUTEX_DESTROY_SAFE(media->mutex);
 	os_sem_destroy(media->sem);
 	sws_freeContext(media->swscale);
 	av_freep(&media->scale_pic[0]);

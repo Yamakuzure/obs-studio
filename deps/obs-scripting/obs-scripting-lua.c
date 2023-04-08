@@ -1250,7 +1250,7 @@ void obs_lua_script_destroy(obs_script_t *s)
 	struct obs_lua_script *data = (struct obs_lua_script *)s;
 
 	if (data) {
-		pthread_mutex_destroy(&data->mutex);
+		PTHREAD_MUTEX_DESTROY_SAFE(data->mutex);
 		dstr_free(&data->base.path);
 		dstr_free(&data->base.file);
 		dstr_free(&data->base.desc);
@@ -1373,7 +1373,7 @@ void obs_lua_unload(void)
 	obs_remove_tick_callback(lua_tick, NULL);
 
 	bfree(startup_script);
-	pthread_mutex_destroy(&tick_mutex);
-	pthread_mutex_destroy(&timer_mutex);
-	pthread_mutex_destroy(&lua_source_def_mutex);
+	PTHREAD_MUTEX_DESTROY_SAFE(tick_mutex);
+	PTHREAD_MUTEX_DESTROY_SAFE(timer_mutex);
+	PTHREAD_MUTEX_DESTROY_SAFE(lua_source_def_mutex);
 }

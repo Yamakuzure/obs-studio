@@ -451,7 +451,7 @@ void audio_output_close(audio_t *audio)
 		debug_log("Joining audio '%s' thread...", audio->info.name);
 		pthread_join(audio->thread, &thread_ret);
 		os_event_destroy(audio->stop_event);
-		pthread_mutex_destroy(&audio->input_mutex);
+		PTHREAD_MUTEX_DESTROY_SAFE(audio->input_mutex);
 	}
 
 	for (size_t mix_idx = 0; mix_idx < MAX_AUDIO_MIXES; mix_idx++) {

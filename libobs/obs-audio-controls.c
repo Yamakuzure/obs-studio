@@ -604,8 +604,8 @@ void obs_fader_destroy(obs_fader_t *fader)
 
 	obs_fader_detach_source(fader);
 	da_free(fader->callbacks);
-	pthread_mutex_destroy(&fader->callback_mutex);
-	pthread_mutex_destroy(&fader->mutex);
+	PTHREAD_MUTEX_DESTROY_SAFE(fader->callback_mutex);
+	PTHREAD_MUTEX_DESTROY_SAFE(fader->mutex);
 
 	bfree(fader);
 }
@@ -795,8 +795,8 @@ void obs_volmeter_destroy(obs_volmeter_t *volmeter)
 
 	obs_volmeter_detach_source(volmeter);
 	da_free(volmeter->callbacks);
-	pthread_mutex_destroy(&volmeter->callback_mutex);
-	pthread_mutex_destroy(&volmeter->mutex);
+	PTHREAD_MUTEX_DESTROY_SAFE(volmeter->callback_mutex);
+	PTHREAD_MUTEX_DESTROY_SAFE(volmeter->mutex);
 
 	bfree(volmeter);
 }

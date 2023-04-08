@@ -856,7 +856,7 @@ void obs_free_video_mix(struct obs_core_video_mix *video)
 		       sizeof(video->textures_copied));
 		video->texture_converted = false;
 
-		pthread_mutex_destroy(&video->gpu_encoder_mutex);
+		PTHREAD_MUTEX_DESTROY_SAFE(video->gpu_encoder_mutex);
 		pthread_mutex_init_value(&video->gpu_encoder_mutex);
 		da_free(video->gpu_encoders);
 
@@ -885,7 +885,7 @@ static void obs_free_video(void)
 	pthread_mutex_init_value(&obs->video.mixes_mutex);
 	da_free(obs->video.mixes);
 
-	pthread_mutex_destroy(&obs->video.task_mutex);
+	PTHREAD_MUTEX_DESTROY_SAFE(obs->video.task_mutex);
 	pthread_mutex_init_value(&obs->video.task_mutex);
 	circlebuf_free(&obs->video.tasks);
 }
@@ -975,8 +975,8 @@ static void obs_free_audio(void)
 	bfree(audio->monitoring_device_name);
 	bfree(audio->monitoring_device_id);
 	circlebuf_free(&audio->tasks);
-	pthread_mutex_destroy(&audio->task_mutex);
-	pthread_mutex_destroy(&audio->monitoring_mutex);
+	PTHREAD_MUTEX_DESTROY_SAFE(audio->task_mutex);
+	PTHREAD_MUTEX_DESTROY_SAFE(audio->monitoring_mutex);
 
 	memset(audio, 0, sizeof(struct obs_core_audio));
 }
@@ -1026,7 +1026,7 @@ void obs_main_view_free(struct obs_view *view)
 		obs_source_release(view->channels[i]);
 
 	memset(view->channels, 0, sizeof(view->channels));
-	pthread_mutex_destroy(&view->channels_mutex);
+	PTHREAD_MUTEX_DESTROY_SAFE(view->channels_mutex);
 }
 
 #define FREE_OBS_HASH_TABLE(handle, table, type)                            \
@@ -1076,13 +1076,13 @@ static void obs_free_data(void)
 
 	os_task_queue_wait(obs->destruction_task_thread);
 
-	pthread_mutex_destroy(&data->sources_mutex);
-	pthread_mutex_destroy(&data->audio_sources_mutex);
-	pthread_mutex_destroy(&data->displays_mutex);
-	pthread_mutex_destroy(&data->outputs_mutex);
-	pthread_mutex_destroy(&data->encoders_mutex);
-	pthread_mutex_destroy(&data->services_mutex);
-	pthread_mutex_destroy(&data->draw_callbacks_mutex);
+	PTHREAD_MUTEX_DESTROY_SAFE(data->sources_mutex);
+	PTHREAD_MUTEX_DESTROY_SAFE(data->audio_sources_mutex);
+	PTHREAD_MUTEX_DESTROY_SAFE(data->displays_mutex);
+	PTHREAD_MUTEX_DESTROY_SAFE(data->outputs_mutex);
+	PTHREAD_MUTEX_DESTROY_SAFE(data->encoders_mutex);
+	PTHREAD_MUTEX_DESTROY_SAFE(data->services_mutex);
+	PTHREAD_MUTEX_DESTROY_SAFE(data->draw_callbacks_mutex);
 	da_free(data->draw_callbacks);
 	da_free(data->rendered_callbacks);
 	da_free(data->tick_callbacks);
@@ -2717,7 +2717,7 @@ void obs_context_data_free(struct obs_context_data *context)
 	proc_handler_destroy(context->procs);
 	obs_data_release(context->settings);
 	obs_context_data_remove(context);
-	pthread_mutex_destroy(&context->rename_cache_mutex);
+	PTHREAD_MUTEX_DESTROY_SAFE(context->rename_cache_mutex);
 	bfree(context->name);
 	bfree((void *)context->uuid);
 

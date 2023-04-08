@@ -58,7 +58,7 @@ static void flv_output_destroy(void *data)
 {
 	struct flv_output *stream = data;
 
-	pthread_mutex_destroy(&stream->mutex);
+	PTHREAD_MUTEX_DESTROY_SAFE(stream->mutex);
 	dstr_free(&stream->path);
 	bfree(stream);
 }

@@ -742,7 +742,7 @@ static void ffmpeg_mpegts_destroy(void *data)
 
 		ffmpeg_mpegts_full_stop(output);
 
-		pthread_mutex_destroy(&output->write_mutex);
+		PTHREAD_MUTEX_DESTROY_SAFE(output->write_mutex);
 		os_sem_destroy(output->write_sem);
 		os_event_destroy(output->stop_event);
 		bfree(data);

@@ -814,7 +814,7 @@ void profiler_free(void)
 		pthread_mutex_lock(entry->mutex);
 		pthread_mutex_unlock(entry->mutex);
 
-		pthread_mutex_destroy(entry->mutex);
+		PTHREAD_MUTEX_DESTROY_SAFE(*entry->mutex);
 		bfree(entry->mutex);
 		entry->mutex = NULL;
 
@@ -826,7 +826,7 @@ void profiler_free(void)
 
 	da_free(old_root_entries);
 
-	pthread_mutex_destroy(&root_mutex);
+	PTHREAD_MUTEX_DESTROY_SAFE(root_mutex);
 }
 
 /* ------------------------------------------------------------------------- */
@@ -861,7 +861,7 @@ void profiler_name_store_free(profiler_name_store_t *store)
 
 	da_free(store->names);
 
-	pthread_mutex_destroy(&store->mutex);
+	PTHREAD_MUTEX_DESTROY_SAFE(store->mutex);
 
 	bfree(store);
 }

@@ -59,7 +59,7 @@ void obs_view_free(struct obs_view *view)
 	}
 
 	memset(view->channels, 0, sizeof(view->channels));
-	pthread_mutex_destroy(&view->channels_mutex);
+	PTHREAD_MUTEX_DESTROY_SAFE(view->channels_mutex);
 }
 
 void obs_view_destroy(obs_view_t *view)

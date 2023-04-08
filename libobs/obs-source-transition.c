@@ -64,8 +64,8 @@ bool obs_transition_init(obs_source_t *transition)
 
 void obs_transition_free(obs_source_t *transition)
 {
-	pthread_mutex_destroy(&transition->transition_mutex);
-	pthread_mutex_destroy(&transition->transition_tex_mutex);
+	PTHREAD_MUTEX_DESTROY_SAFE(transition->transition_mutex);
+	PTHREAD_MUTEX_DESTROY_SAFE(transition->transition_tex_mutex);
 
 	gs_enter_context(obs->video.graphics);
 	gs_texrender_destroy(transition->transition_texrender[0]);

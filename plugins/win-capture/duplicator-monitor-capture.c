@@ -397,7 +397,7 @@ static void duplicator_actual_destroy(void *data)
 		capture->winrt_module = NULL;
 	}
 
-	pthread_mutex_destroy(&capture->update_mutex);
+	PTHREAD_MUTEX_DESTROY_SAFE(capture->update_mutex);
 
 	bfree(capture);
 }

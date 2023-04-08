@@ -173,5 +173,5 @@ void unload_dacast_data(void)
 {
 	update_info_destroy(dacast_update_info);
 	free_ingests();
-	pthread_mutex_destroy(&mutex);
+	PTHREAD_MUTEX_DESTROY_SAFE(mutex);
 }

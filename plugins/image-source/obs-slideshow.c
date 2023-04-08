@@ -3,6 +3,7 @@
 #include <util/platform.h>
 #include <util/darray.h>
 #include <util/dstr.h>
+#include <util/threading.h>
 
 #define do_log(level, format, ...)               \
 	blog(level, "[slideshow: '%s'] " format, \
@@ -671,7 +672,7 @@ static void ss_destroy(void *data)
 
 	obs_source_release(ss->transition);
 	free_files(&ss->files.da);
-	pthread_mutex_destroy(&ss->mutex);
+	PTHREAD_MUTEX_DESTROY_SAFE(ss->mutex);
 	calldata_free(&ss->cd);
 	bfree(ss);
 }

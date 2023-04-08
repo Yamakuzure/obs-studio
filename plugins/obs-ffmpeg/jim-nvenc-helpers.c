@@ -335,5 +335,5 @@ void jim_nvenc_load(bool h264, bool hevc, bool av1)
 
 void jim_nvenc_unload(void)
 {
-	pthread_mutex_destroy(&init_mutex);
+	PTHREAD_MUTEX_DESTROY_SAFE(init_mutex);
 }

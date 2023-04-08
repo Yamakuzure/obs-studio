@@ -246,8 +246,8 @@ static void scene_destroy(void *data)
 
 	remove_all_items(scene);
 
-	pthread_mutex_destroy(&scene->video_mutex);
-	pthread_mutex_destroy(&scene->audio_mutex);
+	PTHREAD_MUTEX_DESTROY_SAFE(scene->video_mutex);
+	PTHREAD_MUTEX_DESTROY_SAFE(scene->audio_mutex);
 	bfree(scene);
 }
 
@@ -2191,7 +2191,7 @@ static void obs_sceneitem_destroy(obs_sceneitem_t *item)
 		}
 		obs_data_release(item->private_settings);
 		obs_hotkey_pair_unregister(item->toggle_visibility);
-		pthread_mutex_destroy(&item->actions_mutex);
+		PTHREAD_MUTEX_DESTROY_SAFE(item->actions_mutex);
 		signal_handler_disconnect(
 			obs_source_get_signal_handler(item->source), "rename",
 			sceneitem_renamed, item);

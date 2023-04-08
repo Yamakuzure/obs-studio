@@ -93,8 +93,8 @@ obs_display_t *obs_display_create(const struct gs_init_data *graphics_data,
 
 void obs_display_free(obs_display_t *display)
 {
-	pthread_mutex_destroy(&display->draw_callbacks_mutex);
-	pthread_mutex_destroy(&display->draw_info_mutex);
+	PTHREAD_MUTEX_DESTROY_SAFE(display->draw_callbacks_mutex);
+	PTHREAD_MUTEX_DESTROY_SAFE(display->draw_info_mutex);
 	da_free(display->draw_callbacks);
 
 	if (display->swap) {

@@ -226,7 +226,7 @@ static void noise_suppress_destroy(void *data)
 		if (ng->use_nvafx)
 			pthread_join(ng->nvafx_thread, NULL);
 		pthread_mutex_unlock(&ng->nvafx_mutex);
-		pthread_mutex_destroy(&ng->nvafx_mutex);
+		PTHREAD_MUTEX_DESTROY_SAFE(ng->nvafx_mutex);
 	}
 #endif
 
@@ -755,7 +755,7 @@ void unload_nvafx(void)
 	release_lib();
 
 	if (nvafx_initializer_mutex_initialized) {
-		pthread_mutex_destroy(&nvafx_initializer_mutex);
+		PTHREAD_MUTEX_DESTROY_SAFE(nvafx_initializer_mutex);
 		nvafx_initializer_mutex_initialized = false;
 	}
 }

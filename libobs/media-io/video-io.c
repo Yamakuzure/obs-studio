@@ -301,8 +301,8 @@ void video_output_close(video_t *video)
 
 	pthread_mutex_unlock(&video->input_mutex);
 	os_sem_destroy(video->update_semaphore);
-	pthread_mutex_destroy(&video->data_mutex);
-	pthread_mutex_destroy(&video->input_mutex);
+	PTHREAD_MUTEX_DESTROY_SAFE(video->data_mutex);
+	PTHREAD_MUTEX_DESTROY_SAFE(video->input_mutex);
 
 	bfree(video);
 }

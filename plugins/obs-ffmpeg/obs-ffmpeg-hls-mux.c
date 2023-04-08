@@ -31,7 +31,7 @@ void ffmpeg_hls_mux_destroy(void *data)
 		debug_log("Deactivating stream...");
 		deactivate(stream, 0);
 
-		pthread_mutex_destroy(&stream->write_mutex);
+		PTHREAD_MUTEX_DESTROY_SAFE(stream->write_mutex);
 		os_sem_destroy(stream->write_sem);
 		os_event_destroy(stream->stop_event);
 

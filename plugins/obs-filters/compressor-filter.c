@@ -302,8 +302,8 @@ static void compressor_destroy(void *data)
 		circlebuf_free(&cd->sidechain_data[i]);
 		bfree(cd->sidechain_buf[i]);
 	}
-	pthread_mutex_destroy(&cd->sidechain_mutex);
-	pthread_mutex_destroy(&cd->sidechain_update_mutex);
+	PTHREAD_MUTEX_DESTROY_SAFE(cd->sidechain_mutex);
+	PTHREAD_MUTEX_DESTROY_SAFE(cd->sidechain_update_mutex);
 
 	bfree(cd->sidechain_name);
 	bfree(cd->envelope_buf);

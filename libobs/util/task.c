@@ -93,7 +93,7 @@ void os_task_queue_destroy(os_task_queue_t *tq)
 	pthread_join(tq->thread, NULL);
 	os_event_destroy(tq->wait_event);
 	os_sem_destroy(tq->sem);
-	pthread_mutex_destroy(&tq->mutex);
+	PTHREAD_MUTEX_DESTROY_SAFE(tq->mutex);
 	circlebuf_free(&tq->tasks);
 	bfree(tq);
 }

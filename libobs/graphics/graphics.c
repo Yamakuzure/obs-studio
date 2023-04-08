@@ -252,8 +252,8 @@ void gs_destroy(graphics_t *graphics)
 		thread_graphics = NULL;
 	}
 
-	pthread_mutex_destroy(&graphics->mutex);
-	pthread_mutex_destroy(&graphics->effect_mutex);
+	PTHREAD_MUTEX_DESTROY_SAFE(graphics->mutex);
+	PTHREAD_MUTEX_DESTROY_SAFE(graphics->effect_mutex);
 	da_free(graphics->matrix_stack);
 	da_free(graphics->viewport_stack);
 	da_free(graphics->blend_state_stack);

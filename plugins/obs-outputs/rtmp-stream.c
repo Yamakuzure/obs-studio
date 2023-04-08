@@ -114,19 +114,19 @@ static void rtmp_stream_destroy(void *data)
 	dstr_free(&stream->bind_ip);
 	os_event_destroy(stream->stop_event);
 	os_sem_destroy(stream->send_sem);
-	pthread_mutex_destroy(&stream->packets_mutex);
+	PTHREAD_MUTEX_DESTROY_SAFE(stream->packets_mutex);
 	circlebuf_free(&stream->packets);
 #ifdef TEST_FRAMEDROPS
 	circlebuf_free(&stream->droptest_info);
 #endif
 	circlebuf_free(&stream->dbr_frames);
-	pthread_mutex_destroy(&stream->dbr_mutex);
+	PTHREAD_MUTEX_DESTROY_SAFE(stream->dbr_mutex);
 
 	os_event_destroy(stream->buffer_space_available_event);
 	os_event_destroy(stream->buffer_has_data_event);
 	os_event_destroy(stream->socket_available_event);
 	os_event_destroy(stream->send_thread_signaled_exit);
-	pthread_mutex_destroy(&stream->write_buf_mutex);
+	PTHREAD_MUTEX_DESTROY_SAFE(stream->write_buf_mutex);
 
 	if (stream->write_buf)
 		bfree(stream->write_buf);

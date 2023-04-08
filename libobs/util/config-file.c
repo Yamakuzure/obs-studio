@@ -484,7 +484,7 @@ void config_close(config_t *config)
 	}
 
 	bfree(config->file);
-	pthread_mutex_destroy(&config->mutex);
+	PTHREAD_MUTEX_DESTROY_SAFE(config->mutex);
 	bfree(config);
 }
 

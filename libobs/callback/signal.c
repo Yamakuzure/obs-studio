@@ -59,7 +59,7 @@ static inline struct signal_info *signal_info_create(struct decl_info *info)
 static inline void signal_info_destroy(struct signal_info *si)
 {
 	if (si) {
-		pthread_mutex_destroy(&si->mutex);
+		PTHREAD_MUTEX_DESTROY_SAFE(si->mutex);
 		decl_info_free(&si->func);
 		da_free(si->callbacks);
 		bfree(si);
@@ -151,8 +151,8 @@ static void signal_handler_actually_destroy(signal_handler_t *handler)
 	}
 
 	da_free(handler->global_callbacks);
-	pthread_mutex_destroy(&handler->global_callbacks_mutex);
-	pthread_mutex_destroy(&handler->mutex);
+	PTHREAD_MUTEX_DESTROY_SAFE(handler->global_callbacks_mutex);
+	PTHREAD_MUTEX_DESTROY_SAFE(handler->mutex);
 	bfree(handler);
 }
 

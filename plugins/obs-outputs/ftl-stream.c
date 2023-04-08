@@ -193,7 +193,7 @@ static void ftl_stream_destroy(void *data)
 	dstr_free(&stream->bind_ip);
 	os_event_destroy(stream->stop_event);
 	os_sem_destroy(stream->send_sem);
-	pthread_mutex_destroy(&stream->packets_mutex);
+	PTHREAD_MUTEX_DESTROY_SAFE(stream->packets_mutex);
 	circlebuf_free(&stream->packets);
 	bfree(stream);
 }

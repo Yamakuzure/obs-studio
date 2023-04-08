@@ -67,7 +67,7 @@ int os_event_init(os_event_t **event, enum os_event_type type)
 void os_event_destroy(os_event_t *event)
 {
 	if (event) {
-		pthread_mutex_destroy(&event->mutex);
+		PTHREAD_MUTEX_DESTROY_SAFE(event->mutex);
 		pthread_cond_destroy(&event->cond);
 		bfree(event);
 	}

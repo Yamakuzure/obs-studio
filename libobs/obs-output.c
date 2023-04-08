@@ -208,10 +208,10 @@ void obs_output_destroy(obs_output_t *output)
 		clear_raw_audio_buffers(output);
 
 		os_event_destroy(output->stopping_event);
-		pthread_mutex_destroy(&output->pause.mutex);
-		pthread_mutex_destroy(&output->caption_mutex);
-		pthread_mutex_destroy(&output->interleaved_mutex);
-		pthread_mutex_destroy(&output->delay_mutex);
+		PTHREAD_MUTEX_DESTROY_SAFE(output->pause.mutex);
+		PTHREAD_MUTEX_DESTROY_SAFE(output->caption_mutex);
+		PTHREAD_MUTEX_DESTROY_SAFE(output->interleaved_mutex);
+		PTHREAD_MUTEX_DESTROY_SAFE(output->delay_mutex);
 		os_event_destroy(output->reconnect_stop_event);
 		obs_context_data_free(&output->context);
 		circlebuf_free(&output->delay_data);

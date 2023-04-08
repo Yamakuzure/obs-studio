@@ -43,7 +43,7 @@ static void jack_destroy(void *vptr)
 
 	if (data->device)
 		bfree(data->device);
-	pthread_mutex_destroy(&data->jack_mutex);
+	PTHREAD_MUTEX_DESTROY_SAFE(data->jack_mutex);
 	bfree(data);
 }
 

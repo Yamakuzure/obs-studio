@@ -21,6 +21,7 @@
 #include <util/platform.h>
 #include <util/dstr.h>
 #include <util/darray.h>
+#include <util/threading.h>
 
 #define WIN_STRING_DIV "\r\n"
 #define FIND_WINDOW_INTERVAL 0.5
@@ -605,7 +606,7 @@ static void xcompcap_destroy(void *data)
 	pthread_mutex_unlock(&s->lock);
 	obs_leave_graphics();
 
-	pthread_mutex_destroy(&s->lock);
+	PTHREAD_MUTEX_DESTROY_SAFE(s->lock);
 	bfree(s);
 }
 

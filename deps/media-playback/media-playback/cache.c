@@ -615,7 +615,7 @@ void mp_cache_free(mp_cache_t *c)
 
 	bfree(c->path);
 	bfree(c->format_name);
-	pthread_mutex_destroy(&c->mutex);
+	PTHREAD_MUTEX_DESTROY_SAFE(c->mutex);
 	os_sem_destroy(c->sem);
 	memset(c, 0, sizeof(*c));
 }

@@ -1795,8 +1795,8 @@ out:
 void obs_python_unload(void)
 {
 	if (mutexes_loaded) {
-		pthread_mutex_destroy(&tick_mutex);
-		pthread_mutex_destroy(&timer_mutex);
+		PTHREAD_MUTEX_DESTROY_SAFE(tick_mutex);
+		PTHREAD_MUTEX_DESTROY_SAFE(timer_mutex);
 	}
 
 	if (!python_loaded_at_all)

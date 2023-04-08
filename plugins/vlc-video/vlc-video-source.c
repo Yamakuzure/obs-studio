@@ -361,7 +361,7 @@ static void vlcs_destroy(void *data)
 	obs_source_frame_free(&c->frame);
 
 	free_files(&c->files.da);
-	pthread_mutex_destroy(&c->mutex);
+	PTHREAD_MUTEX_DESTROY_SAFE(c->mutex);
 	bfree(c);
 }
 

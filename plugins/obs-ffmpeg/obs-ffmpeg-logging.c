@@ -126,7 +126,7 @@ void obs_ffmpeg_unload_logging(void)
 	logging_initialized = false;
 
 	av_log_set_callback(av_log_default_callback);
-	pthread_mutex_destroy(&log_contexts_mutex);
+	PTHREAD_MUTEX_DESTROY_SAFE(log_contexts_mutex);
 
 	for (size_t i = 0; i < active_log_contexts.num; i++) {
 		bfree(active_log_contexts.array[i]);

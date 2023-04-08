@@ -275,10 +275,10 @@ static void obs_encoder_actually_destroy(obs_encoder_t *encoder)
 		if (encoder->context.data)
 			encoder->info.destroy(encoder->context.data);
 		da_free(encoder->callbacks);
-		pthread_mutex_destroy(&encoder->init_mutex);
-		pthread_mutex_destroy(&encoder->callbacks_mutex);
-		pthread_mutex_destroy(&encoder->outputs_mutex);
-		pthread_mutex_destroy(&encoder->pause.mutex);
+		PTHREAD_MUTEX_DESTROY_SAFE(encoder->init_mutex);
+		PTHREAD_MUTEX_DESTROY_SAFE(encoder->callbacks_mutex);
+		PTHREAD_MUTEX_DESTROY_SAFE(encoder->outputs_mutex);
+		PTHREAD_MUTEX_DESTROY_SAFE(encoder->pause.mutex);
 		obs_context_data_free(&encoder->context);
 		if (encoder->owns_info_id)
 			bfree((void *)encoder->info.id);

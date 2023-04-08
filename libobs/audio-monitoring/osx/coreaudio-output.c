@@ -278,7 +278,7 @@ static void audio_monitor_free(struct audio_monitor *monitor)
 	audio_resampler_destroy(monitor->resampler);
 	circlebuf_free(&monitor->empty_buffers);
 	circlebuf_free(&monitor->new_data);
-	pthread_mutex_destroy(&monitor->mutex);
+	PTHREAD_MUTEX_DESTROY_SAFE(monitor->mutex);
 }
 
 static void audio_monitor_init_final(struct audio_monitor *monitor)

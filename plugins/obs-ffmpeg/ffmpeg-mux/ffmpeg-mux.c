@@ -241,7 +241,7 @@ static void ffmpeg_mux_free(struct ffmpeg_mux *ffm)
 		os_event_destroy(ffm->io.new_data_available_event);
 		os_event_destroy(ffm->io.buffer_space_available_event);
 
-		pthread_mutex_destroy(&ffm->io.data_mutex);
+		PTHREAD_MUTEX_DESTROY_SAFE(ffm->io.data_mutex);
 
 		circlebuf_free(&ffm->io.data);
 	}

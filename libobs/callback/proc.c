@@ -75,7 +75,7 @@ void proc_handler_destroy(proc_handler_t *handler)
 		proc_info_free(handler->procs.array + i);
 
 	da_free(handler->procs);
-	pthread_mutex_destroy(&handler->mutex);
+	PTHREAD_MUTEX_DESTROY_SAFE(handler->mutex);
 	bfree(handler);
 }
 

@@ -328,7 +328,7 @@ static void wc_actual_destroy(void *data)
 	if (wc->winrt_module)
 		os_dlclose(wc->winrt_module);
 
-	pthread_mutex_destroy(&wc->update_mutex);
+	PTHREAD_MUTEX_DESTROY_SAFE(wc->update_mutex);
 
 	bfree(wc);
 }

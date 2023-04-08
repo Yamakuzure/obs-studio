@@ -217,5 +217,5 @@ void unload_twitch_data(void)
 {
 	update_info_destroy(twitch_update_info);
 	free_ingests();
-	pthread_mutex_destroy(&mutex);
+	PTHREAD_MUTEX_DESTROY_SAFE(mutex);
 }
