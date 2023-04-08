@@ -2292,7 +2292,7 @@ bool AdvancedOutput::StartReplayBuffer()
 	const char *recFormat;
 	const char *filenameFormat;
 	bool noSpace = false;
-	bool overwriteIfExists = false;
+	[[maybe_unused]] bool overwriteIfExists = false;
 	const char *rbPrefix;
 	const char *rbSuffix;
 	int rbTime;

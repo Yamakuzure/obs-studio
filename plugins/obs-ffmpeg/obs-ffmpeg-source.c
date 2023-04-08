@@ -399,6 +399,7 @@ static void ffmpeg_source_tick(void *data, float seconds)
 			if (!atomic_exchange(&s->reconnecting, true)) {
 				FF_BLOG(LOG_WARNING, "Disconnected. "
 						     "Reconnecting...");
+			}
 			if (s->reconnect_thread_valid) {
 				os_event_signal(s->reconnect_stop_event);
 				pthread_join(s->reconnect_thread, NULL);
