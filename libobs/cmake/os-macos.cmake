@@ -36,7 +36,6 @@ target_sources(
           util/platform-cocoa.m
           util/platform-nix.c
           util/threading-posix.c
-          util/threading-posix.h
           util/apple/cfstring-utils.h)
 
 set_property(SOURCE util/platform-cocoa.m obs-cocoa.m PROPERTY COMPILE_FLAGS -fobjc-arc)

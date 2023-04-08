@@ -27,13 +27,21 @@
 #include "c17atomics.h"
 #include "c99defs.h"
 
-#ifndef _MSC_VER
-#include <errno.h>
-#endif
 #include <pthread.h>
 
 #ifdef __cplusplus
+#ifndef _MSC_VER
+#include <cerrno>
+#endif // !_MSC_VER
 extern "C" {
+#else
+#ifndef _MSC_VER
+#include <errno.h>
+#endif // !_MSC_VER
+#endif // __cplusplus
+
+#ifdef _WIN32
+#include "threading-windows.h"
 #endif
 
 /* this may seem strange, but you can't use it unless it's an initializer */
@@ -95,13 +103,11 @@ EXPORT void os_set_thread_name(const char *name);
 
 // --- use this to ensure that a mutex is not locked when destroyed ---
 #define PTHREAD_MUTEX_DESTROY_SAFE(m)        \
-	{                                    \
+	({                                   \
 		pthread_mutex_lock(&(m));    \
 		pthread_mutex_unlock(&(m));  \
 		pthread_mutex_destroy(&(m)); \
-	}                                    \
-	do {                                 \
-	} while (0)
+	})
 
 #ifdef __cplusplus
 }

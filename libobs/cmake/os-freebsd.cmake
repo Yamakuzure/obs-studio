@@ -23,8 +23,7 @@ target_sources(
           obs-nix-x11.c
           util/pipe-posix.c
           util/platform-nix.c
-          util/threading-posix.c
-          util/threading-posix.h)
+          util/threading-posix.c)
 
 if(ENABLE_PULSEAUDIO)
   find_package(PulseAudio REQUIRED)

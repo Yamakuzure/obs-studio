@@ -351,7 +351,6 @@ elseif(OS_MACOS)
             util/platform-cocoa.m
             util/platform-nix.c
             util/threading-posix.c
-            util/threading-posix.h
             util/apple/cfstring-utils.h
             audio-monitoring/osx/coreaudio-enum-devices.c
             audio-monitoring/osx/coreaudio-output.c
@@ -383,7 +382,6 @@ elseif(OS_POSIX)
             obs-nix-platform.h
             obs-nix-x11.c
             util/threading-posix.c
-            util/threading-posix.h
             util/pipe-posix.c
             util/platform-nix.c)
 
