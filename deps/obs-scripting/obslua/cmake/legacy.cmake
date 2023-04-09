@@ -50,7 +50,7 @@ set_target_properties(obslua PROPERTIES SWIG_COMPILE_DEFINITIONS "${_SWIG_DEFINI
 
 if(OS_WINDOWS)
   if(MSVC)
-    target_compile_options(obslua PRIVATE /wd4054 /wd4189 /wd4197 /wd4244 /wd4267)
+    target_compile_options(obslua PRIVATE /wd4054 /wd4090 /wd4189 /wd4197 /wd4244 /wd4267)
   endif()
 elseif(OS_MACOS)
   set_target_properties(obslua PROPERTIES MACHO_CURRENT_VERSION 0 MACHO_COMPATIBILITY_VERSION 0)

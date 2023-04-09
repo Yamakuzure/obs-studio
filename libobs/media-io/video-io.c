@@ -464,7 +464,7 @@ video_output_connect(video_t *video, const struct video_scale_info *conversion,
 
 static void log_skipped(video_t *video)
 {
-	long skipped = video->skipped_frames;
+	long skipped = (long)video->skipped_frames;
 	double percentage_skipped =
 		(double)skipped / (double)video->total_frames * 100.;
 

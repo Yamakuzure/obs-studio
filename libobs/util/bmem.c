@@ -154,7 +154,7 @@ void bfree(void *ptr)
 
 long bnum_allocs(void)
 {
-	return num_allocs;
+	return (long)num_allocs;
 }
 
 int base_get_alignment(void)

@@ -1243,6 +1243,7 @@ static void amf_avc_update_data(amf_base *enc, int rc, int64_t bitrate,
 	}
 }
 
+#if 0 /// Wait for fix
 static bool amf_avc_update(void *data, obs_data_t *settings)
 try {
 	amf_base *enc = (amf_base *)data;
@@ -1272,6 +1273,7 @@ try {
 	      amf_trace->GetResultText(err.res));
 	return false;
 }
+#endif // 0
 
 static bool amf_avc_init(void *data, obs_data_t *settings)
 {
@@ -1563,6 +1565,7 @@ static void amf_hevc_update_data(amf_base *enc, int rc, int64_t bitrate,
 	}
 }
 
+#if 0 /// Wait for fix
 static bool amf_hevc_update(void *data, obs_data_t *settings)
 try {
 	amf_base *enc = (amf_base *)data;
@@ -1592,6 +1595,7 @@ try {
 	      amf_trace->GetResultText(err.res));
 	return false;
 }
+#endif // 0
 
 static bool amf_hevc_init(void *data, obs_data_t *settings)
 {
@@ -1923,6 +1927,7 @@ static void amf_av1_update_data(amf_base *enc, int rc, int64_t bitrate,
 	}
 }
 
+#if 0 /// Wait for fix
 static bool amf_av1_update(void *data, obs_data_t *settings)
 try {
 	amf_base *enc = (amf_base *)data;
@@ -1951,6 +1956,7 @@ try {
 	      amf_trace->GetResultText(err.res));
 	return false;
 }
+#endif // 0
 
 static bool amf_av1_init(void *data, obs_data_t *settings)
 {

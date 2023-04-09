@@ -30,7 +30,7 @@ static void *tiny_tubular_task_thread(void *param);
 os_task_queue_t *os_task_queue_create()
 {
 	struct os_task_queue *tq = bzalloc(sizeof(*tq));
-	tq->id = ++thread_id_counter;
+	tq->id = (long)++thread_id_counter;
 
 	if (pthread_mutex_init(&tq->mutex, NULL) != 0)
 		goto fail1;

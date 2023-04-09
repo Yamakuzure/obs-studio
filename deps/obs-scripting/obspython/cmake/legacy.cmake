@@ -61,7 +61,7 @@ if(OS_WINDOWS)
 
   target_link_libraries(obspython PRIVATE Python::Python)
 
-  target_compile_options(obspython PRIVATE /wd4100 /wd4197 /wd4701)
+  target_compile_options(obspython PRIVATE /wd4090 /wd4100 /wd4197 /wd4701)
 
   if(MSVC)
     add_custom_command(

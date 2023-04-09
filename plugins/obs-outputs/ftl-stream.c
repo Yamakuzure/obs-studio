@@ -25,6 +25,7 @@
 #include "ftl.h"
 
 #ifdef _WIN32
+#include "net-if.h"
 #include <Iphlpapi.h>
 #else
 #define INFINITE 0xFFFFFFFF
