@@ -6,6 +6,7 @@
 #endif
 
 #include "../graphics-hook-info.h"
+#include "../../libobs/util/c17atomics.h"
 #include <ipc-util/pipe.h>
 #include <psapi.h>
 

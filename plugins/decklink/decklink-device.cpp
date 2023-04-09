@@ -19,12 +19,12 @@ DeckLinkDevice::~DeckLinkDevice(void)
 
 ULONG DeckLinkDevice::AddRef()
 {
-	return (ULONG)refCount++;
+	return (ULONG)++refCount;
 }
 
 ULONG DeckLinkDevice::Release()
 {
-	ULONG ret = (ULONG)refCount--;
+	ULONG ret = (ULONG)--refCount;
 	if (ret == 0)
 		delete this;
 	return ret;

@@ -87,12 +87,12 @@ STDMETHODIMP CaptionStream::QueryInterface(REFIID riid, void **ppv)
 
 STDMETHODIMP_(ULONG) CaptionStream::AddRef()
 {
-	return (ULONG)(refs++);
+	return (ULONG)(++refs);
 }
 
 STDMETHODIMP_(ULONG) CaptionStream::Release()
 {
-	ULONG new_refs = (ULONG)(refs--);
+	ULONG new_refs = (ULONG)(--refs);
 	if (!new_refs)
 		delete this;
 

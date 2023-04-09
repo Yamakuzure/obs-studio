@@ -970,11 +970,11 @@ uint32_t obs_get_source_output_flags(const char *id)
 static void obs_source_deferred_update(obs_source_t *source)
 {
 	if (source->context.data && source->info.update) {
-		a_int64_t count = source->defer_update_count;
+		a_int64_t *refs = &source->defer_update_count;
+		int64_t count = *refs;
 		source->info.update(source->context.data,
 				    source->context.settings);
-		atomic_compare_exchange_strong(&source->defer_update_count,
-					       &count, 0);
+		atomic_compare_exchange_strong(refs, &count, 0);
 		obs_source_dosignal(source, "source_update", "update");
 	}
 }

@@ -626,10 +626,10 @@ static inline bool obs_weak_ref_release(struct obs_weak_ref *ref)
 
 static inline bool obs_weak_ref_get_ref(struct obs_weak_ref *ref)
 {
-	a_int64_t owners = ref->refs;
+	a_int64_t *refs = &ref->refs;
+	int64_t owners = *refs;
 	while (owners > -1) {
-		if (atomic_compare_exchange_weak(&ref->refs, &owners,
-						 owners + 1)) {
+		if (atomic_compare_exchange_weak(refs, &owners, owners + 1)) {
 			return true;
 		}
 	}
@@ -639,7 +639,7 @@ static inline bool obs_weak_ref_get_ref(struct obs_weak_ref *ref)
 
 static inline bool obs_weak_ref_expired(struct obs_weak_ref *ref)
 {
-	long owners = ref->refs;
+	long owners = (long)ref->refs;
 	return owners < 0;
 }
 

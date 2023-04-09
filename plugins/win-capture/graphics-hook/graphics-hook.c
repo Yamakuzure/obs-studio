@@ -1,4 +1,3 @@
-#include <util/threading.h>
 #include <windows.h>
 #include <psapi.h>
 #include <inttypes.h>

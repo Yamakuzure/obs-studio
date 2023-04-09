@@ -23,7 +23,8 @@
 #include "obs-internal.h"
 
 #ifdef _MSC_VER
-#pragma warning(disable : 4132) /* not initialized const object - needed here for forwarding */
+#pragma warning( \
+	disable : 4132) /* not initialized const object - needed here for forwarding */
 #endif
 const struct obs_source_info group_info;
 
@@ -1949,10 +1950,10 @@ void obs_scene_enum_items(obs_scene_t *scene,
 
 static obs_sceneitem_t *sceneitem_get_ref(obs_sceneitem_t *si)
 {
-	long owners = si->ref;
+	a_int64_t *ref = &si->ref;
+	int64_t owners = *ref;
 	while (owners > 0) {
-		if (atomic_compare_exchange_weak(&si->ref, &owners,
-						 owners + 1)) {
+		if (atomic_compare_exchange_weak(ref, &owners, owners + 1)) {
 			return si;
 		}
 	}

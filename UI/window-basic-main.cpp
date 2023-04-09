@@ -126,7 +126,7 @@ template<typename OBSRef> struct SignalContainer {
 };
 }
 
-extern volatile long insideEventLoop;
+extern a_int64_t insideEventLoop;
 
 Q_DECLARE_METATYPE(OBSScene);
 Q_DECLARE_METATYPE(OBSSceneItem);

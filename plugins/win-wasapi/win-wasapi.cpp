@@ -318,12 +318,12 @@ public:
 
 	STDMETHODIMP_(ULONG) AddRef()
 	{
-		return (ULONG)(refs++);
+		return (ULONG)++refs;
 	}
 
 	STDMETHODIMP_(ULONG) STDMETHODCALLTYPE Release()
 	{
-		long val = (long)(refs--);
+		long val = (long)--refs;
 		if (val == 0)
 			delete this;
 		return (ULONG)val;

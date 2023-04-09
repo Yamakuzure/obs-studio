@@ -51,12 +51,12 @@ STDMETHODIMP VCamFactory::QueryInterface(REFIID riid, void **p_ptr)
 
 STDMETHODIMP_(ULONG) VCamFactory::AddRef()
 {
-	return (ULONG)refs++;
+	return (ULONG)++refs;
 }
 
 STDMETHODIMP_(ULONG) VCamFactory::Release()
 {
-	long new_refs = (long)refs--;
+	long new_refs = (long)--refs;
 	if (new_refs == 0) {
 		delete this;
 		return 0;
