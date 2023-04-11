@@ -23,6 +23,7 @@ enum ffm_packet_type {
 	FFM_PACKET_VIDEO,
 	FFM_PACKET_AUDIO,
 	FFM_PACKET_CHANGE_FILE,
+	FFM_PACKET_EXIT
 };
 
 #define FFM_SUCCESS 0

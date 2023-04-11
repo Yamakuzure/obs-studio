@@ -1312,6 +1312,8 @@ int main(int argc, char *argv[])
 						 argc, argv);
 			continue;
 		}
+		if (info.type == FFM_PACKET_EXIT)
+			break;
 
 		resize_buf_resize(&rb, info.size);
 

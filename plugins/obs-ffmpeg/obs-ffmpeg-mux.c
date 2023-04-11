@@ -510,6 +510,13 @@ int deactivate(struct ffmpeg_muxer *stream, int code)
 		  stream->sent_headers ? "true" : "false",
 		  stream->stopping ? "true" : "false");
 
+	if (stream->active) {
+		debug_log("Sending exit packet...");
+		struct ffm_packet_info info = {.type = FFM_PACKET_EXIT};
+		os_process_pipe_write(stream->pipe, (const uint8_t *)&info,
+				      sizeof(info));
+	}
+
 	if (stream->is_hls) {
 		debug_log("Deactivating '%s' %s joining mux_thread",
 			  stream_path,
