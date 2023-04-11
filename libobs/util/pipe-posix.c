@@ -35,7 +35,7 @@ os_process_pipe_t *os_process_pipe_create(const char *cmd_line,
 		return NULL;
 	}
 
-	debug_log("opening input/output pipe for: \"%s\" (%s)", cmd_line, type);
+	debug_log("opening pipe for: \"%s\" (%s)", cmd_line, type);
 	pipe.file = popen(cmd_line, type);
 	pipe.read_pipe = *type == 'r';
 
@@ -54,7 +54,10 @@ int os_process_pipe_destroy(os_process_pipe_t *pp)
 	int ret = 0;
 
 	if (pp) {
+		debug_log("Closing '%s' pipe",
+			  pp->read_pipe ? "read" : "write");
 		int status = pclose(pp->file);
+		debug_log("Result: 0x%08x (WIF 0x%08x)", status, (status)&0x7f);
 		if (WIFEXITED(status))
 			ret = (int)(char)WEXITSTATUS(status);
 		bfree(pp);

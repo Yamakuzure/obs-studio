@@ -158,13 +158,41 @@ int os_process_pipe_destroy(os_process_pipe_t *pp)
 	if (pp) {
 		DWORD code;
 
+		debug_log("Closing handle...");
 		CloseHandle(pp->handle);
+		debug_log("Closing handle_err...");
 		CloseHandle(pp->handle_err);
 
-		WaitForSingleObject(pp->process, INFINITE);
+		debug_log("Calling WaitForSingleObject() ...");
+		/// @todo Lower to 3000 or 5000. Current 2 minutes are chosen to
+		///       hook the VS debugger into the process before the
+		///       timeout hits.
+		code = WaitForSingleObject(pp->process, 120000);
+		if (code) {
+			DWORD last_error = GetLastError();
+			blog(LOG_ERROR, "Closing process failed: %s (0x%08x)",
+			     WAIT_ABANDONED == code ? "process abandoned"
+			     : WAIT_TIMEOUT == code ? "signaling timed out"
+			     : WAIT_FAILED == code  ? "the waiting failed"
+						    : "Unknown return code!",
+			     code);
+			blog(LOG_ERROR, "Last Error: %d [0x%08x]", last_error,
+			     last_error);
+			// This means the muxer exe is crashed or dead-locked
+			// Let's terminate the process before the user has
+			// to use the task manager to do so by hand.
+			code = TerminateProcess(pp->process, 42);
+			if (0 == code) {
+				last_error = GetLastError();
+				blog(LOG_ERROR,
+				     "Terminating process failed: %d [0x%08x]",
+				     last_error, last_error);
+			}
+		}
 		if (GetExitCodeProcess(pp->process, &code))
 			ret = (int)code;
 
+		debug_log("Closing process handle...");
 		CloseHandle(pp->process);
 		bfree(pp);
 	}
