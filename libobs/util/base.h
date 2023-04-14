@@ -104,44 +104,6 @@ EXPORT char const *obs_internal_location_info(char const *path, size_t line,
 #define CURRENT_THREAD_ID ((size_t)(pthread_self()))
 #endif // PTHREAD_H vs _PTHREAD_H
 #if defined(ENABLE_MUTEX_LOGGING) && !defined(NO_MUTEX_DEBUG_LOGGING)
-#if defined(__GNUC__)
-// === Very good, we can use GNU extensions like braced groups in assignments.
-#define pthread_mutex_init(MUTEX_, MUTEXATTR_)                     \
-	({                                                         \
-		debug_log("[MUTEX] Initialize '%s': %zu", #MUTEX_, \
-			  CURRENT_THREAD_ID);                      \
-		int ret_ = pthread_mutex_init(MUTEX_, MUTEXATTR_); \
-		ret_;                                              \
-	})
-#define pthread_mutex_destroy(MUTEX_)                           \
-	({                                                      \
-		debug_log("[MUTEX] Destroy '%s': %zu", #MUTEX_, \
-			  CURRENT_THREAD_ID);                   \
-		int ret_ = pthread_mutex_destroy(MUTEX_);       \
-		ret_;                                           \
-	})
-#define pthread_mutex_trylock(MUTEX_)                               \
-	({                                                          \
-		debug_log("[MUTEX] Try To Lock '%s': %zu", #MUTEX_, \
-			  CURRENT_THREAD_ID);                       \
-		int ret_ = pthread_mutex_trylock(MUTEX_);           \
-		ret_;                                               \
-	})
-#define pthread_mutex_lock(MUTEX_)                           \
-	({                                                   \
-		debug_log("[MUTEX] Lock '%s': %zu", #MUTEX_, \
-			  CURRENT_THREAD_ID);                \
-		int ret_ = pthread_mutex_lock(MUTEX_);       \
-		ret_;                                        \
-	})
-#define pthread_mutex_unlock(MUTEX_)                           \
-	({                                                     \
-		debug_log("[MUTEX] Unlock '%s': %zu", #MUTEX_, \
-			  CURRENT_THREAD_ID);                  \
-		int ret_ = pthread_mutex_unlock(MUTEX_);       \
-		ret_;                                          \
-	})
-#else // __GNUC__
 // === Without GNU extensions we need a more complex path...
 #define debug_log_there(FILE_, LINE_, FUNC_, FMT_, ...)                \
 	blog_internal(LOG_DEBUG, "%s: [debug] " FMT_,                  \
@@ -202,7 +164,6 @@ static int pthread_mutex_unlock_debug_(char const *path, size_t line,
 #define pthread_mutex_unlock(MUTEX_)                                       \
 	pthread_mutex_unlock_debug_(__FILE__, __LINE__, __func__, #MUTEX_, \
 				    MUTEX_)
-#endif // __GNUC__
 #endif // ENABLE_MUTEX_LOGGING && !NO_MUTEX_DEBUG_LOGGING
 #endif // PTHREAD_H || _PTHREAD_H
 //---------------------------------------------
