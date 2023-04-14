@@ -1685,7 +1685,7 @@ bool obs_scripting_load_python(const char *python_path)
 
 	/* ---------------------------------------------- */
 	/* Must set arguments for guis to work            */
-#if PY_VERSION_HEX >= 0x03110000
+#if PY_VERSION_HEX >= 0x030b0000 // 3.11.0+
 	PyConfig py_conf;
 	char *argv[128] = {"obs", 0x0};
 	int argc = 1;
