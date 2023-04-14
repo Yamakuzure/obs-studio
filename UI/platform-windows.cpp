@@ -341,6 +341,7 @@ struct MonitorData {
 	bool found;
 };
 
+#if QT_VERSION < QT_VERSION_CHECK(6, 4, 0)
 static BOOL CALLBACK GetMonitorCallback(HMONITOR monitor, HDC, LPRECT,
 					LPARAM param)
 {
@@ -356,7 +357,6 @@ static BOOL CALLBACK GetMonitorCallback(HMONITOR monitor, HDC, LPRECT,
 	return true;
 }
 
-#if QT_VERSION < QT_VERSION_CHECK(6, 4, 0)
 #define GENERIC_MONITOR_NAME QStringLiteral("Generic PnP Monitor")
 
 QString GetMonitorName(const QString &id)
